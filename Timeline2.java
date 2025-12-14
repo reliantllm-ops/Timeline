@@ -28,6 +28,26 @@ public class Timeline2 extends JFrame {
     private JSpinner outlineThicknessSpinner, taskHeightSpinner, fontSizeSpinner;
     private JToggleButton boldBtn, italicBtn;
     private JTextField centerTextField;
+    // Front text controls
+    private JTextField frontTextField;
+    private JSpinner frontFontSizeSpinner;
+    private JToggleButton frontBoldBtn, frontItalicBtn;
+    private JButton frontTextColorBtn;
+    // Above text controls
+    private JTextField aboveTextField;
+    private JSpinner aboveFontSizeSpinner;
+    private JToggleButton aboveBoldBtn, aboveItalicBtn;
+    private JButton aboveTextColorBtn;
+    // Underneath text controls
+    private JTextField underneathTextField;
+    private JSpinner underneathFontSizeSpinner;
+    private JToggleButton underneathBoldBtn, underneathItalicBtn;
+    private JButton underneathTextColorBtn;
+    // Behind text controls
+    private JTextField behindTextField;
+    private JSpinner behindFontSizeSpinner;
+    private JToggleButton behindBoldBtn, behindItalicBtn;
+    private JButton behindTextColorBtn;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -92,7 +112,7 @@ public class Timeline2 extends JFrame {
             BorderFactory.createTitledBorder("Format"),
             BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
-        panel.setPreferredSize(new Dimension(0, 95));
+        panel.setPreferredSize(new Dimension(0, 220));
         panel.setBackground(new Color(250, 250, 250));
 
         // Add resize handle at top
@@ -120,7 +140,7 @@ public class Timeline2 extends JFrame {
 
         // Mouse listener for resizing
         final int[] dragStartY = {0};
-        final int[] originalHeight = {95};
+        final int[] originalHeight = {125};
 
         MouseAdapter resizeAdapter = new MouseAdapter() {
             @Override
@@ -233,38 +253,38 @@ public class Timeline2 extends JFrame {
         separatorPanel.add(separator);
         contentPanel.add(separatorPanel);
 
-        // Row 2: Font formatting fields
+        // Row 2: Front text fields (text in front of task bar)
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row2.setOpaque(false);
 
-        row2.add(new JLabel("Center Text:"));
-        centerTextField = new JTextField(12);
-        centerTextField.setEnabled(false);
-        centerTextField.setToolTipText("Text displayed on the task bar");
-        centerTextField.addActionListener(e -> updateCenterText());
-        centerTextField.addFocusListener(new FocusAdapter() {
-            public void focusLost(FocusEvent e) { updateCenterText(); }
+        JLabel frontLabel = new JLabel("Front Text:");
+        frontLabel.setPreferredSize(new Dimension(105, 20));
+        row2.add(frontLabel);
+        frontTextField = new JTextField(12);
+        frontTextField.setEnabled(false);
+        frontTextField.setToolTipText("Text displayed in front of the task bar");
+        frontTextField.addActionListener(e -> updateFrontText());
+        frontTextField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateFrontText(); }
         });
-        row2.add(centerTextField);
-
-        row2.add(Box.createHorizontalStrut(15));
-        row2.add(new JLabel("Font Size:"));
-        fontSizeSpinner = new JSpinner(new SpinnerNumberModel(11, 8, 24, 1));
-        fontSizeSpinner.setPreferredSize(new Dimension(50, 25));
-        fontSizeSpinner.setEnabled(false);
-        fontSizeSpinner.setToolTipText("Font size (8-24)");
-        fontSizeSpinner.addChangeListener(e -> updateFontSize());
-        row2.add(fontSizeSpinner);
+        row2.add(frontTextField);
 
         row2.add(Box.createHorizontalStrut(10));
+        frontFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
+        frontFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
+        frontFontSizeSpinner.setEnabled(false);
+        frontFontSizeSpinner.setToolTipText("Front text font size (8-24)");
+        frontFontSizeSpinner.addChangeListener(e -> updateFrontFontSize());
+        row2.add(frontFontSizeSpinner);
 
-        // MS Word style Bold button
-        boldBtn = new JToggleButton("B") {
+        row2.add(Box.createHorizontalStrut(5));
+
+        // MS Word style Bold button for front text
+        frontBoldBtn = new JToggleButton("B") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                 if (isSelected()) {
                     g2d.setColor(new Color(200, 200, 200));
                     g2d.fillRect(0, 0, getWidth(), getHeight());
@@ -279,7 +299,118 @@ public class Timeline2 extends JFrame {
                     g2d.setColor(getBackground());
                     g2d.fillRect(0, 0, getWidth(), getHeight());
                 }
+                g2d.setColor(isEnabled() ? Color.BLACK : Color.GRAY);
+                g2d.setFont(new Font("Times New Roman", Font.BOLD, 14));
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth("B")) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2d.drawString("B", x, y);
+            }
+        };
+        frontBoldBtn.setPreferredSize(new Dimension(28, 25));
+        frontBoldBtn.setEnabled(false);
+        frontBoldBtn.setToolTipText("Bold front text");
+        frontBoldBtn.setContentAreaFilled(false);
+        frontBoldBtn.setBorderPainted(false);
+        frontBoldBtn.setFocusPainted(false);
+        frontBoldBtn.addActionListener(e -> updateFrontFontBold());
+        row2.add(frontBoldBtn);
 
+        row2.add(Box.createHorizontalStrut(2));
+
+        // MS Word style Italic button for front text
+        frontItalicBtn = new JToggleButton("I") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (isSelected()) {
+                    g2d.setColor(new Color(200, 200, 200));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(150, 150, 150));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else if (getModel().isRollover() && isEnabled()) {
+                    g2d.setColor(new Color(230, 230, 230));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(180, 180, 180));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else {
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
+                g2d.setColor(isEnabled() ? Color.BLACK : Color.GRAY);
+                g2d.setFont(new Font("Times New Roman", Font.BOLD | Font.ITALIC, 14));
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth("I")) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2d.drawString("I", x, y);
+            }
+        };
+        frontItalicBtn.setPreferredSize(new Dimension(28, 25));
+        frontItalicBtn.setEnabled(false);
+        frontItalicBtn.setToolTipText("Italic front text");
+        frontItalicBtn.setContentAreaFilled(false);
+        frontItalicBtn.setBorderPainted(false);
+        frontItalicBtn.setFocusPainted(false);
+        frontItalicBtn.addActionListener(e -> updateFrontFontItalic());
+        row2.add(frontItalicBtn);
+
+        row2.add(Box.createHorizontalStrut(5));
+        frontTextColorBtn = new JButton();
+        frontTextColorBtn.setPreferredSize(new Dimension(30, 25));
+        frontTextColorBtn.setEnabled(false);
+        frontTextColorBtn.setToolTipText("Click to change front text color");
+        frontTextColorBtn.addActionListener(e -> chooseFrontTextColor());
+        row2.add(frontTextColorBtn);
+
+        contentPanel.add(row2);
+
+        // Row 3: Center text fields (text on the task bar)
+        JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        row3.setOpaque(false);
+
+        JLabel centerLabel = new JLabel("Center Text:");
+        centerLabel.setPreferredSize(new Dimension(105, 20));
+        row3.add(centerLabel);
+        centerTextField = new JTextField(12);
+        centerTextField.setEnabled(false);
+        centerTextField.setToolTipText("Text displayed on the task bar");
+        centerTextField.addActionListener(e -> updateCenterText());
+        centerTextField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateCenterText(); }
+        });
+        row3.add(centerTextField);
+
+        row3.add(Box.createHorizontalStrut(10));
+        fontSizeSpinner = new JSpinner(new SpinnerNumberModel(11, 8, 24, 1));
+        fontSizeSpinner.setPreferredSize(new Dimension(50, 25));
+        fontSizeSpinner.setEnabled(false);
+        fontSizeSpinner.setToolTipText("Center text font size (8-24)");
+        fontSizeSpinner.addChangeListener(e -> updateFontSize());
+        row3.add(fontSizeSpinner);
+
+        row3.add(Box.createHorizontalStrut(5));
+
+        // MS Word style Bold button
+        boldBtn = new JToggleButton("B") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (isSelected()) {
+                    g2d.setColor(new Color(200, 200, 200));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(150, 150, 150));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else if (getModel().isRollover() && isEnabled()) {
+                    g2d.setColor(new Color(230, 230, 230));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(180, 180, 180));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else {
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
                 g2d.setColor(isEnabled() ? Color.BLACK : Color.GRAY);
                 g2d.setFont(new Font("Times New Roman", Font.BOLD, 14));
                 FontMetrics fm = g2d.getFontMetrics();
@@ -295,9 +426,9 @@ public class Timeline2 extends JFrame {
         boldBtn.setBorderPainted(false);
         boldBtn.setFocusPainted(false);
         boldBtn.addActionListener(e -> updateFontBold());
-        row2.add(boldBtn);
+        row3.add(boldBtn);
 
-        row2.add(Box.createHorizontalStrut(2));
+        row3.add(Box.createHorizontalStrut(2));
 
         // MS Word style Italic button
         italicBtn = new JToggleButton("I") {
@@ -305,7 +436,6 @@ public class Timeline2 extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                 if (isSelected()) {
                     g2d.setColor(new Color(200, 200, 200));
                     g2d.fillRect(0, 0, getWidth(), getHeight());
@@ -320,7 +450,6 @@ public class Timeline2 extends JFrame {
                     g2d.setColor(getBackground());
                     g2d.fillRect(0, 0, getWidth(), getHeight());
                 }
-
                 g2d.setColor(isEnabled() ? Color.BLACK : Color.GRAY);
                 g2d.setFont(new Font("Times New Roman", Font.BOLD | Font.ITALIC, 14));
                 FontMetrics fm = g2d.getFontMetrics();
@@ -336,22 +465,174 @@ public class Timeline2 extends JFrame {
         italicBtn.setBorderPainted(false);
         italicBtn.setFocusPainted(false);
         italicBtn.addActionListener(e -> updateFontItalic());
-        row2.add(italicBtn);
+        row3.add(italicBtn);
 
-        row2.add(Box.createHorizontalStrut(15));
-        row2.add(new JLabel("Text Color:"));
+        row3.add(Box.createHorizontalStrut(5));
         textColorBtn = new JButton();
         textColorBtn.setPreferredSize(new Dimension(30, 25));
         textColorBtn.setEnabled(false);
-        textColorBtn.setToolTipText("Click to change text color");
+        textColorBtn.setToolTipText("Click to change center text color");
         textColorBtn.addActionListener(e -> chooseTextColor());
-        row2.add(textColorBtn);
+        row3.add(textColorBtn);
 
-        contentPanel.add(row2);
+        contentPanel.add(row3);
+
+        // Row 4: Above text fields
+        JPanel row4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        row4.setOpaque(false);
+        JLabel aboveLabel = new JLabel("Above Text:");
+        aboveLabel.setPreferredSize(new Dimension(105, 20));
+        row4.add(aboveLabel);
+        aboveTextField = new JTextField(12);
+        aboveTextField.setEnabled(false);
+        aboveTextField.setToolTipText("Text displayed above the task bar");
+        aboveTextField.addActionListener(e -> updateAboveText());
+        aboveTextField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateAboveText(); }
+        });
+        row4.add(aboveTextField);
+        row4.add(Box.createHorizontalStrut(10));
+        aboveFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
+        aboveFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
+        aboveFontSizeSpinner.setEnabled(false);
+        aboveFontSizeSpinner.setToolTipText("Above text font size");
+        aboveFontSizeSpinner.addChangeListener(e -> updateAboveFontSize());
+        row4.add(aboveFontSizeSpinner);
+        row4.add(Box.createHorizontalStrut(5));
+        aboveBoldBtn = createWordStyleButton("B", true, false);
+        aboveBoldBtn.addActionListener(e -> updateAboveFontBold());
+        row4.add(aboveBoldBtn);
+        row4.add(Box.createHorizontalStrut(2));
+        aboveItalicBtn = createWordStyleButton("I", false, true);
+        aboveItalicBtn.addActionListener(e -> updateAboveFontItalic());
+        row4.add(aboveItalicBtn);
+        row4.add(Box.createHorizontalStrut(5));
+        aboveTextColorBtn = new JButton();
+        aboveTextColorBtn.setPreferredSize(new Dimension(30, 25));
+        aboveTextColorBtn.setEnabled(false);
+        aboveTextColorBtn.setToolTipText("Above text color");
+        aboveTextColorBtn.addActionListener(e -> chooseAboveTextColor());
+        row4.add(aboveTextColorBtn);
+        contentPanel.add(row4);
+
+        // Row 5: Underneath text fields
+        JPanel row5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        row5.setOpaque(false);
+        JLabel underneathLabel = new JLabel("Underneath Text:");
+        underneathLabel.setPreferredSize(new Dimension(105, 20));
+        row5.add(underneathLabel);
+        underneathTextField = new JTextField(12);
+        underneathTextField.setEnabled(false);
+        underneathTextField.setToolTipText("Text displayed below the task bar");
+        underneathTextField.addActionListener(e -> updateUnderneathText());
+        underneathTextField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateUnderneathText(); }
+        });
+        row5.add(underneathTextField);
+        row5.add(Box.createHorizontalStrut(10));
+        underneathFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
+        underneathFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
+        underneathFontSizeSpinner.setEnabled(false);
+        underneathFontSizeSpinner.setToolTipText("Underneath text font size");
+        underneathFontSizeSpinner.addChangeListener(e -> updateUnderneathFontSize());
+        row5.add(underneathFontSizeSpinner);
+        row5.add(Box.createHorizontalStrut(5));
+        underneathBoldBtn = createWordStyleButton("B", true, false);
+        underneathBoldBtn.addActionListener(e -> updateUnderneathFontBold());
+        row5.add(underneathBoldBtn);
+        row5.add(Box.createHorizontalStrut(2));
+        underneathItalicBtn = createWordStyleButton("I", false, true);
+        underneathItalicBtn.addActionListener(e -> updateUnderneathFontItalic());
+        row5.add(underneathItalicBtn);
+        row5.add(Box.createHorizontalStrut(5));
+        underneathTextColorBtn = new JButton();
+        underneathTextColorBtn.setPreferredSize(new Dimension(30, 25));
+        underneathTextColorBtn.setEnabled(false);
+        underneathTextColorBtn.setToolTipText("Underneath text color");
+        underneathTextColorBtn.addActionListener(e -> chooseUnderneathTextColor());
+        row5.add(underneathTextColorBtn);
+        contentPanel.add(row5);
+
+        // Row 6: Behind text fields
+        JPanel row6 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        row6.setOpaque(false);
+        JLabel behindLabel = new JLabel("Behind Text:");
+        behindLabel.setPreferredSize(new Dimension(105, 20));
+        row6.add(behindLabel);
+        behindTextField = new JTextField(12);
+        behindTextField.setEnabled(false);
+        behindTextField.setToolTipText("Text displayed behind the task bar");
+        behindTextField.addActionListener(e -> updateBehindText());
+        behindTextField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateBehindText(); }
+        });
+        row6.add(behindTextField);
+        row6.add(Box.createHorizontalStrut(10));
+        behindFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
+        behindFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
+        behindFontSizeSpinner.setEnabled(false);
+        behindFontSizeSpinner.setToolTipText("Behind text font size");
+        behindFontSizeSpinner.addChangeListener(e -> updateBehindFontSize());
+        row6.add(behindFontSizeSpinner);
+        row6.add(Box.createHorizontalStrut(5));
+        behindBoldBtn = createWordStyleButton("B", true, false);
+        behindBoldBtn.addActionListener(e -> updateBehindFontBold());
+        row6.add(behindBoldBtn);
+        row6.add(Box.createHorizontalStrut(2));
+        behindItalicBtn = createWordStyleButton("I", false, true);
+        behindItalicBtn.addActionListener(e -> updateBehindFontItalic());
+        row6.add(behindItalicBtn);
+        row6.add(Box.createHorizontalStrut(5));
+        behindTextColorBtn = new JButton();
+        behindTextColorBtn.setPreferredSize(new Dimension(30, 25));
+        behindTextColorBtn.setEnabled(false);
+        behindTextColorBtn.setToolTipText("Behind text color");
+        behindTextColorBtn.addActionListener(e -> chooseBehindTextColor());
+        row6.add(behindTextColorBtn);
+        contentPanel.add(row6);
 
         panel.add(contentPanel, BorderLayout.CENTER);
 
         return panel;
+    }
+
+    // Helper to create MS Word style toggle button
+    private JToggleButton createWordStyleButton(String text, boolean isBold, boolean isItalic) {
+        JToggleButton btn = new JToggleButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (isSelected()) {
+                    g2d.setColor(new Color(200, 200, 200));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(150, 150, 150));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else if (getModel().isRollover() && isEnabled()) {
+                    g2d.setColor(new Color(230, 230, 230));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(180, 180, 180));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else {
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
+                g2d.setColor(isEnabled() ? Color.BLACK : Color.GRAY);
+                int style = (isBold ? Font.BOLD : 0) | (isItalic ? Font.ITALIC : 0);
+                if (style == 0) style = Font.BOLD;
+                g2d.setFont(new Font("Times New Roman", style, 14));
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(text)) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2d.drawString(text, x, y);
+            }
+        };
+        btn.setPreferredSize(new Dimension(28, 25));
+        btn.setEnabled(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        return btn;
     }
 
     private void chooseFillColor() {
@@ -433,6 +714,170 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    // Front text update methods
+    private void updateFrontText() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.frontText = frontTextField.getText();
+        refreshTimeline();
+    }
+
+    private void updateFrontFontSize() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.frontFontSize = (Integer) frontFontSizeSpinner.getValue();
+        refreshTimeline();
+    }
+
+    private void updateFrontFontBold() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.frontFontBold = frontBoldBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void updateFrontFontItalic() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.frontFontItalic = frontItalicBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void chooseFrontTextColor() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        Color currentColor = task.frontTextColor != null ? task.frontTextColor : Color.BLACK;
+        Color newColor = JColorChooser.showDialog(this, "Choose Front Text Color", currentColor);
+        if (newColor != null) {
+            task.frontTextColor = newColor;
+            frontTextColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
+    // Above text update methods
+    private void updateAboveText() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.aboveText = aboveTextField.getText();
+        refreshTimeline();
+    }
+
+    private void updateAboveFontSize() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.aboveFontSize = (Integer) aboveFontSizeSpinner.getValue();
+        refreshTimeline();
+    }
+
+    private void updateAboveFontBold() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.aboveFontBold = aboveBoldBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void updateAboveFontItalic() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.aboveFontItalic = aboveItalicBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void chooseAboveTextColor() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        Color currentColor = task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK;
+        Color newColor = JColorChooser.showDialog(this, "Choose Above Text Color", currentColor);
+        if (newColor != null) {
+            task.aboveTextColor = newColor;
+            aboveTextColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
+    // Underneath text update methods
+    private void updateUnderneathText() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.underneathText = underneathTextField.getText();
+        refreshTimeline();
+    }
+
+    private void updateUnderneathFontSize() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.underneathFontSize = (Integer) underneathFontSizeSpinner.getValue();
+        refreshTimeline();
+    }
+
+    private void updateUnderneathFontBold() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.underneathFontBold = underneathBoldBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void updateUnderneathFontItalic() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.underneathFontItalic = underneathItalicBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void chooseUnderneathTextColor() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        Color currentColor = task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK;
+        Color newColor = JColorChooser.showDialog(this, "Choose Underneath Text Color", currentColor);
+        if (newColor != null) {
+            task.underneathTextColor = newColor;
+            underneathTextColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
+    // Behind text update methods
+    private void updateBehindText() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.behindText = behindTextField.getText();
+        refreshTimeline();
+    }
+
+    private void updateBehindFontSize() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.behindFontSize = (Integer) behindFontSizeSpinner.getValue();
+        refreshTimeline();
+    }
+
+    private void updateBehindFontBold() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.behindFontBold = behindBoldBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void updateBehindFontItalic() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.behindFontItalic = behindItalicBtn.isSelected();
+        refreshTimeline();
+    }
+
+    private void chooseBehindTextColor() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        Color currentColor = task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150);
+        Color newColor = JColorChooser.showDialog(this, "Choose Behind Text Color", currentColor);
+        if (newColor != null) {
+            task.behindTextColor = newColor;
+            behindTextColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
     void selectTask(int index) {
         selectedTaskIndex = index;
         if (index >= 0 && index < tasks.size()) {
@@ -469,9 +914,61 @@ public class Timeline2 extends JFrame {
             boldBtn.setEnabled(true);
             italicBtn.setSelected(task.fontItalic);
             italicBtn.setEnabled(true);
-            Color textColor = task.textColor != null ? task.textColor : Color.WHITE;
+            Color textColor = task.textColor != null ? task.textColor : Color.BLACK;
             textColorBtn.setBackground(textColor);
             textColorBtn.setEnabled(true);
+
+            // Update front text controls
+            frontTextField.setText(task.frontText);
+            frontTextField.setEnabled(true);
+            frontFontSizeSpinner.setValue(task.frontFontSize);
+            frontFontSizeSpinner.setEnabled(true);
+            frontBoldBtn.setSelected(task.frontFontBold);
+            frontBoldBtn.setEnabled(true);
+            frontItalicBtn.setSelected(task.frontFontItalic);
+            frontItalicBtn.setEnabled(true);
+            Color frontColor = task.frontTextColor != null ? task.frontTextColor : Color.BLACK;
+            frontTextColorBtn.setBackground(frontColor);
+            frontTextColorBtn.setEnabled(true);
+
+            // Update above text controls
+            aboveTextField.setText(task.aboveText);
+            aboveTextField.setEnabled(true);
+            aboveFontSizeSpinner.setValue(task.aboveFontSize);
+            aboveFontSizeSpinner.setEnabled(true);
+            aboveBoldBtn.setSelected(task.aboveFontBold);
+            aboveBoldBtn.setEnabled(true);
+            aboveItalicBtn.setSelected(task.aboveFontItalic);
+            aboveItalicBtn.setEnabled(true);
+            Color aboveColor = task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK;
+            aboveTextColorBtn.setBackground(aboveColor);
+            aboveTextColorBtn.setEnabled(true);
+
+            // Update underneath text controls
+            underneathTextField.setText(task.underneathText);
+            underneathTextField.setEnabled(true);
+            underneathFontSizeSpinner.setValue(task.underneathFontSize);
+            underneathFontSizeSpinner.setEnabled(true);
+            underneathBoldBtn.setSelected(task.underneathFontBold);
+            underneathBoldBtn.setEnabled(true);
+            underneathItalicBtn.setSelected(task.underneathFontItalic);
+            underneathItalicBtn.setEnabled(true);
+            Color underneathColor = task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK;
+            underneathTextColorBtn.setBackground(underneathColor);
+            underneathTextColorBtn.setEnabled(true);
+
+            // Update behind text controls
+            behindTextField.setText(task.behindText);
+            behindTextField.setEnabled(true);
+            behindFontSizeSpinner.setValue(task.behindFontSize);
+            behindFontSizeSpinner.setEnabled(true);
+            behindBoldBtn.setSelected(task.behindFontBold);
+            behindBoldBtn.setEnabled(true);
+            behindItalicBtn.setSelected(task.behindFontItalic);
+            behindItalicBtn.setEnabled(true);
+            Color behindColor = task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150);
+            behindTextColorBtn.setBackground(behindColor);
+            behindTextColorBtn.setEnabled(true);
         } else {
             formatTitleLabel.setText("No task selected");
             formatTitleLabel.setForeground(Color.BLACK);
@@ -495,12 +992,60 @@ public class Timeline2 extends JFrame {
             centerTextField.setEnabled(false);
             fontSizeSpinner.setValue(11);
             fontSizeSpinner.setEnabled(false);
-            boldBtn.setSelected(true);
+            boldBtn.setSelected(false);
             boldBtn.setEnabled(false);
             italicBtn.setSelected(false);
             italicBtn.setEnabled(false);
             textColorBtn.setBackground(null);
             textColorBtn.setEnabled(false);
+
+            // Reset front text controls
+            frontTextField.setText("");
+            frontTextField.setEnabled(false);
+            frontFontSizeSpinner.setValue(10);
+            frontFontSizeSpinner.setEnabled(false);
+            frontBoldBtn.setSelected(false);
+            frontBoldBtn.setEnabled(false);
+            frontItalicBtn.setSelected(false);
+            frontItalicBtn.setEnabled(false);
+            frontTextColorBtn.setBackground(null);
+            frontTextColorBtn.setEnabled(false);
+
+            // Reset above text controls
+            aboveTextField.setText("");
+            aboveTextField.setEnabled(false);
+            aboveFontSizeSpinner.setValue(10);
+            aboveFontSizeSpinner.setEnabled(false);
+            aboveBoldBtn.setSelected(false);
+            aboveBoldBtn.setEnabled(false);
+            aboveItalicBtn.setSelected(false);
+            aboveItalicBtn.setEnabled(false);
+            aboveTextColorBtn.setBackground(null);
+            aboveTextColorBtn.setEnabled(false);
+
+            // Reset underneath text controls
+            underneathTextField.setText("");
+            underneathTextField.setEnabled(false);
+            underneathFontSizeSpinner.setValue(10);
+            underneathFontSizeSpinner.setEnabled(false);
+            underneathBoldBtn.setSelected(false);
+            underneathBoldBtn.setEnabled(false);
+            underneathItalicBtn.setSelected(false);
+            underneathItalicBtn.setEnabled(false);
+            underneathTextColorBtn.setBackground(null);
+            underneathTextColorBtn.setEnabled(false);
+
+            // Reset behind text controls
+            behindTextField.setText("");
+            behindTextField.setEnabled(false);
+            behindFontSizeSpinner.setValue(10);
+            behindFontSizeSpinner.setEnabled(false);
+            behindBoldBtn.setSelected(false);
+            behindBoldBtn.setEnabled(false);
+            behindItalicBtn.setSelected(false);
+            behindItalicBtn.setEnabled(false);
+            behindTextColorBtn.setBackground(null);
+            behindTextColorBtn.setEnabled(false);
         }
         timelineDisplayPanel.repaint();
         if (layersPanel != null) {
@@ -1215,11 +1760,35 @@ public class Timeline2 extends JFrame {
         int outlineThickness = 2;  // default thickness
         int height = 25;           // default height
         int yPosition = -1;        // Y position on timeline (-1 means auto-calculate)
-        // Text formatting properties
+        // Center text formatting properties
         int fontSize = 11;         // default font size
-        boolean fontBold = true;   // default bold
+        boolean fontBold = false;  // default not bold
         boolean fontItalic = false; // default not italic
-        Color textColor = null;    // null means use default (white)
+        Color textColor = Color.BLACK;    // default black
+        // Front text properties (text in front of task bar)
+        String frontText = "";
+        int frontFontSize = 10;
+        boolean frontFontBold = false;
+        boolean frontFontItalic = false;
+        Color frontTextColor = Color.BLACK;
+        // Above text properties (text above task bar)
+        String aboveText = "";
+        int aboveFontSize = 10;
+        boolean aboveFontBold = false;
+        boolean aboveFontItalic = false;
+        Color aboveTextColor = Color.BLACK;
+        // Underneath text properties (text below task bar)
+        String underneathText = "";
+        int underneathFontSize = 10;
+        boolean underneathFontBold = false;
+        boolean underneathFontItalic = false;
+        Color underneathTextColor = Color.BLACK;
+        // Behind text properties (text behind task bar)
+        String behindText = "";
+        int behindFontSize = 10;
+        boolean behindFontBold = false;
+        boolean behindFontItalic = false;
+        Color behindTextColor = new Color(150, 150, 150);
         TimelineTask(String name, String startDate, String endDate) {
             this.name = name;
             this.centerText = name; // default center text to name
@@ -1667,7 +2236,34 @@ public class Timeline2 extends JFrame {
                     g2d.fillRoundRect(x1 - 4, y - 4, barWidth + 8, taskHeight + 8, 12, 12);
                 }
 
-                // Bar
+                // Draw behind text (behind the task bar)
+                if (task.behindText != null && !task.behindText.isEmpty()) {
+                    int behindFontStyle = Font.PLAIN;
+                    if (task.behindFontBold) behindFontStyle |= Font.BOLD;
+                    if (task.behindFontItalic) behindFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font("Arial", behindFontStyle, task.behindFontSize));
+                    g2d.setColor(task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150));
+                    FontMetrics behindFm = g2d.getFontMetrics();
+                    int behindTextWidth = behindFm.stringWidth(task.behindText);
+                    // Draw behind text to the right of the task bar with small gap
+                    g2d.drawString(task.behindText, x1 + barWidth + 5,
+                                   y + (taskHeight + behindFm.getAscent() - behindFm.getDescent()) / 2);
+                }
+
+                // Draw front text (in front of task bar)
+                if (task.frontText != null && !task.frontText.isEmpty()) {
+                    int frontFontStyle = Font.PLAIN;
+                    if (task.frontFontBold) frontFontStyle |= Font.BOLD;
+                    if (task.frontFontItalic) frontFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font("Arial", frontFontStyle, task.frontFontSize));
+                    g2d.setColor(task.frontTextColor != null ? task.frontTextColor : Color.BLACK);
+                    FontMetrics frontFm = g2d.getFontMetrics();
+                    int frontTextWidth = frontFm.stringWidth(task.frontText);
+                    // Draw front text to the left of the task bar with small gap
+                    g2d.drawString(task.frontText, x1 - frontTextWidth - 5,
+                                   y + (taskHeight + frontFm.getAscent() - frontFm.getDescent()) / 2);
+                }
+
                 g2d.setColor(fillColor);
                 g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
                 int thickness = task.outlineThickness;
@@ -1678,7 +2274,7 @@ public class Timeline2 extends JFrame {
                 }
 
                 // Text - use custom formatting with centerText
-                Color textColor = task.textColor != null ? task.textColor : Color.WHITE;
+                Color textColor = task.textColor != null ? task.textColor : Color.BLACK;
                 g2d.setColor(textColor);
                 int fontStyle = Font.PLAIN;
                 if (task.fontBold) fontStyle |= Font.BOLD;
@@ -1694,6 +2290,34 @@ public class Timeline2 extends JFrame {
                 if (textWidth <= barWidth - 6) {
                     g2d.drawString(displayText, x1 + (barWidth - textWidth) / 2,
                                    y + (taskHeight + fm.getAscent() - fm.getDescent()) / 2);
+                }
+
+                // Draw above text (above the task bar)
+                if (task.aboveText != null && !task.aboveText.isEmpty()) {
+                    int aboveFontStyle = Font.PLAIN;
+                    if (task.aboveFontBold) aboveFontStyle |= Font.BOLD;
+                    if (task.aboveFontItalic) aboveFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font("Arial", aboveFontStyle, task.aboveFontSize));
+                    g2d.setColor(task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK);
+                    FontMetrics aboveFm = g2d.getFontMetrics();
+                    int aboveTextWidth = aboveFm.stringWidth(task.aboveText);
+                    // Draw above text centered above the task bar
+                    g2d.drawString(task.aboveText, x1 + (barWidth - aboveTextWidth) / 2,
+                                   y - 3);
+                }
+
+                // Draw underneath text (below the task bar)
+                if (task.underneathText != null && !task.underneathText.isEmpty()) {
+                    int underneathFontStyle = Font.PLAIN;
+                    if (task.underneathFontBold) underneathFontStyle |= Font.BOLD;
+                    if (task.underneathFontItalic) underneathFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font("Arial", underneathFontStyle, task.underneathFontSize));
+                    g2d.setColor(task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK);
+                    FontMetrics underneathFm = g2d.getFontMetrics();
+                    int underneathTextWidth = underneathFm.stringWidth(task.underneathText);
+                    // Draw underneath text centered below the task bar
+                    g2d.drawString(task.underneathText, x1 + (barWidth - underneathTextWidth) / 2,
+                                   y + taskHeight + underneathFm.getAscent() + 2);
                 }
 
                 // Draw drag handles (grip lines) - only when selected
