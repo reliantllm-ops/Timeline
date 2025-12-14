@@ -27,6 +27,7 @@ public class Timeline2 extends JFrame {
     private JButton fillColorBtn, outlineColorBtn, textColorBtn;
     private JSpinner outlineThicknessSpinner, taskHeightSpinner, fontSizeSpinner;
     private JToggleButton boldBtn, italicBtn;
+    private JTextField centerTextField;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -236,6 +237,17 @@ public class Timeline2 extends JFrame {
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row2.setOpaque(false);
 
+        row2.add(new JLabel("Center Text:"));
+        centerTextField = new JTextField(12);
+        centerTextField.setEnabled(false);
+        centerTextField.setToolTipText("Text displayed on the task bar");
+        centerTextField.addActionListener(e -> updateCenterText());
+        centerTextField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateCenterText(); }
+        });
+        row2.add(centerTextField);
+
+        row2.add(Box.createHorizontalStrut(15));
         row2.add(new JLabel("Font Size:"));
         fontSizeSpinner = new JSpinner(new SpinnerNumberModel(11, 8, 24, 1));
         fontSizeSpinner.setPreferredSize(new Dimension(50, 25));
@@ -245,20 +257,84 @@ public class Timeline2 extends JFrame {
         row2.add(fontSizeSpinner);
 
         row2.add(Box.createHorizontalStrut(10));
-        boldBtn = new JToggleButton("B");
-        boldBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        boldBtn.setPreferredSize(new Dimension(30, 25));
+
+        // MS Word style Bold button
+        boldBtn = new JToggleButton("B") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                if (isSelected()) {
+                    g2d.setColor(new Color(200, 200, 200));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(150, 150, 150));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else if (getModel().isRollover() && isEnabled()) {
+                    g2d.setColor(new Color(230, 230, 230));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(180, 180, 180));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else {
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
+
+                g2d.setColor(isEnabled() ? Color.BLACK : Color.GRAY);
+                g2d.setFont(new Font("Times New Roman", Font.BOLD, 14));
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth("B")) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2d.drawString("B", x, y);
+            }
+        };
+        boldBtn.setPreferredSize(new Dimension(28, 25));
         boldBtn.setEnabled(false);
-        boldBtn.setToolTipText("Bold text");
+        boldBtn.setToolTipText("Bold (Ctrl+B)");
+        boldBtn.setContentAreaFilled(false);
+        boldBtn.setBorderPainted(false);
+        boldBtn.setFocusPainted(false);
         boldBtn.addActionListener(e -> updateFontBold());
         row2.add(boldBtn);
 
         row2.add(Box.createHorizontalStrut(2));
-        italicBtn = new JToggleButton("I");
-        italicBtn.setFont(new Font("Arial", Font.ITALIC, 12));
-        italicBtn.setPreferredSize(new Dimension(30, 25));
+
+        // MS Word style Italic button
+        italicBtn = new JToggleButton("I") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                if (isSelected()) {
+                    g2d.setColor(new Color(200, 200, 200));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(150, 150, 150));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else if (getModel().isRollover() && isEnabled()) {
+                    g2d.setColor(new Color(230, 230, 230));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(180, 180, 180));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else {
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
+
+                g2d.setColor(isEnabled() ? Color.BLACK : Color.GRAY);
+                g2d.setFont(new Font("Times New Roman", Font.BOLD | Font.ITALIC, 14));
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth("I")) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2d.drawString("I", x, y);
+            }
+        };
+        italicBtn.setPreferredSize(new Dimension(28, 25));
         italicBtn.setEnabled(false);
-        italicBtn.setToolTipText("Italic text");
+        italicBtn.setToolTipText("Italic (Ctrl+I)");
+        italicBtn.setContentAreaFilled(false);
+        italicBtn.setBorderPainted(false);
+        italicBtn.setFocusPainted(false);
         italicBtn.addActionListener(e -> updateFontItalic());
         row2.add(italicBtn);
 
@@ -314,6 +390,13 @@ public class Timeline2 extends JFrame {
         if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
         TimelineTask task = tasks.get(selectedTaskIndex);
         task.height = (Integer) taskHeightSpinner.getValue();
+        refreshTimeline();
+    }
+
+    private void updateCenterText() {
+        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
+        TimelineTask task = tasks.get(selectedTaskIndex);
+        task.centerText = centerTextField.getText();
         refreshTimeline();
     }
 
@@ -378,6 +461,8 @@ public class Timeline2 extends JFrame {
             taskHeightSpinner.setEnabled(true);
 
             // Update text formatting controls
+            centerTextField.setText(task.centerText);
+            centerTextField.setEnabled(true);
             fontSizeSpinner.setValue(task.fontSize);
             fontSizeSpinner.setEnabled(true);
             boldBtn.setSelected(task.fontBold);
@@ -406,6 +491,8 @@ public class Timeline2 extends JFrame {
             taskHeightSpinner.setEnabled(false);
 
             // Reset text formatting controls
+            centerTextField.setText("");
+            centerTextField.setEnabled(false);
             fontSizeSpinner.setValue(11);
             fontSizeSpinner.setEnabled(false);
             boldBtn.setSelected(true);
@@ -1122,6 +1209,7 @@ public class Timeline2 extends JFrame {
 
     static class TimelineTask {
         String name, startDate, endDate;
+        String centerText = "";    // text displayed on the task bar
         Color fillColor = null;    // null means use default
         Color outlineColor = null; // null means use default (darker fill)
         int outlineThickness = 2;  // default thickness
@@ -1134,6 +1222,7 @@ public class Timeline2 extends JFrame {
         Color textColor = null;    // null means use default (white)
         TimelineTask(String name, String startDate, String endDate) {
             this.name = name;
+            this.centerText = name; // default center text to name
             this.startDate = startDate;
             this.endDate = endDate;
         }
@@ -1588,7 +1677,7 @@ public class Timeline2 extends JFrame {
                     g2d.drawRoundRect(x1, y, barWidth, taskHeight, 8, 8);
                 }
 
-                // Text - use custom formatting
+                // Text - use custom formatting with centerText
                 Color textColor = task.textColor != null ? task.textColor : Color.WHITE;
                 g2d.setColor(textColor);
                 int fontStyle = Font.PLAIN;
@@ -1596,14 +1685,14 @@ public class Timeline2 extends JFrame {
                 if (task.fontItalic) fontStyle |= Font.ITALIC;
                 g2d.setFont(new Font("Arial", fontStyle, task.fontSize));
                 FontMetrics fm = g2d.getFontMetrics();
-                String name = task.name;
-                int textWidth = fm.stringWidth(name);
-                while (textWidth > barWidth - 10 && name.length() > 3) {
-                    name = name.substring(0, name.length() - 4) + "...";
-                    textWidth = fm.stringWidth(name);
+                String displayText = task.centerText != null && !task.centerText.isEmpty() ? task.centerText : task.name;
+                int textWidth = fm.stringWidth(displayText);
+                while (textWidth > barWidth - 10 && displayText.length() > 3) {
+                    displayText = displayText.substring(0, displayText.length() - 4) + "...";
+                    textWidth = fm.stringWidth(displayText);
                 }
                 if (textWidth <= barWidth - 6) {
-                    g2d.drawString(name, x1 + (barWidth - textWidth) / 2,
+                    g2d.drawString(displayText, x1 + (barWidth - textWidth) / 2,
                                    y + (taskHeight + fm.getAscent() - fm.getDescent()) / 2);
                 }
 
