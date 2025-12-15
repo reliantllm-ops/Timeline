@@ -2364,6 +2364,14 @@ public class Timeline2 extends JFrame {
         private String milestoneDragOriginalDate = null;
         private int milestoneDragOriginalYPosition = -1;
 
+        // Milestone resize handles
+        private boolean isMilestoneResizing = false;
+        private int resizeHandle = -1; // 0=top, 1=bottom, 2=left, 3=right, 4=top-left, 5=top-right, 6=bottom-left, 7=bottom-right
+        private int resizeStartX = -1;
+        private int resizeStartY = -1;
+        private int resizeOriginalWidth = -1;
+        private int resizeOriginalHeight = -1;
+
         TimelineDisplayPanel() {
             setBackground(Color.WHITE);
             setupMouseListeners();
@@ -2469,6 +2477,12 @@ public class Timeline2 extends JFrame {
                         setCursor(Cursor.getDefaultCursor());
                         refreshTimeline();
                     }
+                    if (isMilestoneResizing) {
+                        isMilestoneResizing = false;
+                        resizeHandle = -1;
+                        setCursor(Cursor.getDefaultCursor());
+                        refreshTimeline();
+                    }
                 }
                 public void mouseDragged(MouseEvent e) {
                     if (isDragging && draggingTaskIndex >= 0) {
@@ -2482,6 +2496,9 @@ public class Timeline2 extends JFrame {
                     }
                     if (isMilestoneDragging) {
                         handleMilestoneDrag(e.getX(), e.getY());
+                    }
+                    if (isMilestoneResizing) {
+                        handleMilestoneResize(e.getX(), e.getY());
                     }
                 }
                 public void mouseMoved(MouseEvent e) {
@@ -2574,9 +2591,38 @@ public class Timeline2 extends JFrame {
                 } catch (Exception ex) {}
             }
 
-            // Check for milestone clicks
+            // Check for milestone resize handles first (if milestone is selected)
             int tasksHeight = getTotalTasksHeight();
             int timelineY = 50 + tasksHeight;
+            if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
+                try {
+                    LocalDate milestoneDate = LocalDate.parse(milestone.date, DATE_FORMAT);
+                    int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
+                    int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                    int boxPadding = 6;
+                    int boxX = mx - milestone.width / 2 - boxPadding;
+                    int boxY = my - milestone.height / 2 - boxPadding;
+                    int boxW = milestone.width + boxPadding * 2;
+                    int boxH = milestone.height + boxPadding * 2;
+                    int handleSize = 6;
+
+                    // Check each handle
+                    int handle = getResizeHandle(x, y, boxX, boxY, boxW, boxH, handleSize);
+                    if (handle >= 0) {
+                        isMilestoneResizing = true;
+                        resizeHandle = handle;
+                        resizeStartX = x;
+                        resizeStartY = y;
+                        resizeOriginalWidth = milestone.width;
+                        resizeOriginalHeight = milestone.height;
+                        setCursor(getResizeCursor(handle));
+                        return;
+                    }
+                } catch (Exception ex) {}
+            }
+
+            // Check for milestone clicks
             for (int i = 0; i < milestones.size(); i++) {
                 TimelineMilestone milestone = milestones.get(i);
                 try {
@@ -2588,8 +2634,10 @@ public class Timeline2 extends JFrame {
                     int halfW = milestone.width / 2;
                     int halfH = milestone.height / 2;
 
-                    // Check if click is within milestone bounds
-                    if (x >= mx - halfW && x <= mx + halfW && y >= my - halfH && y <= my + halfH) {
+                    // Check if click is within milestone bounds (plus selection box area)
+                    int boxPadding = 6;
+                    if (x >= mx - halfW - boxPadding && x <= mx + halfW + boxPadding &&
+                        y >= my - halfH - boxPadding && y <= my + halfH + boxPadding) {
                         selectMilestone(i);
                         // Start milestone drag
                         isMilestoneDragging = true;
@@ -2602,6 +2650,41 @@ public class Timeline2 extends JFrame {
                         return;
                     }
                 } catch (Exception ex) {}
+            }
+        }
+
+        private int getResizeHandle(int x, int y, int boxX, int boxY, int boxW, int boxH, int handleSize) {
+            int tolerance = handleSize / 2 + 2;
+            // Top center
+            if (Math.abs(x - (boxX + boxW/2)) <= tolerance && Math.abs(y - boxY) <= tolerance) return 0;
+            // Bottom center
+            if (Math.abs(x - (boxX + boxW/2)) <= tolerance && Math.abs(y - (boxY + boxH)) <= tolerance) return 1;
+            // Left center
+            if (Math.abs(x - boxX) <= tolerance && Math.abs(y - (boxY + boxH/2)) <= tolerance) return 2;
+            // Right center
+            if (Math.abs(x - (boxX + boxW)) <= tolerance && Math.abs(y - (boxY + boxH/2)) <= tolerance) return 3;
+            // Top-left
+            if (Math.abs(x - boxX) <= tolerance && Math.abs(y - boxY) <= tolerance) return 4;
+            // Top-right
+            if (Math.abs(x - (boxX + boxW)) <= tolerance && Math.abs(y - boxY) <= tolerance) return 5;
+            // Bottom-left
+            if (Math.abs(x - boxX) <= tolerance && Math.abs(y - (boxY + boxH)) <= tolerance) return 6;
+            // Bottom-right
+            if (Math.abs(x - (boxX + boxW)) <= tolerance && Math.abs(y - (boxY + boxH)) <= tolerance) return 7;
+            return -1;
+        }
+
+        private Cursor getResizeCursor(int handle) {
+            switch (handle) {
+                case 0: return Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR);
+                case 1: return Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR);
+                case 2: return Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR);
+                case 3: return Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR);
+                case 4: return Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR);
+                case 5: return Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR);
+                case 6: return Cursor.getPredefinedCursor(Cursor.SW_RESIZE_CURSOR);
+                case 7: return Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR);
+                default: return Cursor.getDefaultCursor();
             }
         }
 
@@ -2733,6 +2816,51 @@ public class Timeline2 extends JFrame {
             newY = Math.max(35, newY);
             milestone.yPosition = newY;
 
+            repaint();
+        }
+
+        private void handleMilestoneResize(int x, int y) {
+            if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+
+            TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
+            int deltaX = x - resizeStartX;
+            int deltaY = y - resizeStartY;
+            int minSize = 10;
+
+            switch (resizeHandle) {
+                case 0: // Top - adjust height
+                    milestone.height = Math.max(minSize, resizeOriginalHeight - deltaY * 2);
+                    break;
+                case 1: // Bottom - adjust height
+                    milestone.height = Math.max(minSize, resizeOriginalHeight + deltaY * 2);
+                    break;
+                case 2: // Left - adjust width
+                    milestone.width = Math.max(minSize, resizeOriginalWidth - deltaX * 2);
+                    break;
+                case 3: // Right - adjust width
+                    milestone.width = Math.max(minSize, resizeOriginalWidth + deltaX * 2);
+                    break;
+                case 4: // Top-left - adjust both
+                    milestone.width = Math.max(minSize, resizeOriginalWidth - deltaX * 2);
+                    milestone.height = Math.max(minSize, resizeOriginalHeight - deltaY * 2);
+                    break;
+                case 5: // Top-right - adjust both
+                    milestone.width = Math.max(minSize, resizeOriginalWidth + deltaX * 2);
+                    milestone.height = Math.max(minSize, resizeOriginalHeight - deltaY * 2);
+                    break;
+                case 6: // Bottom-left - adjust both
+                    milestone.width = Math.max(minSize, resizeOriginalWidth - deltaX * 2);
+                    milestone.height = Math.max(minSize, resizeOriginalHeight + deltaY * 2);
+                    break;
+                case 7: // Bottom-right - adjust both
+                    milestone.width = Math.max(minSize, resizeOriginalWidth + deltaX * 2);
+                    milestone.height = Math.max(minSize, resizeOriginalHeight + deltaY * 2);
+                    break;
+            }
+
+            // Update the format panel spinners
+            milestoneWidthSpinner.setValue(milestone.width);
+            milestoneHeightSpinner.setValue(milestone.height);
             repaint();
         }
 
@@ -3027,8 +3155,35 @@ public class Timeline2 extends JFrame {
                     g2d.setColor(new Color(0, 120, 215));
                     g2d.setStroke(new BasicStroke(2));
                     int boxPadding = 6;
-                    g2d.drawRect(x - milestone.width / 2 - boxPadding, y - milestone.height / 2 - boxPadding,
-                                 milestone.width + boxPadding * 2, milestone.height + boxPadding * 2);
+                    int boxX = x - milestone.width / 2 - boxPadding;
+                    int boxY = y - milestone.height / 2 - boxPadding;
+                    int boxW = milestone.width + boxPadding * 2;
+                    int boxH = milestone.height + boxPadding * 2;
+                    g2d.drawRect(boxX, boxY, boxW, boxH);
+
+                    // Draw resize handles (small squares at corners and edges)
+                    int handleSize = 6;
+                    g2d.setColor(Color.WHITE);
+                    // Corner handles
+                    g2d.fillRect(boxX - handleSize/2, boxY - handleSize/2, handleSize, handleSize); // top-left
+                    g2d.fillRect(boxX + boxW - handleSize/2, boxY - handleSize/2, handleSize, handleSize); // top-right
+                    g2d.fillRect(boxX - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize); // bottom-left
+                    g2d.fillRect(boxX + boxW - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize); // bottom-right
+                    // Edge handles
+                    g2d.fillRect(boxX + boxW/2 - handleSize/2, boxY - handleSize/2, handleSize, handleSize); // top
+                    g2d.fillRect(boxX + boxW/2 - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize); // bottom
+                    g2d.fillRect(boxX - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize); // left
+                    g2d.fillRect(boxX + boxW - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize); // right
+                    // Handle outlines
+                    g2d.setColor(new Color(0, 120, 215));
+                    g2d.drawRect(boxX - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
+                    g2d.drawRect(boxX + boxW - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
+                    g2d.drawRect(boxX - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize);
+                    g2d.drawRect(boxX + boxW - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize);
+                    g2d.drawRect(boxX + boxW/2 - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
+                    g2d.drawRect(boxX + boxW/2 - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize);
+                    g2d.drawRect(boxX - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize);
+                    g2d.drawRect(boxX + boxW - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize);
                 }
 
                 // Draw the milestone shape
