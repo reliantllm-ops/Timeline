@@ -3022,11 +3022,13 @@ public class Timeline2 extends JFrame {
                 int y = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
                 boolean isSelected = (index == selectedMilestoneIndex);
 
-                // Selection highlight (glow effect)
+                // Selection highlight (box around shape)
                 if (isSelected) {
-                    g2d.setColor(new Color(milestone.fillColor.getRed(), milestone.fillColor.getGreen(),
-                                           milestone.fillColor.getBlue(), 100));
-                    drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width + 8, milestone.height + 8, true);
+                    g2d.setColor(new Color(0, 120, 215));
+                    g2d.setStroke(new BasicStroke(2));
+                    int boxPadding = 6;
+                    g2d.drawRect(x - milestone.width / 2 - boxPadding, y - milestone.height / 2 - boxPadding,
+                                 milestone.width + boxPadding * 2, milestone.height + boxPadding * 2);
                 }
 
                 // Draw the milestone shape
@@ -3035,8 +3037,8 @@ public class Timeline2 extends JFrame {
 
                 // Draw outline
                 if (milestone.outlineThickness > 0) {
-                    g2d.setColor(isSelected ? Color.WHITE : milestone.outlineColor);
-                    g2d.setStroke(new BasicStroke(isSelected ? milestone.outlineThickness + 2 : milestone.outlineThickness));
+                    g2d.setColor(milestone.outlineColor);
+                    g2d.setStroke(new BasicStroke(milestone.outlineThickness));
                     drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width, milestone.height, false);
                 }
 
