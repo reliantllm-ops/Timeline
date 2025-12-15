@@ -138,7 +138,7 @@ public class Timeline2 extends JFrame {
         newTaskBtn.addActionListener(e -> addNewTask());
         toolbarPanel.add(newTaskBtn);
         JButton newMilestoneBtn = new JButton("+ New Milestone");
-        newMilestoneBtn.addActionListener(e -> showMilestoneShapeDialog());
+        newMilestoneBtn.addActionListener(e -> showMilestoneShapeMenu(newMilestoneBtn));
         toolbarPanel.add(newMilestoneBtn);
         JButton clearAllBtn = new JButton("Clear All");
         clearAllBtn.addActionListener(e -> clearAll());
@@ -1345,43 +1345,37 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
-    private void showMilestoneShapeDialog() {
-        JDialog dialog = new JDialog(this, "Select Milestone Shape", true);
-        dialog.setLayout(new BorderLayout(10, 10));
-        dialog.setSize(400, 200);
-        dialog.setLocationRelativeTo(this);
-
-        JPanel shapesPanel = new JPanel(new GridLayout(2, 3, 10, 10));
-        shapesPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    private void showMilestoneShapeMenu(JButton button) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)));
 
         String[] shapes = {"Diamond", "Circle", "Triangle", "Star", "Square", "Hexagon"};
+        int buttonWidth = button.getWidth();
+
         for (String shape : shapes) {
-            JButton btn = new JButton(shape) {
+            JMenuItem item = new JMenuItem(shape) {
                 @Override
                 protected void paintComponent(Graphics g) {
                     super.paintComponent(g);
                     Graphics2D g2d = (Graphics2D) g;
                     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    int cx = getWidth() / 2;
-                    int cy = getHeight() / 2 + 8;
-                    int size = 12;
+                    // Draw shape icon on the left
+                    int cy = getHeight() / 2;
+                    int size = 10;
                     g2d.setColor(new Color(255, 193, 7));
-                    drawMilestoneShape(g2d, shape.toLowerCase(), cx, cy, size, size, true);
+                    drawMilestoneShape(g2d, shape.toLowerCase(), 20, cy, size, size, true);
                     g2d.setColor(Color.BLACK);
-                    drawMilestoneShape(g2d, shape.toLowerCase(), cx, cy, size, size, false);
+                    drawMilestoneShape(g2d, shape.toLowerCase(), 20, cy, size, size, false);
                 }
             };
-            btn.setVerticalTextPosition(SwingConstants.TOP);
-            btn.setHorizontalTextPosition(SwingConstants.CENTER);
-            btn.addActionListener(e -> {
-                addNewMilestone(shape.toLowerCase());
-                dialog.dispose();
-            });
-            shapesPanel.add(btn);
+            item.setPreferredSize(new Dimension(buttonWidth, 28));
+            item.setBorder(BorderFactory.createEmptyBorder(4, 35, 4, 10));
+            item.addActionListener(e -> addNewMilestone(shape.toLowerCase()));
+            popup.add(item);
         }
 
-        dialog.add(shapesPanel, BorderLayout.CENTER);
-        dialog.setVisible(true);
+        // Show popup directly under the button
+        popup.show(button, 0, button.getHeight());
     }
 
     private void addNewMilestone(String shape) {
