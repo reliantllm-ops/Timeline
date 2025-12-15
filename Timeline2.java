@@ -2423,13 +2423,14 @@ public class Timeline2 extends JFrame {
         }
 
         private void handleMousePressed(int x, int y) {
-            if (tasks.isEmpty() || startDate == null || endDate == null) return;
+            if (startDate == null || endDate == null) return;
 
             int timelineX = MARGIN_LEFT;
             int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
             long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
             if (totalDays <= 0) return;
 
+            // Check tasks first
             for (int i = 0; i < tasks.size(); i++) {
                 TimelineTask task = tasks.get(i);
                 int taskY = getTaskY(i);
