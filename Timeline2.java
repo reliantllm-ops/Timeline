@@ -13,12 +13,46 @@ public class Timeline2 extends JFrame {
     // Data storage
     private ArrayList<TimelineEvent> events = new ArrayList<>();
     private ArrayList<TimelineTask> tasks = new ArrayList<>();
+    private ArrayList<TimelineMilestone> milestones = new ArrayList<>();
     private int selectedTaskIndex = -1;
+    private int selectedMilestoneIndex = -1;
+
+    // Panel colors - Settings
+    private Color settingsInteriorColor = new Color(250, 250, 250);
+    private Color settingsOutlineColor = new Color(200, 200, 200);
+    private Color settingsHeaderColor = new Color(70, 130, 180);
+    private Color settingsHeaderTextColor = Color.WHITE;
+    private Color settingsLabelColor = Color.BLACK;
+    private Color settingsFieldBgColor = Color.WHITE;
+    private Color settingsButtonBgColor = new Color(240, 240, 240);
+    private Color settingsButtonTextColor = Color.BLACK;
+    // Panel colors - Timeline
+    private Color timelineInteriorColor = Color.WHITE;
+    private Color timelineOutlineColor = new Color(200, 200, 200);
+    private Color timelineLineColor = new Color(70, 130, 180);
+    private Color timelineDateTextColor = Color.BLACK;
+    private Color timelineGridColor = new Color(220, 220, 220);
+    private Color timelineEventColor = new Color(220, 53, 69);
+    // Panel colors - Layers
+    private Color layersInteriorColor = new Color(250, 250, 250);
+    private Color layersOutlineColor = new Color(200, 200, 200);
+    private Color layersHeaderColor = new Color(70, 130, 180);
+    private Color layersHeaderTextColor = Color.WHITE;
+    private Color layersListBgColor = Color.WHITE;
+    private Color layersItemTextColor = Color.BLACK;
+    private Color layersSelectedBgColor = new Color(200, 200, 200);
+    private Color layersDragHandleColor = new Color(150, 150, 150);
+    // Panel colors - Format
+    private Color formatInteriorColor = new Color(250, 250, 250);
+    private Color formatOutlineColor = new Color(200, 200, 200);
+    private Color formatHeaderColor = new Color(70, 130, 180);
+    private Color formatLabelColor = Color.BLACK;
+    private Color formatSeparatorColor = new Color(200, 200, 200);
+    private Color formatResizeHandleColor = new Color(230, 230, 230);
 
     // UI Components
     private TimelineDisplayPanel timelineDisplayPanel;
-    private JTextField titleField, eventDateField, startDateField, endDateField;
-    private JTextArea descriptionArea;
+    private JTextField startDateField, endDateField;
     private CollapsiblePanel leftPanel;
     private LayersPanel layersPanel;
     private JPanel formatPanel;
@@ -48,6 +82,11 @@ public class Timeline2 extends JFrame {
     private JSpinner behindFontSizeSpinner;
     private JToggleButton behindBoldBtn, behindItalicBtn;
     private JButton behindTextColorBtn;
+    // Milestone controls
+    private JTextField milestoneNameField, milestoneDateField;
+    private JSpinner milestoneWidthSpinner, milestoneHeightSpinner;
+    private JButton milestoneFillColorBtn, milestoneOutlineColorBtn;
+    private JSpinner milestoneOutlineThicknessSpinner;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -72,19 +111,34 @@ public class Timeline2 extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(5, 5));
 
-        // Left panel - Settings & Events
-        leftPanel = new CollapsiblePanel("Settings & Events", createSettingsPanel(), true);
+        // Menu bar
+        JMenuBar menuBar = new JMenuBar();
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem preferencesItem = new JMenuItem("Preferences");
+        preferencesItem.addActionListener(e -> showPreferencesDialog());
+        editMenu.add(preferencesItem);
+        menuBar.add(editMenu);
+        setJMenuBar(menuBar);
+
+        // Left panel - Settings
+        leftPanel = new CollapsiblePanel("Settings", createSettingsPanel(), true);
         add(leftPanel, BorderLayout.WEST);
 
         // Center - Timeline display with New Task button
         JPanel centerPanel = new JPanel(new BorderLayout());
 
-        // Top toolbar with New Task button
+        // Top toolbar with New Task, New Milestone, and Clear All buttons
         JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         toolbarPanel.setBackground(new Color(245, 245, 245));
         JButton newTaskBtn = new JButton("+ New Task");
         newTaskBtn.addActionListener(e -> addNewTask());
         toolbarPanel.add(newTaskBtn);
+        JButton newMilestoneBtn = new JButton("+ New Milestone");
+        newMilestoneBtn.addActionListener(e -> showMilestoneShapeDialog());
+        toolbarPanel.add(newMilestoneBtn);
+        JButton clearAllBtn = new JButton("Clear All");
+        clearAllBtn.addActionListener(e -> clearAll());
+        toolbarPanel.add(clearAllBtn);
         centerPanel.add(toolbarPanel, BorderLayout.NORTH);
 
         timelineDisplayPanel = new TimelineDisplayPanel();
@@ -108,60 +162,53 @@ public class Timeline2 extends JFrame {
 
     private JPanel createFormatPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 5));
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Format"),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
-        panel.setPreferredSize(new Dimension(0, 220));
+        panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        panel.setPreferredSize(new Dimension(0, 295));
         panel.setBackground(new Color(250, 250, 250));
 
-        // Add resize handle at top
-        JPanel resizeHandle = new JPanel();
-        resizeHandle.setPreferredSize(new Dimension(0, 6));
-        resizeHandle.setBackground(new Color(230, 230, 230));
-        resizeHandle.setCursor(Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR));
+        // Header bar with minimize/maximize toggle
+        JPanel headerBar = new JPanel(new BorderLayout());
+        headerBar.setPreferredSize(new Dimension(0, 20));
+        headerBar.setBackground(new Color(70, 130, 180));
 
-        // Draw grip lines on the handle
-        resizeHandle.setLayout(null);
-        JPanel gripLines = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setColor(new Color(180, 180, 180));
-                int centerX = getWidth() / 2;
-                g2d.drawLine(centerX - 20, 2, centerX + 20, 2);
-                g2d.drawLine(centerX - 15, 4, centerX + 15, 4);
+        JLabel formatTitle = new JLabel("  Format");
+        formatTitle.setForeground(Color.WHITE);
+        formatTitle.setFont(new Font("Arial", Font.BOLD, 11));
+        headerBar.add(formatTitle, BorderLayout.WEST);
+
+        // Minimize/maximize button
+        JButton toggleBtn = new JButton("\u25BC");  // Down arrow (expanded)
+        toggleBtn.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 10));
+        toggleBtn.setMargin(new Insets(0, 5, 0, 5));
+        toggleBtn.setFocusPainted(false);
+        toggleBtn.setToolTipText("Minimize");
+
+        // Content wrapper to show/hide
+        JPanel contentWrapper = new JPanel(new BorderLayout());
+        contentWrapper.setOpaque(false);
+        contentWrapper.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        final boolean[] isExpanded = {true};
+        toggleBtn.addActionListener(e -> {
+            isExpanded[0] = !isExpanded[0];
+            if (isExpanded[0]) {
+                panel.setPreferredSize(new Dimension(0, 295));
+                toggleBtn.setText("\u25BC");  // Down arrow
+                toggleBtn.setToolTipText("Minimize");
+                contentWrapper.setVisible(true);
+            } else {
+                panel.setPreferredSize(new Dimension(0, 20));
+                toggleBtn.setText("\u25B2");  // Up arrow
+                toggleBtn.setToolTipText("Expand");
+                contentWrapper.setVisible(false);
             }
-        };
-        gripLines.setOpaque(false);
-        gripLines.setBounds(0, 0, 2000, 6);
-        resizeHandle.add(gripLines);
+            panel.revalidate();
+            Timeline2.this.revalidate();
+            Timeline2.this.repaint();
+        });
+        headerBar.add(toggleBtn, BorderLayout.EAST);
 
-        // Mouse listener for resizing
-        final int[] dragStartY = {0};
-        final int[] originalHeight = {125};
-
-        MouseAdapter resizeAdapter = new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                dragStartY[0] = e.getYOnScreen();
-                originalHeight[0] = panel.getPreferredSize().height;
-            }
-
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                int deltaY = dragStartY[0] - e.getYOnScreen();
-                int newHeight = Math.max(50, Math.min(300, originalHeight[0] + deltaY));
-                panel.setPreferredSize(new Dimension(0, newHeight));
-                panel.revalidate();
-                Timeline2.this.revalidate();
-            }
-        };
-        resizeHandle.addMouseListener(resizeAdapter);
-        resizeHandle.addMouseMotionListener(resizeAdapter);
-
-        panel.add(resizeHandle, BorderLayout.NORTH);
+        panel.add(headerBar, BorderLayout.NORTH);
 
         // Main content panel with rows
         JPanel contentPanel = new JPanel();
@@ -171,6 +218,8 @@ public class Timeline2 extends JFrame {
         // Row 1: Title and main fields
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row1.setOpaque(false);
+        row1.setMinimumSize(new Dimension(1200, 30));
+        row1.setPreferredSize(new Dimension(1200, 30));
 
         formatTitleLabel = new JLabel("No task selected");
         formatTitleLabel.setFont(new Font("Arial", Font.BOLD, 12));
@@ -244,18 +293,22 @@ public class Timeline2 extends JFrame {
 
         contentPanel.add(row1);
 
-        // Separator between rows
-        JPanel separatorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 2));
+        // Separator between rows with 5px spacing above and 3px below
+        contentPanel.add(Box.createVerticalStrut(5));
+        JPanel separatorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         separatorPanel.setOpaque(false);
         JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
-        separator.setPreferredSize(new Dimension(800, 2));
+        separator.setPreferredSize(new Dimension(1200, 2));
         separatorPanel.add(Box.createHorizontalStrut(10));
         separatorPanel.add(separator);
         contentPanel.add(separatorPanel);
+        contentPanel.add(Box.createVerticalStrut(3));
 
         // Row 2: Front text fields (text in front of task bar)
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row2.setOpaque(false);
+        row2.setMinimumSize(new Dimension(800, 30));
+        row2.setPreferredSize(new Dimension(800, 30));
 
         JLabel frontLabel = new JLabel("Front Text:");
         frontLabel.setPreferredSize(new Dimension(105, 20));
@@ -368,6 +421,8 @@ public class Timeline2 extends JFrame {
         // Row 3: Center text fields (text on the task bar)
         JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row3.setOpaque(false);
+        row3.setMinimumSize(new Dimension(800, 30));
+        row3.setPreferredSize(new Dimension(800, 30));
 
         JLabel centerLabel = new JLabel("Center Text:");
         centerLabel.setPreferredSize(new Dimension(105, 20));
@@ -480,6 +535,8 @@ public class Timeline2 extends JFrame {
         // Row 4: Above text fields
         JPanel row4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row4.setOpaque(false);
+        row4.setMinimumSize(new Dimension(800, 30));
+        row4.setPreferredSize(new Dimension(800, 30));
         JLabel aboveLabel = new JLabel("Above Text:");
         aboveLabel.setPreferredSize(new Dimension(105, 20));
         row4.add(aboveLabel);
@@ -518,6 +575,8 @@ public class Timeline2 extends JFrame {
         // Row 5: Underneath text fields
         JPanel row5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row5.setOpaque(false);
+        row5.setMinimumSize(new Dimension(800, 30));
+        row5.setPreferredSize(new Dimension(800, 30));
         JLabel underneathLabel = new JLabel("Underneath Text:");
         underneathLabel.setPreferredSize(new Dimension(105, 20));
         row5.add(underneathLabel);
@@ -556,6 +615,8 @@ public class Timeline2 extends JFrame {
         // Row 6: Behind text fields
         JPanel row6 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
         row6.setOpaque(false);
+        row6.setMinimumSize(new Dimension(800, 30));
+        row6.setPreferredSize(new Dimension(800, 30));
         JLabel behindLabel = new JLabel("Behind Text:");
         behindLabel.setPreferredSize(new Dimension(105, 20));
         row6.add(behindLabel);
@@ -591,7 +652,92 @@ public class Timeline2 extends JFrame {
         row6.add(behindTextColorBtn);
         contentPanel.add(row6);
 
-        panel.add(contentPanel, BorderLayout.CENTER);
+        // Separator before milestone row
+        contentPanel.add(Box.createVerticalStrut(5));
+        JPanel separatorPanel2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        separatorPanel2.setOpaque(false);
+        JSeparator separator2 = new JSeparator(SwingConstants.HORIZONTAL);
+        separator2.setPreferredSize(new Dimension(1200, 2));
+        separatorPanel2.add(Box.createHorizontalStrut(10));
+        separatorPanel2.add(separator2);
+        contentPanel.add(separatorPanel2);
+        contentPanel.add(Box.createVerticalStrut(3));
+
+        // Row 7: Milestone fields
+        JPanel row7 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        row7.setOpaque(false);
+        row7.setMinimumSize(new Dimension(1200, 30));
+        row7.setPreferredSize(new Dimension(1200, 30));
+        JLabel milestoneLabel = new JLabel("Milestone:");
+        milestoneLabel.setPreferredSize(new Dimension(60, 20));
+        row7.add(milestoneLabel);
+
+        row7.add(new JLabel("Name:"));
+        milestoneNameField = new JTextField(10);
+        milestoneNameField.setEnabled(false);
+        milestoneNameField.addActionListener(e -> updateSelectedMilestoneName());
+        milestoneNameField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateSelectedMilestoneName(); }
+        });
+        row7.add(milestoneNameField);
+
+        row7.add(Box.createHorizontalStrut(10));
+        row7.add(new JLabel("Date:"));
+        milestoneDateField = new JTextField(8);
+        milestoneDateField.setEnabled(false);
+        milestoneDateField.addActionListener(e -> updateSelectedMilestoneDate());
+        milestoneDateField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateSelectedMilestoneDate(); }
+        });
+        row7.add(milestoneDateField);
+
+        row7.add(Box.createHorizontalStrut(15));
+        row7.add(new JLabel("Fill:"));
+        milestoneFillColorBtn = new JButton();
+        milestoneFillColorBtn.setPreferredSize(new Dimension(30, 25));
+        milestoneFillColorBtn.setEnabled(false);
+        milestoneFillColorBtn.setToolTipText("Click to change fill color");
+        milestoneFillColorBtn.addActionListener(e -> chooseMilestoneFillColor());
+        row7.add(milestoneFillColorBtn);
+
+        row7.add(Box.createHorizontalStrut(10));
+        row7.add(new JLabel("Outline:"));
+        milestoneOutlineColorBtn = new JButton();
+        milestoneOutlineColorBtn.setPreferredSize(new Dimension(30, 25));
+        milestoneOutlineColorBtn.setEnabled(false);
+        milestoneOutlineColorBtn.setToolTipText("Click to change outline color");
+        milestoneOutlineColorBtn.addActionListener(e -> chooseMilestoneOutlineColor());
+        row7.add(milestoneOutlineColorBtn);
+
+        row7.add(Box.createHorizontalStrut(10));
+        row7.add(new JLabel("Thickness:"));
+        milestoneOutlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 10, 1));
+        milestoneOutlineThicknessSpinner.setPreferredSize(new Dimension(50, 25));
+        milestoneOutlineThicknessSpinner.setEnabled(false);
+        milestoneOutlineThicknessSpinner.addChangeListener(e -> updateMilestoneOutlineThickness());
+        row7.add(milestoneOutlineThicknessSpinner);
+
+        row7.add(Box.createHorizontalStrut(10));
+        row7.add(new JLabel("Height:"));
+        milestoneHeightSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
+        milestoneHeightSpinner.setPreferredSize(new Dimension(55, 25));
+        milestoneHeightSpinner.setEnabled(false);
+        milestoneHeightSpinner.addChangeListener(e -> updateMilestoneHeight());
+        row7.add(milestoneHeightSpinner);
+
+        row7.add(Box.createHorizontalStrut(10));
+        row7.add(new JLabel("Width:"));
+        milestoneWidthSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
+        milestoneWidthSpinner.setPreferredSize(new Dimension(55, 25));
+        milestoneWidthSpinner.setEnabled(false);
+        milestoneWidthSpinner.addChangeListener(e -> updateMilestoneWidth());
+        row7.add(milestoneWidthSpinner);
+
+        contentPanel.add(row7);
+        contentPanel.add(Box.createVerticalStrut(3));
+
+        contentWrapper.add(contentPanel, BorderLayout.CENTER);
+        panel.add(contentWrapper, BorderLayout.CENTER);
 
         return panel;
     }
@@ -878,8 +1024,90 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    // Milestone update methods
+    private void updateSelectedMilestoneName() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        String newName = milestoneNameField.getText().trim();
+        if (!newName.isEmpty()) {
+            milestones.get(selectedMilestoneIndex).name = newName;
+            milestones.get(selectedMilestoneIndex).labelText = newName;
+            refreshTimeline();
+        }
+    }
+
+    private void updateSelectedMilestoneDate() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        String newDate = milestoneDateField.getText().trim();
+        try {
+            LocalDate.parse(newDate, DATE_FORMAT);
+            milestones.get(selectedMilestoneIndex).date = newDate;
+            refreshTimeline();
+        } catch (Exception e) {
+            showWarning("Invalid date format. Use YYYY-MM-DD.");
+        }
+    }
+
+    private void chooseMilestoneFillColor() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
+        Color newColor = JColorChooser.showDialog(this, "Choose Fill Color", milestone.fillColor);
+        if (newColor != null) {
+            milestone.fillColor = newColor;
+            milestoneFillColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
+    private void chooseMilestoneOutlineColor() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
+        Color newColor = JColorChooser.showDialog(this, "Choose Outline Color", milestone.outlineColor);
+        if (newColor != null) {
+            milestone.outlineColor = newColor;
+            milestoneOutlineColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
+    private void updateMilestoneOutlineThickness() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        milestones.get(selectedMilestoneIndex).outlineThickness = (Integer) milestoneOutlineThicknessSpinner.getValue();
+        refreshTimeline();
+    }
+
+    private void updateMilestoneHeight() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        milestones.get(selectedMilestoneIndex).height = (Integer) milestoneHeightSpinner.getValue();
+        refreshTimeline();
+    }
+
+    private void updateMilestoneWidth() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        milestones.get(selectedMilestoneIndex).width = (Integer) milestoneWidthSpinner.getValue();
+        refreshTimeline();
+    }
+
     void selectTask(int index) {
         selectedTaskIndex = index;
+        // Deselect milestone when task is selected
+        if (index >= 0) {
+            selectedMilestoneIndex = -1;
+            // Clear milestone fields
+            milestoneNameField.setText("");
+            milestoneNameField.setEnabled(false);
+            milestoneDateField.setText("");
+            milestoneDateField.setEnabled(false);
+            milestoneFillColorBtn.setBackground(null);
+            milestoneFillColorBtn.setEnabled(false);
+            milestoneOutlineColorBtn.setBackground(null);
+            milestoneOutlineColorBtn.setEnabled(false);
+            milestoneOutlineThicknessSpinner.setValue(2);
+            milestoneOutlineThicknessSpinner.setEnabled(false);
+            milestoneHeightSpinner.setValue(20);
+            milestoneHeightSpinner.setEnabled(false);
+            milestoneWidthSpinner.setValue(20);
+            milestoneWidthSpinner.setEnabled(false);
+        }
         if (index >= 0 && index < tasks.size()) {
             TimelineTask task = tasks.get(index);
             Color defaultColor = TASK_COLORS[index % TASK_COLORS.length];
@@ -1053,6 +1281,50 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    void selectMilestone(int index) {
+        selectedMilestoneIndex = index;
+        // Deselect task when milestone is selected
+        if (index >= 0) {
+            selectedTaskIndex = -1;
+            // Disable task fields
+            selectTask(-1);
+        }
+
+        if (index >= 0 && index < milestones.size()) {
+            TimelineMilestone milestone = milestones.get(index);
+            milestoneNameField.setText(milestone.name);
+            milestoneNameField.setEnabled(true);
+            milestoneDateField.setText(milestone.date);
+            milestoneDateField.setEnabled(true);
+            milestoneFillColorBtn.setBackground(milestone.fillColor);
+            milestoneFillColorBtn.setEnabled(true);
+            milestoneOutlineColorBtn.setBackground(milestone.outlineColor);
+            milestoneOutlineColorBtn.setEnabled(true);
+            milestoneOutlineThicknessSpinner.setValue(milestone.outlineThickness);
+            milestoneOutlineThicknessSpinner.setEnabled(true);
+            milestoneHeightSpinner.setValue(milestone.height);
+            milestoneHeightSpinner.setEnabled(true);
+            milestoneWidthSpinner.setValue(milestone.width);
+            milestoneWidthSpinner.setEnabled(true);
+        } else {
+            milestoneNameField.setText("");
+            milestoneNameField.setEnabled(false);
+            milestoneDateField.setText("");
+            milestoneDateField.setEnabled(false);
+            milestoneFillColorBtn.setBackground(null);
+            milestoneFillColorBtn.setEnabled(false);
+            milestoneOutlineColorBtn.setBackground(null);
+            milestoneOutlineColorBtn.setEnabled(false);
+            milestoneOutlineThicknessSpinner.setValue(2);
+            milestoneOutlineThicknessSpinner.setEnabled(false);
+            milestoneHeightSpinner.setValue(20);
+            milestoneHeightSpinner.setEnabled(false);
+            milestoneWidthSpinner.setValue(20);
+            milestoneWidthSpinner.setEnabled(false);
+        }
+        timelineDisplayPanel.repaint();
+    }
+
     private void updateSelectedTaskName() {
         if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.size()) {
             String newName = taskNameField.getText().trim();
@@ -1090,8 +1362,110 @@ public class Timeline2 extends JFrame {
         String endDate = LocalDate.now().plusWeeks(2).format(DATE_FORMAT);
 
         TimelineTask task = new TimelineTask(taskName, startDate, endDate);
+        // Assign a default color at creation so it stays with the task when reordered
+        task.fillColor = TASK_COLORS[taskIndex % TASK_COLORS.length];
         tasks.add(task);
         refreshTimeline();
+    }
+
+    private void showMilestoneShapeDialog() {
+        JDialog dialog = new JDialog(this, "Select Milestone Shape", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setSize(400, 200);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel shapesPanel = new JPanel(new GridLayout(2, 3, 10, 10));
+        shapesPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        String[] shapes = {"Diamond", "Circle", "Triangle", "Star", "Square", "Hexagon"};
+        for (String shape : shapes) {
+            JButton btn = new JButton(shape) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    int cx = getWidth() / 2;
+                    int cy = getHeight() / 2 + 8;
+                    int size = 12;
+                    g2d.setColor(new Color(255, 193, 7));
+                    drawMilestoneShape(g2d, shape.toLowerCase(), cx, cy, size, size, true);
+                    g2d.setColor(Color.BLACK);
+                    drawMilestoneShape(g2d, shape.toLowerCase(), cx, cy, size, size, false);
+                }
+            };
+            btn.setVerticalTextPosition(SwingConstants.TOP);
+            btn.setHorizontalTextPosition(SwingConstants.CENTER);
+            btn.addActionListener(e -> {
+                addNewMilestone(shape.toLowerCase());
+                dialog.dispose();
+            });
+            shapesPanel.add(btn);
+        }
+
+        dialog.add(shapesPanel, BorderLayout.CENTER);
+        dialog.setVisible(true);
+    }
+
+    private void addNewMilestone(String shape) {
+        int milestoneIndex = milestones.size();
+        String name = "Milestone " + (milestoneIndex + 1);
+        String date = LocalDate.now().plusWeeks(1).format(DATE_FORMAT);
+
+        TimelineMilestone milestone = new TimelineMilestone(name, date, shape);
+        milestone.fillColor = TASK_COLORS[(milestoneIndex + 3) % TASK_COLORS.length];
+        milestones.add(milestone);
+        refreshTimeline();
+    }
+
+    private void drawMilestoneShape(Graphics2D g2d, String shape, int cx, int cy, int w, int h, boolean fill) {
+        int[] xPoints, yPoints;
+        switch (shape) {
+            case "diamond":
+                xPoints = new int[]{cx, cx + w, cx, cx - w};
+                yPoints = new int[]{cy - h, cy, cy + h, cy};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 4);
+                else g2d.drawPolygon(xPoints, yPoints, 4);
+                break;
+            case "circle":
+                if (fill) g2d.fillOval(cx - w, cy - h, w * 2, h * 2);
+                else g2d.drawOval(cx - w, cy - h, w * 2, h * 2);
+                break;
+            case "triangle":
+                xPoints = new int[]{cx, cx + w, cx - w};
+                yPoints = new int[]{cy - h, cy + h, cy + h};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                else g2d.drawPolygon(xPoints, yPoints, 3);
+                break;
+            case "star":
+                drawStar(g2d, cx, cy, w, h, fill);
+                break;
+            case "square":
+                if (fill) g2d.fillRect(cx - w, cy - h, w * 2, h * 2);
+                else g2d.drawRect(cx - w, cy - h, w * 2, h * 2);
+                break;
+            case "hexagon":
+                int hw = w * 2 / 3;
+                xPoints = new int[]{cx - w, cx - hw, cx + hw, cx + w, cx + hw, cx - hw};
+                yPoints = new int[]{cy, cy - h, cy - h, cy, cy + h, cy + h};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 6);
+                else g2d.drawPolygon(xPoints, yPoints, 6);
+                break;
+        }
+    }
+
+    private void drawStar(Graphics2D g2d, int cx, int cy, int outerR, int innerR, boolean fill) {
+        int[] xPoints = new int[10];
+        int[] yPoints = new int[10];
+        int inner = innerR / 2;
+        for (int i = 0; i < 10; i++) {
+            double angle = Math.PI / 2 + i * Math.PI / 5;
+            int r = (i % 2 == 0) ? outerR : inner;
+            xPoints[i] = cx + (int)(r * Math.cos(angle));
+            yPoints[i] = cy - (int)(r * Math.sin(angle));
+        }
+        if (fill) g2d.fillPolygon(xPoints, yPoints, 10);
+        else g2d.drawPolygon(xPoints, yPoints, 10);
     }
 
     private void deleteTask(int index) {
@@ -1142,54 +1516,61 @@ public class Timeline2 extends JFrame {
         // Timeline Range Section
         addSectionHeader(panel, "Timeline Range");
 
+        // Base date for slider calculations (2.5 years before today)
+        LocalDate sliderBaseDate = LocalDate.now().minusYears(2).minusMonths(6);
+        int totalDays = 365 * 5;  // 5 year span
+
         addLabel(panel, "Start Date:");
-        startDateField = addTextField(panel, LocalDate.now().format(DATE_FORMAT));
+        startDateField = new JTextField(LocalDate.now().format(DATE_FORMAT));
+        startDateField.setMaximumSize(new Dimension(170, 30));
+        startDateField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(startDateField);
+
+        // Start date slider
+        int startDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now());
+        JSlider startSlider = new JSlider(0, totalDays, startDayOffset);
+        startSlider.setMaximumSize(new Dimension(170, 25));
+        startSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
+        startSlider.addChangeListener(e -> {
+            LocalDate newDate = sliderBaseDate.plusDays(startSlider.getValue());
+            startDateField.setText(newDate.format(DATE_FORMAT));
+            if (!startSlider.getValueIsAdjusting()) refreshTimeline();
+        });
+        startDateField.addActionListener(e -> {
+            try {
+                LocalDate date = LocalDate.parse(startDateField.getText().trim(), DATE_FORMAT);
+                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, date);
+                startSlider.setValue(Math.max(0, Math.min(totalDays, days)));
+            } catch (Exception ex) {}
+        });
+        panel.add(startSlider);
+        panel.add(Box.createVerticalStrut(10));
 
         addLabel(panel, "End Date:");
-        endDateField = addTextField(panel, LocalDate.now().plusMonths(3).format(DATE_FORMAT));
+        endDateField = new JTextField(LocalDate.now().plusMonths(3).format(DATE_FORMAT));
+        endDateField.setMaximumSize(new Dimension(170, 30));
+        endDateField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(endDateField);
 
-        JButton updateBtn = new JButton("Update Timeline Range");
-        updateBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        updateBtn.addActionListener(e -> refreshTimeline());
-        panel.add(updateBtn);
-        panel.add(Box.createVerticalStrut(15));
-
-        // Separator
-        JSeparator sep = new JSeparator();
-        sep.setMaximumSize(new Dimension(230, 2));
-        sep.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(sep);
+        // End date slider
+        int endDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now().plusMonths(3));
+        JSlider endSlider = new JSlider(0, totalDays, endDayOffset);
+        endSlider.setMaximumSize(new Dimension(170, 25));
+        endSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
+        endSlider.addChangeListener(e -> {
+            LocalDate newDate = sliderBaseDate.plusDays(endSlider.getValue());
+            endDateField.setText(newDate.format(DATE_FORMAT));
+            if (!endSlider.getValueIsAdjusting()) refreshTimeline();
+        });
+        endDateField.addActionListener(e -> {
+            try {
+                LocalDate date = LocalDate.parse(endDateField.getText().trim(), DATE_FORMAT);
+                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, date);
+                endSlider.setValue(Math.max(0, Math.min(totalDays, days)));
+            } catch (Exception ex) {}
+        });
+        panel.add(endSlider);
         panel.add(Box.createVerticalStrut(10));
-
-        // Add Event Section
-        addSectionHeader(panel, "Add New Event");
-
-        addLabel(panel, "Event Title:");
-        titleField = addTextField(panel, "");
-
-        addLabel(panel, "Event Date (YYYY-MM-DD):");
-        eventDateField = addTextField(panel, LocalDate.now().plusWeeks(1).format(DATE_FORMAT));
-
-        addLabel(panel, "Description (optional):");
-        descriptionArea = new JTextArea(2, 20);
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
-        JScrollPane descScroll = new JScrollPane(descriptionArea);
-        descScroll.setMaximumSize(new Dimension(230, 50));
-        descScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(descScroll);
-        panel.add(Box.createVerticalStrut(10));
-
-        JButton addEventBtn = new JButton("Add Event");
-        addEventBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addEventBtn.addActionListener(e -> addEvent());
-        panel.add(addEventBtn);
-        panel.add(Box.createVerticalStrut(10));
-
-        JButton clearBtn = new JButton("Clear All");
-        clearBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        clearBtn.addActionListener(e -> clearAll());
-        panel.add(clearBtn);
 
         return panel;
     }
@@ -1212,43 +1593,19 @@ public class Timeline2 extends JFrame {
 
     private JTextField addTextField(JPanel panel, String defaultValue) {
         JTextField field = new JTextField(defaultValue);
-        field.setMaximumSize(new Dimension(230, 30));
+        field.setMaximumSize(new Dimension(170, 30));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(field);
         panel.add(Box.createVerticalStrut(10));
         return field;
     }
 
-    // Event management
-    private void addEvent() {
-        String title = titleField.getText().trim();
-        String date = eventDateField.getText().trim();
-        String description = descriptionArea.getText().trim();
-
-        if (title.isEmpty() || date.isEmpty()) {
-            showWarning("Please enter both title and date.");
-            return;
-        }
-
-        try {
-            LocalDate.parse(date, DATE_FORMAT);
-        } catch (Exception e) {
-            showWarning("Please enter date in YYYY-MM-DD format.");
-            return;
-        }
-
-        events.add(new TimelineEvent(title, date, description));
-        Collections.sort(events, Comparator.comparing(ev -> ev.date));
-
-        titleField.setText("");
-        descriptionArea.setText("");
-        refreshTimeline();
-    }
-
     private void clearAll() {
         events.clear();
         tasks.clear();
+        milestones.clear();
         selectTask(-1);
+        selectMilestone(-1);
         refreshTimeline();
     }
 
@@ -1262,10 +1619,171 @@ public class Timeline2 extends JFrame {
                 return;
             }
 
-            timelineDisplayPanel.updateTimeline(startDate, endDate, events, tasks);
+            timelineDisplayPanel.updateTimeline(startDate, endDate, events, tasks, milestones);
             layersPanel.refreshLayers();
         } catch (Exception e) {
             showWarning("Please enter valid dates in YYYY-MM-DD format.");
+        }
+    }
+
+    private void showPreferencesDialog() {
+        JDialog dialog = new JDialog(this, "Preferences", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setSize(420, 380);
+        dialog.setLocationRelativeTo(this);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+
+        // General Tab - overview table
+        JPanel generalTab = new JPanel(new GridLayout(5, 5, 5, 5));
+        generalTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        generalTab.add(new JLabel(""));
+        generalTab.add(createCenteredLabel("Interior"));
+        generalTab.add(createCenteredLabel("Outline"));
+        generalTab.add(createCenteredLabel("Header"));
+        generalTab.add(createCenteredLabel("Head Text"));
+        generalTab.add(new JLabel("Settings"));
+        generalTab.add(createColorBtn(dialog, settingsInteriorColor, c -> settingsInteriorColor = c));
+        generalTab.add(createColorBtn(dialog, settingsOutlineColor, c -> settingsOutlineColor = c));
+        generalTab.add(createColorBtn(dialog, settingsHeaderColor, c -> settingsHeaderColor = c));
+        generalTab.add(createColorBtn(dialog, settingsHeaderTextColor, c -> settingsHeaderTextColor = c));
+        generalTab.add(new JLabel("Timeline"));
+        generalTab.add(createColorBtn(dialog, timelineInteriorColor, c -> timelineInteriorColor = c));
+        generalTab.add(createColorBtn(dialog, timelineOutlineColor, c -> timelineOutlineColor = c));
+        generalTab.add(new JLabel(""));
+        generalTab.add(new JLabel(""));
+        generalTab.add(new JLabel("Layers"));
+        generalTab.add(createColorBtn(dialog, layersInteriorColor, c -> layersInteriorColor = c));
+        generalTab.add(createColorBtn(dialog, layersOutlineColor, c -> layersOutlineColor = c));
+        generalTab.add(createColorBtn(dialog, layersHeaderColor, c -> layersHeaderColor = c));
+        generalTab.add(createColorBtn(dialog, layersHeaderTextColor, c -> layersHeaderTextColor = c));
+        generalTab.add(new JLabel("Format"));
+        generalTab.add(createColorBtn(dialog, formatInteriorColor, c -> formatInteriorColor = c));
+        generalTab.add(createColorBtn(dialog, formatOutlineColor, c -> formatOutlineColor = c));
+        generalTab.add(createColorBtn(dialog, formatHeaderColor, c -> formatHeaderColor = c));
+        generalTab.add(new JLabel(""));
+        tabbedPane.addTab("General", generalTab);
+
+        // Settings Tab
+        JPanel settingsTab = new JPanel(new GridLayout(8, 2, 10, 8));
+        settingsTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        addColorRow(settingsTab, dialog, "Interior:", settingsInteriorColor, c -> settingsInteriorColor = c);
+        addColorRow(settingsTab, dialog, "Outline:", settingsOutlineColor, c -> settingsOutlineColor = c);
+        addColorRow(settingsTab, dialog, "Header Background:", settingsHeaderColor, c -> settingsHeaderColor = c);
+        addColorRow(settingsTab, dialog, "Header Text:", settingsHeaderTextColor, c -> settingsHeaderTextColor = c);
+        addColorRow(settingsTab, dialog, "Labels:", settingsLabelColor, c -> settingsLabelColor = c);
+        addColorRow(settingsTab, dialog, "Field Background:", settingsFieldBgColor, c -> settingsFieldBgColor = c);
+        addColorRow(settingsTab, dialog, "Button Background:", settingsButtonBgColor, c -> settingsButtonBgColor = c);
+        addColorRow(settingsTab, dialog, "Button Text:", settingsButtonTextColor, c -> settingsButtonTextColor = c);
+        tabbedPane.addTab("Settings", settingsTab);
+
+        // Timeline Tab
+        JPanel timelineTab = new JPanel(new GridLayout(6, 2, 10, 8));
+        timelineTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        addColorRow(timelineTab, dialog, "Interior:", timelineInteriorColor, c -> timelineInteriorColor = c);
+        addColorRow(timelineTab, dialog, "Outline:", timelineOutlineColor, c -> timelineOutlineColor = c);
+        addColorRow(timelineTab, dialog, "Timeline Line:", timelineLineColor, c -> timelineLineColor = c);
+        addColorRow(timelineTab, dialog, "Date Text:", timelineDateTextColor, c -> timelineDateTextColor = c);
+        addColorRow(timelineTab, dialog, "Grid Lines:", timelineGridColor, c -> timelineGridColor = c);
+        addColorRow(timelineTab, dialog, "Event Markers:", timelineEventColor, c -> timelineEventColor = c);
+        tabbedPane.addTab("Timeline", timelineTab);
+
+        // Layers Tab
+        JPanel layersTab = new JPanel(new GridLayout(8, 2, 10, 8));
+        layersTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        addColorRow(layersTab, dialog, "Interior:", layersInteriorColor, c -> layersInteriorColor = c);
+        addColorRow(layersTab, dialog, "Outline:", layersOutlineColor, c -> layersOutlineColor = c);
+        addColorRow(layersTab, dialog, "Header Background:", layersHeaderColor, c -> layersHeaderColor = c);
+        addColorRow(layersTab, dialog, "Header Text:", layersHeaderTextColor, c -> layersHeaderTextColor = c);
+        addColorRow(layersTab, dialog, "List Background:", layersListBgColor, c -> layersListBgColor = c);
+        addColorRow(layersTab, dialog, "Item Text:", layersItemTextColor, c -> layersItemTextColor = c);
+        addColorRow(layersTab, dialog, "Selected Background:", layersSelectedBgColor, c -> layersSelectedBgColor = c);
+        addColorRow(layersTab, dialog, "Drag Handle:", layersDragHandleColor, c -> layersDragHandleColor = c);
+        tabbedPane.addTab("Layers", layersTab);
+
+        // Format Tab
+        JPanel formatTab = new JPanel(new GridLayout(6, 2, 10, 8));
+        formatTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        addColorRow(formatTab, dialog, "Interior:", formatInteriorColor, c -> formatInteriorColor = c);
+        addColorRow(formatTab, dialog, "Outline:", formatOutlineColor, c -> formatOutlineColor = c);
+        addColorRow(formatTab, dialog, "Header/Title:", formatHeaderColor, c -> formatHeaderColor = c);
+        addColorRow(formatTab, dialog, "Labels:", formatLabelColor, c -> formatLabelColor = c);
+        addColorRow(formatTab, dialog, "Separator:", formatSeparatorColor, c -> formatSeparatorColor = c);
+        addColorRow(formatTab, dialog, "Resize Handle:", formatResizeHandleColor, c -> formatResizeHandleColor = c);
+        tabbedPane.addTab("Format", formatTab);
+
+        dialog.add(tabbedPane, BorderLayout.CENTER);
+
+        // Buttons panel
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton applyBtn = new JButton("Apply");
+        applyBtn.addActionListener(e -> {
+            applyPanelColors();
+            dialog.dispose();
+        });
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.addActionListener(e -> dialog.dispose());
+        buttonsPanel.add(applyBtn);
+        buttonsPanel.add(cancelBtn);
+        dialog.add(buttonsPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+    }
+
+    private void addColorRow(JPanel panel, JDialog dialog, String label, Color initialColor, java.util.function.Consumer<Color> setter) {
+        panel.add(new JLabel(label));
+        panel.add(createColorBtn(dialog, initialColor, setter));
+    }
+
+    private JLabel createCenteredLabel(String text) {
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.BOLD, 11));
+        return label;
+    }
+
+    private JButton createColorBtn(JDialog dialog, Color initialColor, java.util.function.Consumer<Color> setter) {
+        JButton btn = new JButton();
+        btn.setBackground(initialColor);
+        btn.addActionListener(e -> {
+            Color c = JColorChooser.showDialog(dialog, "Choose Color", btn.getBackground());
+            if (c != null) {
+                setter.accept(c);
+                btn.setBackground(c);
+            }
+        });
+        return btn;
+    }
+
+    private void applyPanelColors() {
+        // Apply settings panel colors
+        if (leftPanel != null) {
+            leftPanel.applyColors(settingsInteriorColor, settingsOutlineColor, settingsHeaderColor, settingsHeaderTextColor);
+        }
+        // Apply timeline panel colors
+        if (timelineDisplayPanel != null) {
+            timelineDisplayPanel.setBackground(timelineInteriorColor);
+        }
+        // Apply layers panel colors
+        if (layersPanel != null) {
+            layersPanel.applyColors(layersInteriorColor, layersOutlineColor, layersHeaderColor, layersHeaderTextColor);
+        }
+        // Apply format panel colors
+        if (formatPanel != null) {
+            formatPanel.setBackground(formatInteriorColor);
+            applyColorToChildren(formatPanel, formatInteriorColor);
+        }
+        repaint();
+    }
+
+    private void applyColorToChildren(JPanel panel, Color color) {
+        for (Component c : panel.getComponents()) {
+            if (c instanceof JPanel) {
+                JPanel p = (JPanel) c;
+                if (p.isOpaque()) {
+                    p.setBackground(color);
+                }
+                applyColorToChildren(p, color);
+            }
         }
     }
 
@@ -1275,16 +1793,15 @@ public class Timeline2 extends JFrame {
 
     // ==================== Inner Classes ====================
 
-    // Collapsible/Floatable Panel
+    // Collapsible Panel
     class CollapsiblePanel extends JPanel {
         private JPanel content;
         private JPanel header;
-        private JButton collapseBtn, floatBtn;
-        private boolean collapsed = false, floating = false;
+        private JButton collapseBtn;
+        private boolean collapsed = false;
         private boolean isLeft;
         private String title;
-        private JFrame floatWindow;
-        private Dimension expandedSize = new Dimension(260, 600);
+        private Dimension expandedSize = new Dimension(195, 600);
 
         CollapsiblePanel(String title, JPanel content, boolean isLeft) {
             this.title = title;
@@ -1304,18 +1821,10 @@ public class Timeline2 extends JFrame {
             titleLabel.setFont(new Font("Arial", Font.BOLD, 12));
             header.add(titleLabel, BorderLayout.CENTER);
 
-            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
-            btnPanel.setOpaque(false);
-
-            floatBtn = createHeaderButton("\u2750", "Pop out");
-            floatBtn.addActionListener(e -> toggleFloat());
-            btnPanel.add(floatBtn);
-
-            collapseBtn = createHeaderButton("\u2014", "Minimize");
+            // Single collapse/expand button with arrow
+            collapseBtn = createHeaderButton("\u25C0", "Collapse");
             collapseBtn.addActionListener(e -> toggleCollapse());
-            btnPanel.add(collapseBtn);
-
-            header.add(btnPanel, BorderLayout.EAST);
+            header.add(collapseBtn, BorderLayout.EAST);
             add(header, BorderLayout.NORTH);
 
             // Content
@@ -1336,19 +1845,20 @@ public class Timeline2 extends JFrame {
         }
 
         void toggleCollapse() {
-            if (floating) return;
             collapsed = !collapsed;
 
             if (collapsed) {
                 setPreferredSize(new Dimension(30, 600));
-                collapseBtn.setText("\u25A1");
+                collapseBtn.setText("\u25B6");  // Right arrow to expand
+                collapseBtn.setToolTipText("Expand");
                 for (Component c : getComponents()) {
                     if (c != header) c.setVisible(false);
                 }
                 header.setPreferredSize(new Dimension(30, 600));
             } else {
                 setPreferredSize(expandedSize);
-                collapseBtn.setText("\u2014");
+                collapseBtn.setText("\u25C0");  // Left arrow to collapse
+                collapseBtn.setToolTipText("Collapse");
                 for (Component c : getComponents()) {
                     c.setVisible(true);
                 }
@@ -1359,50 +1869,29 @@ public class Timeline2 extends JFrame {
             Timeline2.this.repaint();
         }
 
-        void toggleFloat() {
-            floating = !floating;
-
-            if (floating) {
-                Container parent = getParent();
-                if (parent != null) {
-                    parent.remove(this);
-                    parent.revalidate();
-                    parent.repaint();
+        void applyColors(Color interior, Color outline, Color headerBg, Color headerText) {
+            setBackground(interior);
+            setBorder(BorderFactory.createLineBorder(outline));
+            header.setBackground(headerBg);
+            for (Component c : header.getComponents()) {
+                if (c instanceof JLabel) {
+                    c.setForeground(headerText);
                 }
-
-                floatWindow = new JFrame(title);
-                floatWindow.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-                floatWindow.addWindowListener(new WindowAdapter() {
-                    public void windowClosing(WindowEvent e) { toggleFloat(); }
-                });
-
-                if (collapsed) {
-                    collapsed = false;
-                    setPreferredSize(expandedSize);
-                    collapseBtn.setText("\u2014");
-                    for (Component c : getComponents()) c.setVisible(true);
-                    header.setPreferredSize(null);
+            }
+            // Apply interior color to content
+            for (Component c : getComponents()) {
+                if (c instanceof JPanel && c != header) {
+                    applyInteriorColor((JPanel) c, interior);
                 }
+            }
+        }
 
-                floatWindow.add(this);
-                floatWindow.setSize(280, 500);
-                floatWindow.setLocationRelativeTo(Timeline2.this);
-                floatWindow.setVisible(true);
-
-                floatBtn.setText("\u2751");
-                collapseBtn.setEnabled(false);
-            } else {
-                if (floatWindow != null) {
-                    floatWindow.remove(this);
-                    floatWindow.dispose();
-                    floatWindow = null;
+        private void applyInteriorColor(JPanel panel, Color color) {
+            panel.setBackground(color);
+            for (Component c : panel.getComponents()) {
+                if (c instanceof JPanel) {
+                    applyInteriorColor((JPanel) c, color);
                 }
-
-                Timeline2.this.add(this, isLeft ? BorderLayout.WEST : BorderLayout.EAST);
-                floatBtn.setText("\u2750");
-                collapseBtn.setEnabled(true);
-                Timeline2.this.revalidate();
-                Timeline2.this.repaint();
             }
         }
     }
@@ -1412,6 +1901,8 @@ public class Timeline2 extends JFrame {
         private DefaultListModel<String> listModel;
         private JList<String> layersList;
         private JScrollPane scrollPane;
+        private JPanel header;
+        private JLabel titleLabel;
         private boolean isDragging = false;
         private int dragOriginalIndex = -1;
         private int dropTargetIndex = -1;
@@ -1429,10 +1920,10 @@ public class Timeline2 extends JFrame {
             setPreferredSize(new Dimension(180, 400));
 
             // Header
-            JPanel header = new JPanel(new BorderLayout());
+            header = new JPanel(new BorderLayout());
             header.setBackground(new Color(70, 130, 180));
             header.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
-            JLabel titleLabel = new JLabel("Layers");
+            titleLabel = new JLabel("Layers");
             titleLabel.setForeground(Color.WHITE);
             titleLabel.setFont(new Font("Arial", Font.BOLD, 12));
             header.add(titleLabel, BorderLayout.CENTER);
@@ -1661,6 +2152,19 @@ public class Timeline2 extends JFrame {
             }
         }
 
+        void applyColors(Color interior, Color outline, Color headerBg, Color headerText) {
+            setBackground(interior);
+            setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(outline),
+                BorderFactory.createEmptyBorder(0, 0, 0, 0)
+            ));
+            header.setBackground(headerBg);
+            titleLabel.setForeground(headerText);
+            if (layersList != null) {
+                layersList.setBackground(interior);
+            }
+        }
+
         // Custom cell renderer for layers
         class LayerCellRenderer extends JPanel implements ListCellRenderer<String> {
             private JLabel nameLabel;
@@ -1797,11 +2301,37 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    static class TimelineMilestone {
+        String name;
+        String date;
+        String shape;  // "diamond", "circle", "triangle", "star", "square", "hexagon"
+        int width = 20;
+        int height = 20;
+        int yPosition = -1;
+        Color fillColor = new Color(255, 193, 7);  // default gold/yellow
+        Color outlineColor = Color.BLACK;
+        int outlineThickness = 2;
+        // Text properties
+        String labelText = "";
+        int fontSize = 10;
+        boolean fontBold = false;
+        boolean fontItalic = false;
+        Color textColor = Color.BLACK;
+
+        TimelineMilestone(String name, String date, String shape) {
+            this.name = name;
+            this.labelText = name;
+            this.date = date;
+            this.shape = shape;
+        }
+    }
+
     // Timeline Display Panel
     class TimelineDisplayPanel extends JPanel {
         private LocalDate startDate, endDate;
         private ArrayList<TimelineEvent> events = new ArrayList<>();
         private ArrayList<TimelineTask> tasks = new ArrayList<>();
+        private ArrayList<TimelineMilestone> milestones = new ArrayList<>();
 
         private static final int MARGIN_LEFT = 80, MARGIN_RIGHT = 50;
         private static final int DEFAULT_TASK_HEIGHT = 25, TASK_BAR_SPACING = 5;
@@ -1997,6 +2527,28 @@ public class Timeline2 extends JFrame {
                     }
                 } catch (Exception ex) {}
             }
+
+            // Check for milestone clicks
+            int tasksHeight = getTotalTasksHeight();
+            int timelineY = 50 + tasksHeight;
+            for (int i = 0; i < milestones.size(); i++) {
+                TimelineMilestone milestone = milestones.get(i);
+                try {
+                    LocalDate milestoneDate = LocalDate.parse(milestone.date, DATE_FORMAT);
+                    if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) continue;
+
+                    int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
+                    int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                    int halfW = milestone.width / 2;
+                    int halfH = milestone.height / 2;
+
+                    // Check if click is within milestone bounds
+                    if (x >= mx - halfW && x <= mx + halfW && y >= my - halfH && y <= my + halfH) {
+                        selectMilestone(i);
+                        return;
+                    }
+                } catch (Exception ex) {}
+            }
         }
 
         private void handleDrag(int x) {
@@ -2150,11 +2702,13 @@ public class Timeline2 extends JFrame {
 
         void updateTimeline(LocalDate start, LocalDate end,
                            ArrayList<TimelineEvent> eventList,
-                           ArrayList<TimelineTask> taskList) {
+                           ArrayList<TimelineTask> taskList,
+                           ArrayList<TimelineMilestone> milestoneList) {
             this.startDate = start;
             this.endDate = end;
             this.events = new ArrayList<>(eventList);
             this.tasks = new ArrayList<>(taskList);
+            this.milestones = new ArrayList<>(milestoneList);
 
             int tasksHeight = getTotalTasksHeight();
             int eventsHeight = events.size() * 90 + 100;
@@ -2195,6 +2749,10 @@ public class Timeline2 extends JFrame {
                 drawTaskBar(g2d, tasks.get(i), i, taskY, timelineX, timelineWidth, totalDays);
             }
 
+            // Milestones (above timeline, on same level as tasks)
+            for (int i = 0; i < milestones.size(); i++) {
+                drawMilestone(g2d, milestones.get(i), i, timelineX, timelineWidth, timelineY, totalDays);
+            }
 
             // Timeline line
             g2d.setStroke(new BasicStroke(3));
@@ -2355,6 +2913,102 @@ public class Timeline2 extends JFrame {
                 }
 
             } catch (Exception e) {}
+        }
+
+        private void drawMilestone(Graphics2D g2d, TimelineMilestone milestone, int index,
+                                   int timelineX, int timelineWidth, int timelineY, long totalDays) {
+            try {
+                LocalDate milestoneDate = LocalDate.parse(milestone.date, DATE_FORMAT);
+                if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) return;
+
+                int x = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
+                int y = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                boolean isSelected = (index == selectedMilestoneIndex);
+
+                // Selection highlight (glow effect)
+                if (isSelected) {
+                    g2d.setColor(new Color(milestone.fillColor.getRed(), milestone.fillColor.getGreen(),
+                                           milestone.fillColor.getBlue(), 100));
+                    drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width + 8, milestone.height + 8, true);
+                }
+
+                // Draw the milestone shape
+                g2d.setColor(milestone.fillColor);
+                drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width, milestone.height, true);
+
+                // Draw outline
+                if (milestone.outlineThickness > 0) {
+                    g2d.setColor(isSelected ? Color.WHITE : milestone.outlineColor);
+                    g2d.setStroke(new BasicStroke(isSelected ? milestone.outlineThickness + 2 : milestone.outlineThickness));
+                    drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width, milestone.height, false);
+                }
+
+                // Draw label text below milestone
+                if (milestone.labelText != null && !milestone.labelText.isEmpty()) {
+                    int fontStyle = Font.PLAIN;
+                    if (milestone.fontBold) fontStyle |= Font.BOLD;
+                    if (milestone.fontItalic) fontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font("Arial", fontStyle, milestone.fontSize));
+                    g2d.setColor(milestone.textColor);
+                    FontMetrics fm = g2d.getFontMetrics();
+                    int textWidth = fm.stringWidth(milestone.labelText);
+                    g2d.drawString(milestone.labelText, x - textWidth / 2, y + milestone.height / 2 + fm.getAscent() + 3);
+                }
+            } catch (Exception e) {}
+        }
+
+        private void drawMilestoneShapeOnPanel(Graphics2D g2d, String shape, int cx, int cy, int w, int h, boolean fill) {
+            int halfW = w / 2;
+            int halfH = h / 2;
+            int[] xPoints, yPoints;
+
+            switch (shape.toLowerCase()) {
+                case "diamond":
+                    xPoints = new int[]{cx, cx + halfW, cx, cx - halfW};
+                    yPoints = new int[]{cy - halfH, cy, cy + halfH, cy};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 4);
+                    else g2d.drawPolygon(xPoints, yPoints, 4);
+                    break;
+                case "circle":
+                    if (fill) g2d.fillOval(cx - halfW, cy - halfH, w, h);
+                    else g2d.drawOval(cx - halfW, cy - halfH, w, h);
+                    break;
+                case "triangle":
+                    xPoints = new int[]{cx, cx + halfW, cx - halfW};
+                    yPoints = new int[]{cy - halfH, cy + halfH, cy + halfH};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                    else g2d.drawPolygon(xPoints, yPoints, 3);
+                    break;
+                case "star":
+                    drawStarOnPanel(g2d, cx, cy, halfW, halfW / 2, fill);
+                    break;
+                case "square":
+                    if (fill) g2d.fillRect(cx - halfW, cy - halfH, w, h);
+                    else g2d.drawRect(cx - halfW, cy - halfH, w, h);
+                    break;
+                case "hexagon":
+                    int hexW = halfW;
+                    int hexH = halfH;
+                    xPoints = new int[]{cx - hexW / 2, cx + hexW / 2, cx + hexW, cx + hexW / 2, cx - hexW / 2, cx - hexW};
+                    yPoints = new int[]{cy - hexH, cy - hexH, cy, cy + hexH, cy + hexH, cy};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 6);
+                    else g2d.drawPolygon(xPoints, yPoints, 6);
+                    break;
+            }
+        }
+
+        private void drawStarOnPanel(Graphics2D g2d, int cx, int cy, int outerR, int innerR, boolean fill) {
+            int[] xPoints = new int[10];
+            int[] yPoints = new int[10];
+            double angle = -Math.PI / 2;
+            for (int i = 0; i < 10; i++) {
+                int r = (i % 2 == 0) ? outerR : innerR;
+                xPoints[i] = cx + (int) (r * Math.cos(angle));
+                yPoints[i] = cy + (int) (r * Math.sin(angle));
+                angle += Math.PI / 5;
+            }
+            if (fill) g2d.fillPolygon(xPoints, yPoints, 10);
+            else g2d.drawPolygon(xPoints, yPoints, 10);
         }
 
         private void drawDateTicks(Graphics2D g2d, int timelineX, int timelineWidth, int timelineY, long totalDays) {
