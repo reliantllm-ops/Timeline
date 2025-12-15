@@ -1362,7 +1362,7 @@ public class Timeline2 extends JFrame {
                     // Draw shape icon on the left
                     int cy = getHeight() / 2;
                     int size = 10;
-                    g2d.setColor(new Color(255, 193, 7));
+                    g2d.setColor(new Color(80, 80, 80));
                     drawMilestoneShape(g2d, shape.toLowerCase(), 20, cy, size, size, true);
                     g2d.setColor(Color.BLACK);
                     drawMilestoneShape(g2d, shape.toLowerCase(), 20, cy, size, size, false);
