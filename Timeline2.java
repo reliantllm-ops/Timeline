@@ -92,6 +92,8 @@ public class Timeline2 extends JFrame {
     // Row 1 switcher (task vs milestone)
     private JPanel row1Container;
     private CardLayout row1CardLayout;
+    // Timeline background color
+    private JButton timelineBgColorBtn;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -1074,6 +1076,69 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void chooseTimelineBackgroundColor() {
+        // Create color chooser
+        JColorChooser chooser = new JColorChooser(timelineInteriorColor);
+        chooser.setPreviewPanel(new JPanel()); // Remove preview panel
+
+        // Get RGB and Swatches panels
+        javax.swing.colorchooser.AbstractColorChooserPanel[] panels = chooser.getChooserPanels();
+        javax.swing.colorchooser.AbstractColorChooserPanel rgbPanel = null;
+        javax.swing.colorchooser.AbstractColorChooserPanel swatchPanel = null;
+
+        for (javax.swing.colorchooser.AbstractColorChooserPanel panel : panels) {
+            if (panel.getDisplayName().equals("RGB")) rgbPanel = panel;
+            else if (panel.getDisplayName().equals("Swatches")) swatchPanel = panel;
+        }
+
+        // Remove all default panels
+        for (javax.swing.colorchooser.AbstractColorChooserPanel panel : panels) {
+            chooser.removeChooserPanel(panel);
+        }
+
+        // Create combined panel with RGB on top and Swatches below
+        JPanel combinedContent = new JPanel();
+        combinedContent.setLayout(new BoxLayout(combinedContent, BoxLayout.Y_AXIS));
+        if (rgbPanel != null) {
+            combinedContent.add(rgbPanel);
+            combinedContent.add(Box.createVerticalStrut(10));
+        }
+        if (swatchPanel != null) {
+            combinedContent.add(swatchPanel);
+        }
+
+        // Add combined panel directly to chooser
+        chooser.setLayout(new BorderLayout());
+        chooser.add(combinedContent, BorderLayout.CENTER);
+
+        // Store original color to restore on cancel
+        Color originalColor = timelineInteriorColor;
+
+        // Live update as color changes
+        chooser.getSelectionModel().addChangeListener(e -> {
+            Color newColor = chooser.getColor();
+            timelineInteriorColor = newColor;
+            timelineBgColorBtn.setBackground(newColor);
+            timelineDisplayPanel.setBackground(newColor);
+            timelineDisplayPanel.repaint();
+        });
+
+        // Show dialog
+        JDialog dialog = JColorChooser.createDialog(this, "Choose Background Color", true, chooser,
+            e -> {
+                // OK pressed - color already applied via live update
+                refreshTimeline();
+            },
+            e -> {
+                // Cancel pressed - restore original color
+                timelineInteriorColor = originalColor;
+                timelineBgColorBtn.setBackground(originalColor);
+                timelineDisplayPanel.setBackground(originalColor);
+                timelineDisplayPanel.repaint();
+            });
+        dialog.setVisible(true);
+    }
+
     private void updateMilestoneOutlineThickness() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
         milestones.get(selectedMilestoneIndex).outlineThickness = (Integer) milestoneOutlineThicknessSpinner.getValue();
@@ -1582,6 +1647,28 @@ public class Timeline2 extends JFrame {
         });
 
         panel.add(rangeSlider);
+        panel.add(Box.createVerticalStrut(10));
+
+        // Timeline Appearance Section
+        addSectionHeader(panel, "Appearance");
+
+        JPanel bgColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        bgColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bgColorRow.setOpaque(false);
+        bgColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel bgLabel = new JLabel("Background:");
+        bgLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        bgColorRow.add(bgLabel);
+
+        timelineBgColorBtn = new JButton();
+        timelineBgColorBtn.setPreferredSize(new Dimension(30, 20));
+        timelineBgColorBtn.setBackground(timelineInteriorColor);
+        timelineBgColorBtn.setToolTipText("Click to change timeline background color");
+        timelineBgColorBtn.addActionListener(e -> chooseTimelineBackgroundColor());
+        bgColorRow.add(timelineBgColorBtn);
+
+        panel.add(bgColorRow);
         panel.add(Box.createVerticalStrut(10));
 
         return panel;
@@ -2484,7 +2571,7 @@ public class Timeline2 extends JFrame {
 
         private static final int MARGIN_LEFT = 80, MARGIN_RIGHT = 50;
         private static final int DEFAULT_TASK_HEIGHT = 25, TASK_BAR_SPACING = 5;
-        private static final int DRAG_HANDLE_WIDTH = 12;
+        private static final int DRAG_HANDLE_WIDTH = 18;
 
         private int draggingTaskIndex = -1;
         private boolean draggingStart = false;
@@ -3155,10 +3242,14 @@ public class Timeline2 extends JFrame {
 
                 int taskHeight = task.height;
 
-                // Selection highlight (glow effect)
+                // Selection box around task (drawn first, behind everything)
                 if (isSelected) {
-                    g2d.setColor(new Color(fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), 100));
-                    g2d.fillRoundRect(x1 - 4, y - 4, barWidth + 8, taskHeight + 8, 12, 12);
+                    int boxPadding = 6;
+                    // Selection box outline
+                    g2d.setColor(Color.WHITE);
+                    g2d.setStroke(new BasicStroke(2));
+                    g2d.drawRoundRect(x1 - boxPadding, y - boxPadding,
+                                      barWidth + boxPadding * 2, taskHeight + boxPadding * 2, 10, 10);
                 }
 
                 // Draw behind text (behind the task bar)
@@ -3193,8 +3284,8 @@ public class Timeline2 extends JFrame {
                 g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
                 int thickness = task.outlineThickness;
                 if (thickness > 0) {
-                    g2d.setColor(isSelected ? Color.WHITE : outlineColor);
-                    g2d.setStroke(new BasicStroke(isSelected ? thickness + 2 : thickness));
+                    g2d.setColor(outlineColor);
+                    g2d.setStroke(new BasicStroke(thickness));
                     g2d.drawRoundRect(x1, y, barWidth, taskHeight, 8, 8);
                 }
 
@@ -3245,38 +3336,42 @@ public class Timeline2 extends JFrame {
                                    y + taskHeight + underneathFm.getAscent() + 2);
                 }
 
-                // Draw drag handles (grip lines) - only when selected
+                // Draw drag handles - only when selected, positioned outside the outline
                 if (isSelected) {
-                    // Left/Right handles for date adjustment
-                    g2d.setColor(new Color(255, 255, 255, 180));
-                    g2d.fillRoundRect(x1, y + 4, 8, taskHeight - 8, 3, 3);
-                    g2d.fillRoundRect(x1 + barWidth - 8, y + 4, 8, taskHeight - 8, 3, 3);
+                    int handleOffset = 8; // Distance outside the task bar
 
+                    // Left handle (outside left edge)
+                    g2d.setColor(new Color(255, 255, 255, 180));
+                    g2d.fillRoundRect(x1 - handleOffset - 6, y + 4, 8, taskHeight - 8, 3, 3);
                     g2d.setColor(outlineColor);
-                    // Left handle lines
-                    g2d.drawLine(x1 + 2, y + 7, x1 + 2, y + taskHeight - 7);
-                    g2d.drawLine(x1 + 5, y + 7, x1 + 5, y + taskHeight - 7);
-                    // Right handle lines
-                    g2d.drawLine(x1 + barWidth - 6, y + 7, x1 + barWidth - 6, y + taskHeight - 7);
-                    g2d.drawLine(x1 + barWidth - 3, y + 7, x1 + barWidth - 3, y + taskHeight - 7);
+                    g2d.drawLine(x1 - handleOffset - 4, y + 7, x1 - handleOffset - 4, y + taskHeight - 7);
+                    g2d.drawLine(x1 - handleOffset - 1, y + 7, x1 - handleOffset - 1, y + taskHeight - 7);
+
+                    // Right handle (outside right edge)
+                    g2d.setColor(new Color(255, 255, 255, 180));
+                    g2d.fillRoundRect(x1 + barWidth + handleOffset - 2, y + 4, 8, taskHeight - 8, 3, 3);
+                    g2d.setColor(outlineColor);
+                    g2d.drawLine(x1 + barWidth + handleOffset, y + 7, x1 + barWidth + handleOffset, y + taskHeight - 7);
+                    g2d.drawLine(x1 + barWidth + handleOffset + 3, y + 7, x1 + barWidth + handleOffset + 3, y + taskHeight - 7);
 
                     // Top/Bottom handles for height adjustment
                     int handleWidth = Math.min(barWidth - 20, 40);
                     int handleX = x1 + (barWidth - handleWidth) / 2;
+                    int vHandleOffset = 6; // Vertical offset outside task
 
-                    // Top handle
+                    // Top handle (outside top edge)
                     g2d.setColor(new Color(255, 255, 255, 180));
-                    g2d.fillRoundRect(handleX, y - 2, handleWidth, 6, 3, 3);
+                    g2d.fillRoundRect(handleX, y - vHandleOffset - 4, handleWidth, 6, 3, 3);
                     g2d.setColor(outlineColor);
-                    g2d.drawLine(handleX + 5, y, handleX + handleWidth - 5, y);
-                    g2d.drawLine(handleX + 5, y + 2, handleX + handleWidth - 5, y + 2);
+                    g2d.drawLine(handleX + 5, y - vHandleOffset - 2, handleX + handleWidth - 5, y - vHandleOffset - 2);
+                    g2d.drawLine(handleX + 5, y - vHandleOffset, handleX + handleWidth - 5, y - vHandleOffset);
 
-                    // Bottom handle
+                    // Bottom handle (outside bottom edge)
                     g2d.setColor(new Color(255, 255, 255, 180));
-                    g2d.fillRoundRect(handleX, y + taskHeight - 4, handleWidth, 6, 3, 3);
+                    g2d.fillRoundRect(handleX, y + taskHeight + vHandleOffset - 2, handleWidth, 6, 3, 3);
                     g2d.setColor(outlineColor);
-                    g2d.drawLine(handleX + 5, y + taskHeight - 2, handleX + handleWidth - 5, y + taskHeight - 2);
-                    g2d.drawLine(handleX + 5, y + taskHeight, handleX + handleWidth - 5, y + taskHeight);
+                    g2d.drawLine(handleX + 5, y + taskHeight + vHandleOffset, handleX + handleWidth - 5, y + taskHeight + vHandleOffset);
+                    g2d.drawLine(handleX + 5, y + taskHeight + vHandleOffset + 2, handleX + handleWidth - 5, y + taskHeight + vHandleOffset + 2);
                 }
 
             } catch (Exception e) {}
@@ -3292,32 +3387,34 @@ public class Timeline2 extends JFrame {
                 int y = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
                 boolean isSelected = (index == selectedMilestoneIndex);
 
-                // Selection highlight (box around shape)
+                // Selection highlight (rounded box around shape, like tasks)
                 if (isSelected) {
-                    g2d.setColor(new Color(0, 120, 215));
-                    g2d.setStroke(new BasicStroke(2));
                     int boxPadding = 6;
                     int boxX = x - milestone.width / 2 - boxPadding;
                     int boxY = y - milestone.height / 2 - boxPadding;
                     int boxW = milestone.width + boxPadding * 2;
                     int boxH = milestone.height + boxPadding * 2;
-                    g2d.drawRect(boxX, boxY, boxW, boxH);
 
-                    // Draw resize handles (small squares at corners and edges)
+                    // Selection box outline (white rounded rect like tasks)
+                    g2d.setColor(Color.WHITE);
+                    g2d.setStroke(new BasicStroke(2));
+                    g2d.drawRoundRect(boxX, boxY, boxW, boxH, 10, 10);
+
+                    // Draw resize handles on the selection box edges
                     int handleSize = 6;
                     g2d.setColor(Color.WHITE);
                     // Corner handles
-                    g2d.fillRect(boxX - handleSize/2, boxY - handleSize/2, handleSize, handleSize); // top-left
-                    g2d.fillRect(boxX + boxW - handleSize/2, boxY - handleSize/2, handleSize, handleSize); // top-right
-                    g2d.fillRect(boxX - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize); // bottom-left
-                    g2d.fillRect(boxX + boxW - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize); // bottom-right
+                    g2d.fillRect(boxX - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
+                    g2d.fillRect(boxX + boxW - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
+                    g2d.fillRect(boxX - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize);
+                    g2d.fillRect(boxX + boxW - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize);
                     // Edge handles
-                    g2d.fillRect(boxX + boxW/2 - handleSize/2, boxY - handleSize/2, handleSize, handleSize); // top
-                    g2d.fillRect(boxX + boxW/2 - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize); // bottom
-                    g2d.fillRect(boxX - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize); // left
-                    g2d.fillRect(boxX + boxW - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize); // right
+                    g2d.fillRect(boxX + boxW/2 - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
+                    g2d.fillRect(boxX + boxW/2 - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize);
+                    g2d.fillRect(boxX - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize);
+                    g2d.fillRect(boxX + boxW - handleSize/2, boxY + boxH/2 - handleSize/2, handleSize, handleSize);
                     // Handle outlines
-                    g2d.setColor(new Color(0, 120, 215));
+                    g2d.setColor(milestone.outlineColor);
                     g2d.drawRect(boxX - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
                     g2d.drawRect(boxX + boxW - handleSize/2, boxY - handleSize/2, handleSize, handleSize);
                     g2d.drawRect(boxX - handleSize/2, boxY + boxH - handleSize/2, handleSize, handleSize);
