@@ -55,6 +55,7 @@ public class Timeline2 extends JFrame {
     private TimelineDisplayPanel timelineDisplayPanel;
     private JTextField startDateField, endDateField;
     private CollapsiblePanel leftPanel;
+    private CollapsiblePanel rightPanel;
     private LayersPanel layersPanel;
     private JPanel formatPanel;
     private JTextField taskNameField, taskStartField, taskEndField;
@@ -152,9 +153,10 @@ public class Timeline2 extends JFrame {
 
         add(centerPanel, BorderLayout.CENTER);
 
-        // Right panel - Layers
+        // Right panel - Layers (collapsible)
         layersPanel = new LayersPanel();
-        add(layersPanel, BorderLayout.EAST);
+        rightPanel = new CollapsiblePanel("Layers", layersPanel, false);
+        add(rightPanel, BorderLayout.EAST);
 
         // Bottom - Format panel
         formatPanel = createFormatPanel();
@@ -1266,7 +1268,14 @@ public class Timeline2 extends JFrame {
         }
         timelineDisplayPanel.repaint();
         if (layersPanel != null) {
-            layersPanel.setSelectedLayer(index);
+            // Find the correct index in layerOrder for this task
+            if (index >= 0 && index < tasks.size()) {
+                TimelineTask task = tasks.get(index);
+                int layerIndex = layerOrder.indexOf(task);
+                layersPanel.setSelectedLayer(layerIndex);
+            } else {
+                layersPanel.setSelectedLayer(-1);
+            }
         }
     }
 
@@ -1299,6 +1308,16 @@ public class Timeline2 extends JFrame {
             row1CardLayout.show(row1Container, "task");
         }
         timelineDisplayPanel.repaint();
+        if (layersPanel != null) {
+            // Find the correct index in layerOrder for this milestone
+            if (index >= 0 && index < milestones.size()) {
+                TimelineMilestone milestone = milestones.get(index);
+                int layerIndex = layerOrder.indexOf(milestone);
+                layersPanel.setSelectedLayer(layerIndex);
+            } else {
+                layersPanel.setSelectedLayer(-1);
+            }
+        }
     }
 
     private void updateSelectedTaskName() {
@@ -1495,60 +1514,74 @@ public class Timeline2 extends JFrame {
         // Timeline Range Section
         addSectionHeader(panel, "Timeline Range");
 
-        // Base date for slider calculations (2.5 years before today)
+        // Date range - labels above fields, side by side
+        JPanel dateContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        dateContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
+        dateContainer.setOpaque(false);
+        dateContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+
+        // Start date column
+        JPanel startCol = new JPanel();
+        startCol.setLayout(new BoxLayout(startCol, BoxLayout.Y_AXIS));
+        startCol.setOpaque(false);
+        JLabel startLabel = new JLabel("Start");
+        startLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        startCol.add(startLabel);
+        startDateField = new JTextField(LocalDate.now().format(DATE_FORMAT), 8);
+        startDateField.addActionListener(e -> refreshTimeline());
+        startCol.add(startDateField);
+        dateContainer.add(startCol);
+
+        // End date column
+        JPanel endCol = new JPanel();
+        endCol.setLayout(new BoxLayout(endCol, BoxLayout.Y_AXIS));
+        endCol.setOpaque(false);
+        JLabel endLabel = new JLabel("End");
+        endLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        endCol.add(endLabel);
+        endDateField = new JTextField(LocalDate.now().plusMonths(3).format(DATE_FORMAT), 8);
+        endDateField.addActionListener(e -> refreshTimeline());
+        endCol.add(endDateField);
+        dateContainer.add(endCol);
+
+        panel.add(dateContainer);
+
+        // Dual-handle range slider for date range
         LocalDate sliderBaseDate = LocalDate.now().minusYears(2).minusMonths(6);
         int totalDays = 365 * 5;  // 5 year span
-
-        addLabel(panel, "Start Date:");
-        startDateField = new JTextField(LocalDate.now().format(DATE_FORMAT));
-        startDateField.setMaximumSize(new Dimension(170, 30));
-        startDateField.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(startDateField);
-
-        // Start date slider
         int startDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now());
-        JSlider startSlider = new JSlider(0, totalDays, startDayOffset);
-        startSlider.setMaximumSize(new Dimension(170, 25));
-        startSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
-        startSlider.addChangeListener(e -> {
-            LocalDate newDate = sliderBaseDate.plusDays(startSlider.getValue());
-            startDateField.setText(newDate.format(DATE_FORMAT));
-            if (!startSlider.getValueIsAdjusting()) refreshTimeline();
+        int endDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now().plusMonths(3));
+
+        RangeSlider rangeSlider = new RangeSlider(0, totalDays, startDayOffset, endDayOffset);
+        rangeSlider.setMaximumSize(new Dimension(210, 25));
+        rangeSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Connect range slider to date fields
+        rangeSlider.addChangeListener(e -> {
+            LocalDate startDate = sliderBaseDate.plusDays(rangeSlider.getLowValue());
+            LocalDate endDate = sliderBaseDate.plusDays(rangeSlider.getHighValue());
+            startDateField.setText(startDate.format(DATE_FORMAT));
+            endDateField.setText(endDate.format(DATE_FORMAT));
+            if (!rangeSlider.getValueIsAdjusting()) refreshTimeline();
         });
+
+        // Connect date fields to range slider
         startDateField.addActionListener(e -> {
             try {
                 LocalDate date = LocalDate.parse(startDateField.getText().trim(), DATE_FORMAT);
                 int days = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, date);
-                startSlider.setValue(Math.max(0, Math.min(totalDays, days)));
+                rangeSlider.setLowValue(Math.max(0, Math.min(rangeSlider.getHighValue(), days)));
             } catch (Exception ex) {}
-        });
-        panel.add(startSlider);
-        panel.add(Box.createVerticalStrut(10));
-
-        addLabel(panel, "End Date:");
-        endDateField = new JTextField(LocalDate.now().plusMonths(3).format(DATE_FORMAT));
-        endDateField.setMaximumSize(new Dimension(170, 30));
-        endDateField.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(endDateField);
-
-        // End date slider
-        int endDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now().plusMonths(3));
-        JSlider endSlider = new JSlider(0, totalDays, endDayOffset);
-        endSlider.setMaximumSize(new Dimension(170, 25));
-        endSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
-        endSlider.addChangeListener(e -> {
-            LocalDate newDate = sliderBaseDate.plusDays(endSlider.getValue());
-            endDateField.setText(newDate.format(DATE_FORMAT));
-            if (!endSlider.getValueIsAdjusting()) refreshTimeline();
         });
         endDateField.addActionListener(e -> {
             try {
                 LocalDate date = LocalDate.parse(endDateField.getText().trim(), DATE_FORMAT);
                 int days = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, date);
-                endSlider.setValue(Math.max(0, Math.min(totalDays, days)));
+                rangeSlider.setHighValue(Math.max(rangeSlider.getLowValue(), Math.min(totalDays, days)));
             } catch (Exception ex) {}
         });
-        panel.add(endSlider);
+
+        panel.add(rangeSlider);
         panel.add(Box.createVerticalStrut(10));
 
         return panel;
@@ -1744,8 +1777,8 @@ public class Timeline2 extends JFrame {
             timelineDisplayPanel.setBackground(timelineInteriorColor);
         }
         // Apply layers panel colors
-        if (layersPanel != null) {
-            layersPanel.applyColors(layersInteriorColor, layersOutlineColor, layersHeaderColor, layersHeaderTextColor);
+        if (rightPanel != null) {
+            rightPanel.applyColors(layersInteriorColor, layersOutlineColor, layersHeaderColor, layersHeaderTextColor);
         }
         // Apply format panel colors
         if (formatPanel != null) {
@@ -1773,6 +1806,146 @@ public class Timeline2 extends JFrame {
 
     // ==================== Inner Classes ====================
 
+    // Range Slider with two handles
+    class RangeSlider extends JPanel {
+        private int min, max, lowValue, highValue;
+        private boolean draggingLow = false, draggingHigh = false;
+        private boolean valueIsAdjusting = false;
+        private java.util.List<javax.swing.event.ChangeListener> changeListeners = new java.util.ArrayList<>();
+        private static final int THUMB_WIDTH = 12;
+        private static final int THUMB_HEIGHT = 16;
+        private static final int TRACK_HEIGHT = 4;
+
+        RangeSlider(int min, int max, int lowValue, int highValue) {
+            this.min = min;
+            this.max = max;
+            this.lowValue = lowValue;
+            this.highValue = highValue;
+            setPreferredSize(new Dimension(200, 25));
+            setOpaque(false);
+
+            MouseAdapter mouseAdapter = new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    int lowX = valueToX(RangeSlider.this.lowValue);
+                    int highX = valueToX(RangeSlider.this.highValue);
+                    int mx = e.getX();
+
+                    // Check which thumb is closer
+                    if (Math.abs(mx - lowX) <= THUMB_WIDTH && Math.abs(mx - lowX) <= Math.abs(mx - highX)) {
+                        draggingLow = true;
+                    } else if (Math.abs(mx - highX) <= THUMB_WIDTH) {
+                        draggingHigh = true;
+                    }
+                    valueIsAdjusting = true;
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    draggingLow = false;
+                    draggingHigh = false;
+                    valueIsAdjusting = false;
+                    fireChangeEvent();
+                }
+
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    int newVal = xToValue(e.getX());
+                    if (draggingLow) {
+                        setLowValue(Math.min(newVal, RangeSlider.this.highValue));
+                    } else if (draggingHigh) {
+                        setHighValue(Math.max(newVal, RangeSlider.this.lowValue));
+                    }
+                }
+            };
+            addMouseListener(mouseAdapter);
+            addMouseMotionListener(mouseAdapter);
+        }
+
+        private int valueToX(int value) {
+            int trackWidth = getWidth() - THUMB_WIDTH;
+            return (int) ((value - min) / (double) (max - min) * trackWidth) + THUMB_WIDTH / 2;
+        }
+
+        private int xToValue(int x) {
+            int trackWidth = getWidth() - THUMB_WIDTH;
+            int val = (int) ((x - THUMB_WIDTH / 2) / (double) trackWidth * (max - min)) + min;
+            return Math.max(min, Math.min(max, val));
+        }
+
+        public int getLowValue() { return lowValue; }
+        public int getHighValue() { return highValue; }
+        public boolean getValueIsAdjusting() { return valueIsAdjusting; }
+
+        public void setLowValue(int v) {
+            v = Math.max(min, Math.min(highValue, v));
+            if (v != lowValue) {
+                lowValue = v;
+                repaint();
+                fireChangeEvent();
+            }
+        }
+
+        public void setHighValue(int v) {
+            v = Math.max(lowValue, Math.min(max, v));
+            if (v != highValue) {
+                highValue = v;
+                repaint();
+                fireChangeEvent();
+            }
+        }
+
+        public void addChangeListener(javax.swing.event.ChangeListener l) {
+            changeListeners.add(l);
+        }
+
+        private void fireChangeEvent() {
+            javax.swing.event.ChangeEvent e = new javax.swing.event.ChangeEvent(this);
+            for (javax.swing.event.ChangeListener l : changeListeners) {
+                l.stateChanged(e);
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+            int trackY = h / 2 - TRACK_HEIGHT / 2;
+
+            // Track background
+            g2d.setColor(new Color(200, 200, 200));
+            g2d.fillRoundRect(THUMB_WIDTH / 2, trackY, w - THUMB_WIDTH, TRACK_HEIGHT, 2, 2);
+
+            // Selected range
+            int lowX = valueToX(lowValue);
+            int highX = valueToX(highValue);
+            g2d.setColor(new Color(70, 130, 180));
+            g2d.fillRect(lowX, trackY, highX - lowX, TRACK_HEIGHT);
+
+            // Low thumb
+            g2d.setColor(new Color(70, 130, 180));
+            int[] xPointsLow = {lowX - THUMB_WIDTH / 2, lowX + THUMB_WIDTH / 2, lowX};
+            int[] yPointsLow = {h / 2 - THUMB_HEIGHT / 2, h / 2 - THUMB_HEIGHT / 2, h / 2 + THUMB_HEIGHT / 2};
+            g2d.fillPolygon(xPointsLow, yPointsLow, 3);
+            g2d.setColor(new Color(50, 100, 150));
+            g2d.drawPolygon(xPointsLow, yPointsLow, 3);
+
+            // High thumb
+            g2d.setColor(new Color(70, 130, 180));
+            int[] xPointsHigh = {highX - THUMB_WIDTH / 2, highX + THUMB_WIDTH / 2, highX};
+            int[] yPointsHigh = {h / 2 - THUMB_HEIGHT / 2, h / 2 - THUMB_HEIGHT / 2, h / 2 + THUMB_HEIGHT / 2};
+            g2d.fillPolygon(xPointsHigh, yPointsHigh, 3);
+            g2d.setColor(new Color(50, 100, 150));
+            g2d.drawPolygon(xPointsHigh, yPointsHigh, 3);
+
+            g2d.dispose();
+        }
+    }
+
     // Collapsible Panel
     class CollapsiblePanel extends JPanel {
         private JPanel content;
@@ -1781,7 +1954,7 @@ public class Timeline2 extends JFrame {
         private boolean collapsed = false;
         private boolean isLeft;
         private String title;
-        private Dimension expandedSize = new Dimension(195, 600);
+        private Dimension expandedSize = new Dimension(230, 600);
 
         CollapsiblePanel(String title, JPanel content, boolean isLeft) {
             this.title = title;
@@ -1801,8 +1974,9 @@ public class Timeline2 extends JFrame {
             titleLabel.setFont(new Font("Arial", Font.BOLD, 12));
             header.add(titleLabel, BorderLayout.CENTER);
 
-            // Single collapse/expand button with arrow
-            collapseBtn = createHeaderButton("\u25C0", "Collapse");
+            // Single collapse/expand button with arrow (direction depends on side)
+            String collapseArrow = isLeft ? "\u25C0" : "\u25B6";  // Left arrow for left panel, right arrow for right panel
+            collapseBtn = createHeaderButton(collapseArrow, "Collapse");
             collapseBtn.addActionListener(e -> toggleCollapse());
             header.add(collapseBtn, BorderLayout.EAST);
             add(header, BorderLayout.NORTH);
@@ -1829,7 +2003,8 @@ public class Timeline2 extends JFrame {
 
             if (collapsed) {
                 setPreferredSize(new Dimension(30, 600));
-                collapseBtn.setText("\u25B6");  // Right arrow to expand
+                // When collapsed: show arrow pointing toward the panel to expand
+                collapseBtn.setText(isLeft ? "\u25B6" : "\u25C0");  // Right arrow for left panel, left arrow for right panel
                 collapseBtn.setToolTipText("Expand");
                 for (Component c : getComponents()) {
                     if (c != header) c.setVisible(false);
@@ -1837,7 +2012,8 @@ public class Timeline2 extends JFrame {
                 header.setPreferredSize(new Dimension(30, 600));
             } else {
                 setPreferredSize(expandedSize);
-                collapseBtn.setText("\u25C0");  // Left arrow to collapse
+                // When expanded: show arrow pointing away from center to collapse
+                collapseBtn.setText(isLeft ? "\u25C0" : "\u25B6");  // Left arrow for left panel, right arrow for right panel
                 collapseBtn.setToolTipText("Collapse");
                 for (Component c : getComponents()) {
                     c.setVisible(true);
@@ -1881,8 +2057,6 @@ public class Timeline2 extends JFrame {
         private DefaultListModel<String> listModel;
         private JList<String> layersList;
         private JScrollPane scrollPane;
-        private JPanel header;
-        private JLabel titleLabel;
         private boolean isDragging = false;
         private int dragOriginalIndex = -1;
         private int dropTargetIndex = -1;
@@ -1893,26 +2067,8 @@ public class Timeline2 extends JFrame {
 
         LayersPanel() {
             setLayout(new BorderLayout());
-            setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                BorderFactory.createEmptyBorder(0, 0, 0, 0)
-            ));
+            setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
             setPreferredSize(new Dimension(180, 400));
-
-            // Header
-            header = new JPanel(new BorderLayout());
-            header.setBackground(new Color(70, 130, 180));
-            header.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
-            titleLabel = new JLabel("Layers");
-            titleLabel.setForeground(Color.WHITE);
-            titleLabel.setFont(new Font("Arial", Font.BOLD, 12));
-            header.add(titleLabel, BorderLayout.CENTER);
-
-            JLabel helpLabel = new JLabel("(top = front)");
-            helpLabel.setForeground(new Color(200, 220, 255));
-            helpLabel.setFont(new Font("Arial", Font.PLAIN, 10));
-            header.add(helpLabel, BorderLayout.EAST);
-            add(header, BorderLayout.NORTH);
 
             // List with custom painting for floating item
             listModel = new DefaultListModel<>();
@@ -2150,12 +2306,6 @@ public class Timeline2 extends JFrame {
 
         void applyColors(Color interior, Color outline, Color headerBg, Color headerText) {
             setBackground(interior);
-            setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(outline),
-                BorderFactory.createEmptyBorder(0, 0, 0, 0)
-            ));
-            header.setBackground(headerBg);
-            titleLabel.setForeground(headerText);
             if (layersList != null) {
                 layersList.setBackground(interior);
             }
@@ -2517,139 +2667,131 @@ public class Timeline2 extends JFrame {
             long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
             if (totalDays <= 0) return;
 
-            // Check tasks first
-            for (int i = 0; i < tasks.size(); i++) {
-                TimelineTask task = tasks.get(i);
-                int taskY = getTaskY(i);
-                int taskHeight = task.height;
-                boolean isSelected = (i == selectedTaskIndex);
-                try {
-                    LocalDate taskStart = LocalDate.parse(task.startDate, DATE_FORMAT);
-                    LocalDate taskEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+            int tasksHeight = getTotalTasksHeight();
+            int timelineY = 50 + tasksHeight;
 
-                    int x1 = getXForDate(taskStart, timelineX, timelineWidth, totalDays);
-                    int x2 = getXForDate(taskEnd, timelineX, timelineWidth, totalDays);
-                    int barWidth = Math.max(x2 - x1, 10);
+            // Check items in layer order (front to back - index 0 is topmost)
+            for (int layerIdx = 0; layerIdx < layerOrder.size(); layerIdx++) {
+                Object item = layerOrder.get(layerIdx);
 
-                    // Check for height handles on selected task (top/bottom edges)
-                    if (isSelected && x >= x1 && x <= x1 + barWidth) {
-                        // Check top edge
-                        if (y >= taskY - 6 && y <= taskY + 6) {
-                            isHeightDragging = true;
-                            heightDragTaskIndex = i;
-                            draggingTop = true;
-                            heightDragStartY = y;
-                            heightDragOriginalHeight = task.height;
-                            setCursor(Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR));
-                            return;
-                        }
-                        // Check bottom edge
-                        if (y >= taskY + taskHeight - 6 && y <= taskY + taskHeight + 6) {
-                            isHeightDragging = true;
-                            heightDragTaskIndex = i;
-                            draggingTop = false;
-                            heightDragStartY = y;
-                            heightDragOriginalHeight = task.height;
-                            setCursor(Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR));
-                            return;
-                        }
-                    }
+                if (item instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) item;
+                    int taskIdx = tasks.indexOf(task);
+                    int taskY = getTaskYForLayer(layerIdx);
+                    int taskHeight = task.height;
+                    boolean isSelected = (taskIdx == selectedTaskIndex);
 
-                    if (y >= taskY && y <= taskY + taskHeight) {
-                        // Check start edge for dragging
-                        if (x >= x1 - DRAG_HANDLE_WIDTH && x <= x1 + DRAG_HANDLE_WIDTH) {
-                            isDragging = true;
-                            draggingTaskIndex = i;
-                            draggingStart = true;
-                            setCursor(Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR));
-                            selectTask(i);
-                            return;
+                    try {
+                        LocalDate taskStart = LocalDate.parse(task.startDate, DATE_FORMAT);
+                        LocalDate taskEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+
+                        int x1 = getXForDate(taskStart, timelineX, timelineWidth, totalDays);
+                        int x2 = getXForDate(taskEnd, timelineX, timelineWidth, totalDays);
+                        int barWidth = Math.max(x2 - x1, 10);
+
+                        // Check for height handles on selected task (top/bottom edges)
+                        if (isSelected && x >= x1 && x <= x1 + barWidth) {
+                            if (y >= taskY - 6 && y <= taskY + 6) {
+                                isHeightDragging = true;
+                                heightDragTaskIndex = taskIdx;
+                                draggingTop = true;
+                                heightDragStartY = y;
+                                heightDragOriginalHeight = task.height;
+                                setCursor(Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR));
+                                return;
+                            }
+                            if (y >= taskY + taskHeight - 6 && y <= taskY + taskHeight + 6) {
+                                isHeightDragging = true;
+                                heightDragTaskIndex = taskIdx;
+                                draggingTop = false;
+                                heightDragStartY = y;
+                                heightDragOriginalHeight = task.height;
+                                setCursor(Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR));
+                                return;
+                            }
                         }
-                        // Check end edge for dragging
-                        if (x >= x1 + barWidth - DRAG_HANDLE_WIDTH && x <= x1 + barWidth + DRAG_HANDLE_WIDTH) {
-                            isDragging = true;
-                            draggingTaskIndex = i;
-                            draggingStart = false;
-                            setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
-                            selectTask(i);
-                            return;
+
+                        if (y >= taskY && y <= taskY + taskHeight) {
+                            if (x >= x1 - DRAG_HANDLE_WIDTH && x <= x1 + DRAG_HANDLE_WIDTH) {
+                                isDragging = true;
+                                draggingTaskIndex = taskIdx;
+                                draggingStart = true;
+                                setCursor(Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR));
+                                selectTask(taskIdx);
+                                return;
+                            }
+                            if (x >= x1 + barWidth - DRAG_HANDLE_WIDTH && x <= x1 + barWidth + DRAG_HANDLE_WIDTH) {
+                                isDragging = true;
+                                draggingTaskIndex = taskIdx;
+                                draggingStart = false;
+                                setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
+                                selectTask(taskIdx);
+                                return;
+                            }
+                            if (x >= x1 && x <= x1 + barWidth) {
+                                selectTask(taskIdx);
+                                isMoveDragging = true;
+                                moveDragTaskIndex = taskIdx;
+                                moveDragStartX = x;
+                                moveDragStartY = y;
+                                moveDragOriginalStartDate = task.startDate;
+                                moveDragOriginalEndDate = task.endDate;
+                                moveDragOriginalYPosition = taskY;
+                                setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                                return;
+                            }
                         }
-                        // Click on middle of bar - select and start free movement drag
-                        if (x >= x1 && x <= x1 + barWidth) {
-                            selectTask(i);
-                            isMoveDragging = true;
-                            moveDragTaskIndex = i;
-                            moveDragStartX = x;
-                            moveDragStartY = y;
-                            moveDragOriginalStartDate = task.startDate;
-                            moveDragOriginalEndDate = task.endDate;
-                            moveDragOriginalYPosition = taskY;
+                    } catch (Exception ex) {}
+
+                } else if (item instanceof TimelineMilestone) {
+                    TimelineMilestone milestone = (TimelineMilestone) item;
+                    int milestoneIdx = milestones.indexOf(milestone);
+
+                    try {
+                        LocalDate milestoneDate = LocalDate.parse(milestone.date, DATE_FORMAT);
+                        if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) continue;
+
+                        int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
+                        int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                        int halfW = milestone.width / 2;
+                        int halfH = milestone.height / 2;
+                        int boxPadding = 6;
+
+                        // Check for resize handles on selected milestone
+                        if (milestoneIdx == selectedMilestoneIndex) {
+                            int boxX = mx - halfW - boxPadding;
+                            int boxY = my - halfH - boxPadding;
+                            int boxW = milestone.width + boxPadding * 2;
+                            int boxH = milestone.height + boxPadding * 2;
+                            int handleSize = 6;
+
+                            int handle = getResizeHandle(x, y, boxX, boxY, boxW, boxH, handleSize);
+                            if (handle >= 0) {
+                                isMilestoneResizing = true;
+                                resizeHandle = handle;
+                                resizeStartX = x;
+                                resizeStartY = y;
+                                resizeOriginalWidth = milestone.width;
+                                resizeOriginalHeight = milestone.height;
+                                setCursor(getResizeCursor(handle));
+                                return;
+                            }
+                        }
+
+                        if (x >= mx - halfW - boxPadding && x <= mx + halfW + boxPadding &&
+                            y >= my - halfH - boxPadding && y <= my + halfH + boxPadding) {
+                            selectMilestone(milestoneIdx);
+                            isMilestoneDragging = true;
+                            milestoneDragIndex = milestoneIdx;
+                            milestoneDragStartX = x;
+                            milestoneDragStartY = y;
+                            milestoneDragOriginalDate = milestone.date;
+                            milestoneDragOriginalYPosition = my;
                             setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
                             return;
                         }
-                    }
-                } catch (Exception ex) {}
-            }
-
-            // Check for milestone resize handles first (if milestone is selected)
-            int tasksHeight = getTotalTasksHeight();
-            int timelineY = 50 + tasksHeight;
-            if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
-                TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
-                try {
-                    LocalDate milestoneDate = LocalDate.parse(milestone.date, DATE_FORMAT);
-                    int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
-                    int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
-                    int boxPadding = 6;
-                    int boxX = mx - milestone.width / 2 - boxPadding;
-                    int boxY = my - milestone.height / 2 - boxPadding;
-                    int boxW = milestone.width + boxPadding * 2;
-                    int boxH = milestone.height + boxPadding * 2;
-                    int handleSize = 6;
-
-                    // Check each handle
-                    int handle = getResizeHandle(x, y, boxX, boxY, boxW, boxH, handleSize);
-                    if (handle >= 0) {
-                        isMilestoneResizing = true;
-                        resizeHandle = handle;
-                        resizeStartX = x;
-                        resizeStartY = y;
-                        resizeOriginalWidth = milestone.width;
-                        resizeOriginalHeight = milestone.height;
-                        setCursor(getResizeCursor(handle));
-                        return;
-                    }
-                } catch (Exception ex) {}
-            }
-
-            // Check for milestone clicks
-            for (int i = 0; i < milestones.size(); i++) {
-                TimelineMilestone milestone = milestones.get(i);
-                try {
-                    LocalDate milestoneDate = LocalDate.parse(milestone.date, DATE_FORMAT);
-                    if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) continue;
-
-                    int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
-                    int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
-                    int halfW = milestone.width / 2;
-                    int halfH = milestone.height / 2;
-
-                    // Check if click is within milestone bounds (plus selection box area)
-                    int boxPadding = 6;
-                    if (x >= mx - halfW - boxPadding && x <= mx + halfW + boxPadding &&
-                        y >= my - halfH - boxPadding && y <= my + halfH + boxPadding) {
-                        selectMilestone(i);
-                        // Start milestone drag
-                        isMilestoneDragging = true;
-                        milestoneDragIndex = i;
-                        milestoneDragStartX = x;
-                        milestoneDragStartY = y;
-                        milestoneDragOriginalDate = milestone.date;
-                        milestoneDragOriginalYPosition = my;
-                        setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-                        return;
-                    }
-                } catch (Exception ex) {}
+                    } catch (Exception ex) {}
+                }
             }
         }
 
