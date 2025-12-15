@@ -1467,6 +1467,13 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    void updateFormatPanelMilestoneDate(int index) {
+        if (index >= 0 && index < milestones.size() && index == selectedMilestoneIndex) {
+            TimelineMilestone milestone = milestones.get(index);
+            milestoneDateField.setText(milestone.date);
+        }
+    }
+
     void moveTask(int fromIndex, int toIndex) {
         if (fromIndex < 0 || fromIndex >= tasks.size() || toIndex < 0 || toIndex >= tasks.size()) return;
         if (fromIndex == toIndex) return;
@@ -2355,6 +2362,14 @@ public class Timeline2 extends JFrame {
         private int heightDragStartY = -1;
         private int heightDragOriginalHeight = -1;
 
+        // Milestone dragging
+        private boolean isMilestoneDragging = false;
+        private int milestoneDragIndex = -1;
+        private int milestoneDragStartX = -1;
+        private int milestoneDragStartY = -1;
+        private String milestoneDragOriginalDate = null;
+        private int milestoneDragOriginalYPosition = -1;
+
         TimelineDisplayPanel() {
             setBackground(Color.WHITE);
             setupMouseListeners();
@@ -2453,6 +2468,13 @@ public class Timeline2 extends JFrame {
                         heightDragTaskIndex = -1;
                         setCursor(Cursor.getDefaultCursor());
                     }
+                    if (isMilestoneDragging) {
+                        isMilestoneDragging = false;
+                        milestoneDragIndex = -1;
+                        milestoneDragOriginalDate = null;
+                        setCursor(Cursor.getDefaultCursor());
+                        refreshTimeline();
+                    }
                 }
                 public void mouseDragged(MouseEvent e) {
                     if (isDragging && draggingTaskIndex >= 0) {
@@ -2463,6 +2485,9 @@ public class Timeline2 extends JFrame {
                     }
                     if (isHeightDragging) {
                         handleHeightDrag(e.getY());
+                    }
+                    if (isMilestoneDragging) {
+                        handleMilestoneDrag(e.getX(), e.getY());
                     }
                 }
                 public void mouseMoved(MouseEvent e) {
@@ -2572,6 +2597,14 @@ public class Timeline2 extends JFrame {
                     // Check if click is within milestone bounds
                     if (x >= mx - halfW && x <= mx + halfW && y >= my - halfH && y <= my + halfH) {
                         selectMilestone(i);
+                        // Start milestone drag
+                        isMilestoneDragging = true;
+                        milestoneDragIndex = i;
+                        milestoneDragStartX = x;
+                        milestoneDragStartY = y;
+                        milestoneDragOriginalDate = milestone.date;
+                        milestoneDragOriginalYPosition = my;
+                        setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
                         return;
                     }
                 } catch (Exception ex) {}
@@ -2668,6 +2701,45 @@ public class Timeline2 extends JFrame {
                 taskHeightSpinner.setValue(newHeight);
                 repaint();
             }
+        }
+
+        private void handleMilestoneDrag(int x, int y) {
+            if (milestoneDragIndex < 0 || milestoneDragIndex >= milestones.size()) return;
+
+            int timelineX = MARGIN_LEFT;
+            int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+            long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+            if (totalDays <= 0) return;
+
+            TimelineMilestone milestone = milestones.get(milestoneDragIndex);
+
+            // Calculate horizontal movement (date shift)
+            int deltaX = x - milestoneDragStartX;
+            try {
+                LocalDate origDate = LocalDate.parse(milestoneDragOriginalDate, DATE_FORMAT);
+
+                // Convert pixel delta to days
+                double daysPerPixel = (double) totalDays / timelineWidth;
+                long daysDelta = Math.round(deltaX * daysPerPixel);
+
+                LocalDate newDate = origDate.plusDays(daysDelta);
+
+                // Clamp to timeline range
+                if (newDate.isBefore(startDate)) newDate = startDate;
+                if (newDate.isAfter(endDate)) newDate = endDate;
+
+                milestone.date = newDate.format(DATE_FORMAT);
+                updateFormatPanelMilestoneDate(milestoneDragIndex);
+            } catch (Exception ex) {}
+
+            // Calculate vertical movement (Y position)
+            int deltaY = y - milestoneDragStartY;
+            int newY = milestoneDragOriginalYPosition + deltaY;
+            // Clamp Y position to valid range (minimum 35 to stay below title)
+            newY = Math.max(35, newY);
+            milestone.yPosition = newY;
+
+            repaint();
         }
 
         private void updateCursor(int x, int y) {
