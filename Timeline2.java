@@ -14,6 +14,7 @@ public class Timeline2 extends JFrame {
     private ArrayList<TimelineEvent> events = new ArrayList<>();
     private ArrayList<TimelineTask> tasks = new ArrayList<>();
     private ArrayList<TimelineMilestone> milestones = new ArrayList<>();
+    private ArrayList<Object> layerOrder = new ArrayList<>(); // Unified list of tasks and milestones for z-ordering
     private int selectedTaskIndex = -1;
     private int selectedMilestoneIndex = -1;
 
@@ -1340,6 +1341,7 @@ public class Timeline2 extends JFrame {
         // Assign a default color at creation so it stays with the task when reordered
         task.fillColor = TASK_COLORS[taskIndex % TASK_COLORS.length];
         tasks.add(task);
+        layerOrder.add(0, task); // Add to top of layer order
         refreshTimeline();
     }
 
@@ -1390,6 +1392,7 @@ public class Timeline2 extends JFrame {
         TimelineMilestone milestone = new TimelineMilestone(name, date, shape);
         milestone.fillColor = TASK_COLORS[(milestoneIndex + 3) % TASK_COLORS.length];
         milestones.add(milestone);
+        layerOrder.add(0, milestone); // Add to top of layer order
         refreshTimeline();
     }
 
@@ -1579,6 +1582,7 @@ public class Timeline2 extends JFrame {
         events.clear();
         tasks.clear();
         milestones.clear();
+        layerOrder.clear();
         selectTask(-1);
         selectMilestone(-1);
         refreshTimeline();
@@ -2008,12 +2012,24 @@ public class Timeline2 extends JFrame {
                         dragOffsetY = e.getY() - (index * layersList.getFixedCellHeight());
                         isDragging = false;
                         layersList.setSelectedIndex(index);
-                        selectTask(index);
+
+                        // Select the appropriate item type
+                        Object item = layerOrder.get(index);
+                        if (item instanceof TimelineTask) {
+                            selectTask(tasks.indexOf(item));
+                        } else if (item instanceof TimelineMilestone) {
+                            selectMilestone(milestones.indexOf(item));
+                        }
 
                         // Store dragged item info
                         draggedItemName = listModel.get(index);
-                        TimelineTask task = tasks.get(index);
-                        draggedItemColor = task.fillColor != null ? task.fillColor : TASK_COLORS[index % TASK_COLORS.length];
+                        if (item instanceof TimelineTask) {
+                            TimelineTask task = (TimelineTask) item;
+                            draggedItemColor = task.fillColor != null ? task.fillColor : TASK_COLORS[0];
+                        } else if (item instanceof TimelineMilestone) {
+                            TimelineMilestone milestone = (TimelineMilestone) item;
+                            draggedItemColor = milestone.fillColor;
+                        }
                     }
                 }
 
@@ -2066,19 +2082,10 @@ public class Timeline2 extends JFrame {
         }
 
         private void commitReorder(int fromIndex, int toIndex) {
-            if (fromIndex < 0 || fromIndex >= tasks.size() || toIndex < 0 || toIndex >= tasks.size()) return;
+            if (fromIndex < 0 || fromIndex >= layerOrder.size() || toIndex < 0 || toIndex >= layerOrder.size()) return;
 
-            TimelineTask task = tasks.remove(fromIndex);
-            tasks.add(toIndex, task);
-
-            // Update selected index
-            if (selectedTaskIndex == fromIndex) {
-                selectedTaskIndex = toIndex;
-            } else if (fromIndex < selectedTaskIndex && toIndex >= selectedTaskIndex) {
-                selectedTaskIndex--;
-            } else if (fromIndex > selectedTaskIndex && toIndex <= selectedTaskIndex) {
-                selectedTaskIndex++;
-            }
+            Object item = layerOrder.remove(fromIndex);
+            layerOrder.add(toIndex, item);
 
             refreshTimeline();
         }
@@ -2086,8 +2093,12 @@ public class Timeline2 extends JFrame {
         void refreshLayers() {
             int selectedIndex = layersList.getSelectedIndex();
             listModel.clear();
-            for (TimelineTask task : tasks) {
-                listModel.addElement(task.name);
+            for (Object item : layerOrder) {
+                if (item instanceof TimelineTask) {
+                    listModel.addElement(((TimelineTask) item).name);
+                } else if (item instanceof TimelineMilestone) {
+                    listModel.addElement("\u25C6 " + ((TimelineMilestone) item).name); // Diamond prefix for milestones
+                }
             }
             if (selectedIndex >= 0 && selectedIndex < listModel.size()) {
                 layersList.setSelectedIndex(selectedIndex);
@@ -2122,8 +2133,17 @@ public class Timeline2 extends JFrame {
 
         private void deleteSelectedLayer() {
             int index = layersList.getSelectedIndex();
-            if (index >= 0) {
-                deleteTask(index);
+            if (index >= 0 && index < layerOrder.size()) {
+                Object item = layerOrder.get(index);
+                layerOrder.remove(index);
+                if (item instanceof TimelineTask) {
+                    tasks.remove(item);
+                    selectTask(-1);
+                } else if (item instanceof TimelineMilestone) {
+                    milestones.remove(item);
+                    selectMilestone(-1);
+                }
+                refreshTimeline();
             }
         }
 
@@ -2175,16 +2195,19 @@ public class Timeline2 extends JFrame {
 
                 nameLabel.setText(value);
 
-                // Get task color - need to find the right task based on the value
-                Color taskColor = TASK_COLORS[index % TASK_COLORS.length];
-                for (int i = 0; i < tasks.size(); i++) {
-                    if (tasks.get(i).name.equals(value)) {
-                        TimelineTask task = tasks.get(i);
-                        taskColor = task.fillColor != null ? task.fillColor : TASK_COLORS[i % TASK_COLORS.length];
-                        break;
+                // Get item color from layerOrder
+                Color itemColor = TASK_COLORS[index % TASK_COLORS.length];
+                if (index >= 0 && index < layerOrder.size()) {
+                    Object item = layerOrder.get(index);
+                    if (item instanceof TimelineTask) {
+                        TimelineTask task = (TimelineTask) item;
+                        itemColor = task.fillColor != null ? task.fillColor : TASK_COLORS[0];
+                    } else if (item instanceof TimelineMilestone) {
+                        TimelineMilestone milestone = (TimelineMilestone) item;
+                        itemColor = milestone.fillColor;
                     }
                 }
-                colorIndicator.setBackground(taskColor);
+                colorIndicator.setBackground(itemColor);
 
                 // When dragging, show drop indicator line
                 if (isDragging && dragOriginalIndex >= 0) {
@@ -2361,18 +2384,46 @@ public class Timeline2 extends JFrame {
             return y;
         }
 
+        private int getTaskYForLayer(int layerIndex) {
+            // Calculate Y position based on layer order
+            Object item = layerOrder.get(layerIndex);
+            if (item instanceof TimelineTask) {
+                TimelineTask task = (TimelineTask) item;
+                if (task.yPosition >= 0) {
+                    return task.yPosition;
+                }
+            }
+            // Auto-calculate Y position based on layer order
+            int y = 45;
+            for (int i = layerOrder.size() - 1; i > layerIndex; i--) {
+                Object layerItem = layerOrder.get(i);
+                if (layerItem instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) layerItem;
+                    if (task.yPosition < 0) {
+                        y += task.height + TASK_BAR_SPACING;
+                    }
+                }
+            }
+            return y;
+        }
+
         private int getTotalTasksHeight() {
             int maxY = 45;
-            for (TimelineTask task : tasks) {
-                int taskBottom;
-                if (task.yPosition >= 0) {
-                    taskBottom = task.yPosition + task.height + TASK_BAR_SPACING;
-                } else {
-                    taskBottom = maxY + task.height + TASK_BAR_SPACING;
-                    maxY = taskBottom;
-                }
-                if (taskBottom > maxY) {
-                    maxY = taskBottom;
+            // Calculate based on layerOrder for proper stacking
+            for (int i = layerOrder.size() - 1; i >= 0; i--) {
+                Object item = layerOrder.get(i);
+                if (item instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) item;
+                    int taskBottom;
+                    if (task.yPosition >= 0) {
+                        taskBottom = task.yPosition + task.height + TASK_BAR_SPACING;
+                    } else {
+                        taskBottom = maxY + task.height + TASK_BAR_SPACING;
+                        maxY = taskBottom;
+                    }
+                    if (taskBottom > maxY) {
+                        maxY = taskBottom;
+                    }
                 }
             }
             return maxY - 25; // Subtract initial offset
@@ -2719,15 +2770,19 @@ public class Timeline2 extends JFrame {
             g2d.setColor(new Color(50, 50, 50));
             g2d.drawString("Timeline: " + startDate.format(DATE_FORMAT) + " to " + endDate.format(DATE_FORMAT), MARGIN_LEFT, 25);
 
-            // Task bars (above timeline) - draw in reverse order so top layers appear in front
-            for (int i = tasks.size() - 1; i >= 0; i--) {
-                int taskY = getTaskY(i);
-                drawTaskBar(g2d, tasks.get(i), i, taskY, timelineX, timelineWidth, totalDays);
-            }
-
-            // Milestones (above timeline, on same level as tasks)
-            for (int i = 0; i < milestones.size(); i++) {
-                drawMilestone(g2d, milestones.get(i), i, timelineX, timelineWidth, timelineY, totalDays);
+            // Draw items from layerOrder in reverse order so top layers appear in front
+            for (int i = layerOrder.size() - 1; i >= 0; i--) {
+                Object item = layerOrder.get(i);
+                if (item instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) item;
+                    int taskIndex = tasks.indexOf(task);
+                    int taskY = getTaskYForLayer(i);
+                    drawTaskBar(g2d, task, taskIndex, taskY, timelineX, timelineWidth, totalDays);
+                } else if (item instanceof TimelineMilestone) {
+                    TimelineMilestone milestone = (TimelineMilestone) item;
+                    int milestoneIndex = milestones.indexOf(milestone);
+                    drawMilestone(g2d, milestone, milestoneIndex, timelineX, timelineWidth, timelineY, totalDays);
+                }
             }
 
             // Timeline line
