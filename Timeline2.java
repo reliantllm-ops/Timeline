@@ -87,6 +87,9 @@ public class Timeline2 extends JFrame {
     private JSpinner milestoneWidthSpinner, milestoneHeightSpinner;
     private JButton milestoneFillColorBtn, milestoneOutlineColorBtn;
     private JSpinner milestoneOutlineThicknessSpinner;
+    // Row 1 switcher (task vs milestone)
+    private JPanel row1Container;
+    private CardLayout row1CardLayout;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -163,7 +166,7 @@ public class Timeline2 extends JFrame {
     private JPanel createFormatPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 5));
         panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        panel.setPreferredSize(new Dimension(0, 295));
+        panel.setPreferredSize(new Dimension(0, 250));
         panel.setBackground(new Color(250, 250, 250));
 
         // Header bar with minimize/maximize toggle
@@ -192,7 +195,7 @@ public class Timeline2 extends JFrame {
         toggleBtn.addActionListener(e -> {
             isExpanded[0] = !isExpanded[0];
             if (isExpanded[0]) {
-                panel.setPreferredSize(new Dimension(0, 295));
+                panel.setPreferredSize(new Dimension(0, 250));
                 toggleBtn.setText("\u25BC");  // Down arrow
                 toggleBtn.setToolTipText("Minimize");
                 contentWrapper.setVisible(true);
@@ -215,83 +218,165 @@ public class Timeline2 extends JFrame {
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setOpaque(false);
 
-        // Row 1: Title and main fields
-        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
-        row1.setOpaque(false);
-        row1.setMinimumSize(new Dimension(1200, 30));
-        row1.setPreferredSize(new Dimension(1200, 30));
+        // Row 1: CardLayout container for task/milestone fields
+        row1CardLayout = new CardLayout();
+        row1Container = new JPanel(row1CardLayout);
+        row1Container.setOpaque(false);
+        row1Container.setMinimumSize(new Dimension(1200, 30));
+        row1Container.setPreferredSize(new Dimension(1200, 30));
+
+        // Task row panel
+        JPanel taskRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        taskRow.setOpaque(false);
 
         formatTitleLabel = new JLabel("No task selected");
         formatTitleLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        row1.add(formatTitleLabel);
+        taskRow.add(formatTitleLabel);
 
-        row1.add(Box.createHorizontalStrut(10));
-        row1.add(new JLabel("Name:"));
+        taskRow.add(Box.createHorizontalStrut(10));
+        taskRow.add(new JLabel("Name:"));
         taskNameField = new JTextField(10);
         taskNameField.setEnabled(false);
         taskNameField.addActionListener(e -> updateSelectedTaskName());
         taskNameField.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateSelectedTaskName(); }
         });
-        row1.add(taskNameField);
+        taskRow.add(taskNameField);
 
-        row1.add(Box.createHorizontalStrut(10));
-        row1.add(new JLabel("Start:"));
+        taskRow.add(Box.createHorizontalStrut(10));
+        taskRow.add(new JLabel("Start:"));
         taskStartField = new JTextField(8);
         taskStartField.setEnabled(false);
         taskStartField.addActionListener(e -> updateSelectedTaskDates());
         taskStartField.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateSelectedTaskDates(); }
         });
-        row1.add(taskStartField);
+        taskRow.add(taskStartField);
 
-        row1.add(Box.createHorizontalStrut(10));
-        row1.add(new JLabel("End:"));
+        taskRow.add(Box.createHorizontalStrut(10));
+        taskRow.add(new JLabel("End:"));
         taskEndField = new JTextField(8);
         taskEndField.setEnabled(false);
         taskEndField.addActionListener(e -> updateSelectedTaskDates());
         taskEndField.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateSelectedTaskDates(); }
         });
-        row1.add(taskEndField);
+        taskRow.add(taskEndField);
 
-        row1.add(Box.createHorizontalStrut(15));
-        row1.add(new JLabel("Fill:"));
+        taskRow.add(Box.createHorizontalStrut(15));
+        taskRow.add(new JLabel("Fill:"));
         fillColorBtn = new JButton();
         fillColorBtn.setPreferredSize(new Dimension(30, 25));
         fillColorBtn.setEnabled(false);
         fillColorBtn.setToolTipText("Click to change fill color");
         fillColorBtn.addActionListener(e -> chooseFillColor());
-        row1.add(fillColorBtn);
+        taskRow.add(fillColorBtn);
 
-        row1.add(Box.createHorizontalStrut(10));
-        row1.add(new JLabel("Outline:"));
+        taskRow.add(Box.createHorizontalStrut(10));
+        taskRow.add(new JLabel("Outline:"));
         outlineColorBtn = new JButton();
         outlineColorBtn.setPreferredSize(new Dimension(30, 25));
         outlineColorBtn.setEnabled(false);
         outlineColorBtn.setToolTipText("Click to change outline color");
         outlineColorBtn.addActionListener(e -> chooseOutlineColor());
-        row1.add(outlineColorBtn);
+        taskRow.add(outlineColorBtn);
 
-        row1.add(Box.createHorizontalStrut(10));
-        row1.add(new JLabel("Thickness:"));
+        taskRow.add(Box.createHorizontalStrut(10));
+        taskRow.add(new JLabel("Thickness:"));
         outlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 10, 1));
         outlineThicknessSpinner.setPreferredSize(new Dimension(50, 25));
         outlineThicknessSpinner.setEnabled(false);
         outlineThicknessSpinner.setToolTipText("Outline thickness (0-10)");
         outlineThicknessSpinner.addChangeListener(e -> updateOutlineThickness());
-        row1.add(outlineThicknessSpinner);
+        taskRow.add(outlineThicknessSpinner);
 
-        row1.add(Box.createHorizontalStrut(10));
-        row1.add(new JLabel("Height:"));
+        taskRow.add(Box.createHorizontalStrut(10));
+        taskRow.add(new JLabel("Height:"));
         taskHeightSpinner = new JSpinner(new SpinnerNumberModel(25, 10, 100, 5));
         taskHeightSpinner.setPreferredSize(new Dimension(55, 25));
         taskHeightSpinner.setEnabled(false);
         taskHeightSpinner.setToolTipText("Task bar height (10-100)");
         taskHeightSpinner.addChangeListener(e -> updateTaskHeight());
-        row1.add(taskHeightSpinner);
+        taskRow.add(taskHeightSpinner);
 
-        contentPanel.add(row1);
+        row1Container.add(taskRow, "task");
+
+        // Milestone row panel
+        JPanel milestoneRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        milestoneRow.setOpaque(false);
+
+        JLabel milestoneTitleLabel = new JLabel("Milestone selected");
+        milestoneTitleLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        milestoneRow.add(milestoneTitleLabel);
+
+        milestoneRow.add(Box.createHorizontalStrut(10));
+        milestoneRow.add(new JLabel("Name:"));
+        milestoneNameField = new JTextField(10);
+        milestoneNameField.setEnabled(false);
+        milestoneNameField.addActionListener(e -> updateSelectedMilestoneName());
+        milestoneNameField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateSelectedMilestoneName(); }
+        });
+        milestoneRow.add(milestoneNameField);
+
+        milestoneRow.add(Box.createHorizontalStrut(10));
+        milestoneRow.add(new JLabel("Date:"));
+        milestoneDateField = new JTextField(8);
+        milestoneDateField.setEnabled(false);
+        milestoneDateField.addActionListener(e -> updateSelectedMilestoneDate());
+        milestoneDateField.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateSelectedMilestoneDate(); }
+        });
+        milestoneRow.add(milestoneDateField);
+
+        milestoneRow.add(Box.createHorizontalStrut(15));
+        milestoneRow.add(new JLabel("Fill:"));
+        milestoneFillColorBtn = new JButton();
+        milestoneFillColorBtn.setPreferredSize(new Dimension(30, 25));
+        milestoneFillColorBtn.setEnabled(false);
+        milestoneFillColorBtn.setToolTipText("Click to change fill color");
+        milestoneFillColorBtn.addActionListener(e -> chooseMilestoneFillColor());
+        milestoneRow.add(milestoneFillColorBtn);
+
+        milestoneRow.add(Box.createHorizontalStrut(10));
+        milestoneRow.add(new JLabel("Outline:"));
+        milestoneOutlineColorBtn = new JButton();
+        milestoneOutlineColorBtn.setPreferredSize(new Dimension(30, 25));
+        milestoneOutlineColorBtn.setEnabled(false);
+        milestoneOutlineColorBtn.setToolTipText("Click to change outline color");
+        milestoneOutlineColorBtn.addActionListener(e -> chooseMilestoneOutlineColor());
+        milestoneRow.add(milestoneOutlineColorBtn);
+
+        milestoneRow.add(Box.createHorizontalStrut(10));
+        milestoneRow.add(new JLabel("Thickness:"));
+        milestoneOutlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 10, 1));
+        milestoneOutlineThicknessSpinner.setPreferredSize(new Dimension(50, 25));
+        milestoneOutlineThicknessSpinner.setEnabled(false);
+        milestoneOutlineThicknessSpinner.addChangeListener(e -> updateMilestoneOutlineThickness());
+        milestoneRow.add(milestoneOutlineThicknessSpinner);
+
+        milestoneRow.add(Box.createHorizontalStrut(10));
+        milestoneRow.add(new JLabel("Height:"));
+        milestoneHeightSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
+        milestoneHeightSpinner.setPreferredSize(new Dimension(55, 25));
+        milestoneHeightSpinner.setEnabled(false);
+        milestoneHeightSpinner.addChangeListener(e -> updateMilestoneHeight());
+        milestoneRow.add(milestoneHeightSpinner);
+
+        milestoneRow.add(Box.createHorizontalStrut(10));
+        milestoneRow.add(new JLabel("Width:"));
+        milestoneWidthSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
+        milestoneWidthSpinner.setPreferredSize(new Dimension(55, 25));
+        milestoneWidthSpinner.setEnabled(false);
+        milestoneWidthSpinner.addChangeListener(e -> updateMilestoneWidth());
+        milestoneRow.add(milestoneWidthSpinner);
+
+        row1Container.add(milestoneRow, "milestone");
+
+        // Show task row by default
+        row1CardLayout.show(row1Container, "task");
+
+        contentPanel.add(row1Container);
 
         // Separator between rows with 5px spacing above and 3px below
         contentPanel.add(Box.createVerticalStrut(5));
@@ -651,89 +736,6 @@ public class Timeline2 extends JFrame {
         behindTextColorBtn.addActionListener(e -> chooseBehindTextColor());
         row6.add(behindTextColorBtn);
         contentPanel.add(row6);
-
-        // Separator before milestone row
-        contentPanel.add(Box.createVerticalStrut(5));
-        JPanel separatorPanel2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        separatorPanel2.setOpaque(false);
-        JSeparator separator2 = new JSeparator(SwingConstants.HORIZONTAL);
-        separator2.setPreferredSize(new Dimension(1200, 2));
-        separatorPanel2.add(Box.createHorizontalStrut(10));
-        separatorPanel2.add(separator2);
-        contentPanel.add(separatorPanel2);
-        contentPanel.add(Box.createVerticalStrut(3));
-
-        // Row 7: Milestone fields
-        JPanel row7 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
-        row7.setOpaque(false);
-        row7.setMinimumSize(new Dimension(1200, 30));
-        row7.setPreferredSize(new Dimension(1200, 30));
-        JLabel milestoneLabel = new JLabel("Milestone:");
-        milestoneLabel.setPreferredSize(new Dimension(60, 20));
-        row7.add(milestoneLabel);
-
-        row7.add(new JLabel("Name:"));
-        milestoneNameField = new JTextField(10);
-        milestoneNameField.setEnabled(false);
-        milestoneNameField.addActionListener(e -> updateSelectedMilestoneName());
-        milestoneNameField.addFocusListener(new FocusAdapter() {
-            public void focusLost(FocusEvent e) { updateSelectedMilestoneName(); }
-        });
-        row7.add(milestoneNameField);
-
-        row7.add(Box.createHorizontalStrut(10));
-        row7.add(new JLabel("Date:"));
-        milestoneDateField = new JTextField(8);
-        milestoneDateField.setEnabled(false);
-        milestoneDateField.addActionListener(e -> updateSelectedMilestoneDate());
-        milestoneDateField.addFocusListener(new FocusAdapter() {
-            public void focusLost(FocusEvent e) { updateSelectedMilestoneDate(); }
-        });
-        row7.add(milestoneDateField);
-
-        row7.add(Box.createHorizontalStrut(15));
-        row7.add(new JLabel("Fill:"));
-        milestoneFillColorBtn = new JButton();
-        milestoneFillColorBtn.setPreferredSize(new Dimension(30, 25));
-        milestoneFillColorBtn.setEnabled(false);
-        milestoneFillColorBtn.setToolTipText("Click to change fill color");
-        milestoneFillColorBtn.addActionListener(e -> chooseMilestoneFillColor());
-        row7.add(milestoneFillColorBtn);
-
-        row7.add(Box.createHorizontalStrut(10));
-        row7.add(new JLabel("Outline:"));
-        milestoneOutlineColorBtn = new JButton();
-        milestoneOutlineColorBtn.setPreferredSize(new Dimension(30, 25));
-        milestoneOutlineColorBtn.setEnabled(false);
-        milestoneOutlineColorBtn.setToolTipText("Click to change outline color");
-        milestoneOutlineColorBtn.addActionListener(e -> chooseMilestoneOutlineColor());
-        row7.add(milestoneOutlineColorBtn);
-
-        row7.add(Box.createHorizontalStrut(10));
-        row7.add(new JLabel("Thickness:"));
-        milestoneOutlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 10, 1));
-        milestoneOutlineThicknessSpinner.setPreferredSize(new Dimension(50, 25));
-        milestoneOutlineThicknessSpinner.setEnabled(false);
-        milestoneOutlineThicknessSpinner.addChangeListener(e -> updateMilestoneOutlineThickness());
-        row7.add(milestoneOutlineThicknessSpinner);
-
-        row7.add(Box.createHorizontalStrut(10));
-        row7.add(new JLabel("Height:"));
-        milestoneHeightSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
-        milestoneHeightSpinner.setPreferredSize(new Dimension(55, 25));
-        milestoneHeightSpinner.setEnabled(false);
-        milestoneHeightSpinner.addChangeListener(e -> updateMilestoneHeight());
-        row7.add(milestoneHeightSpinner);
-
-        row7.add(Box.createHorizontalStrut(10));
-        row7.add(new JLabel("Width:"));
-        milestoneWidthSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
-        milestoneWidthSpinner.setPreferredSize(new Dimension(55, 25));
-        milestoneWidthSpinner.setEnabled(false);
-        milestoneWidthSpinner.addChangeListener(e -> updateMilestoneWidth());
-        row7.add(milestoneWidthSpinner);
-
-        contentPanel.add(row7);
         contentPanel.add(Box.createVerticalStrut(3));
 
         contentWrapper.add(contentPanel, BorderLayout.CENTER);
@@ -1089,24 +1091,10 @@ public class Timeline2 extends JFrame {
 
     void selectTask(int index) {
         selectedTaskIndex = index;
-        // Deselect milestone when task is selected
+        // Deselect milestone when task is selected and switch to task row view
         if (index >= 0) {
             selectedMilestoneIndex = -1;
-            // Clear milestone fields
-            milestoneNameField.setText("");
-            milestoneNameField.setEnabled(false);
-            milestoneDateField.setText("");
-            milestoneDateField.setEnabled(false);
-            milestoneFillColorBtn.setBackground(null);
-            milestoneFillColorBtn.setEnabled(false);
-            milestoneOutlineColorBtn.setBackground(null);
-            milestoneOutlineColorBtn.setEnabled(false);
-            milestoneOutlineThicknessSpinner.setValue(2);
-            milestoneOutlineThicknessSpinner.setEnabled(false);
-            milestoneHeightSpinner.setValue(20);
-            milestoneHeightSpinner.setEnabled(false);
-            milestoneWidthSpinner.setValue(20);
-            milestoneWidthSpinner.setEnabled(false);
+            row1CardLayout.show(row1Container, "task");
         }
         if (index >= 0 && index < tasks.size()) {
             TimelineTask task = tasks.get(index);
@@ -1283,11 +1271,10 @@ public class Timeline2 extends JFrame {
 
     void selectMilestone(int index) {
         selectedMilestoneIndex = index;
-        // Deselect task when milestone is selected
+        // Deselect task when milestone is selected and switch to milestone row view
         if (index >= 0) {
             selectedTaskIndex = -1;
-            // Disable task fields
-            selectTask(-1);
+            row1CardLayout.show(row1Container, "milestone");
         }
 
         if (index >= 0 && index < milestones.size()) {
@@ -1307,20 +1294,8 @@ public class Timeline2 extends JFrame {
             milestoneWidthSpinner.setValue(milestone.width);
             milestoneWidthSpinner.setEnabled(true);
         } else {
-            milestoneNameField.setText("");
-            milestoneNameField.setEnabled(false);
-            milestoneDateField.setText("");
-            milestoneDateField.setEnabled(false);
-            milestoneFillColorBtn.setBackground(null);
-            milestoneFillColorBtn.setEnabled(false);
-            milestoneOutlineColorBtn.setBackground(null);
-            milestoneOutlineColorBtn.setEnabled(false);
-            milestoneOutlineThicknessSpinner.setValue(2);
-            milestoneOutlineThicknessSpinner.setEnabled(false);
-            milestoneHeightSpinner.setValue(20);
-            milestoneHeightSpinner.setEnabled(false);
-            milestoneWidthSpinner.setValue(20);
-            milestoneWidthSpinner.setEnabled(false);
+            // Show task row when no milestone is selected
+            row1CardLayout.show(row1Container, "task");
         }
         timelineDisplayPanel.repaint();
     }
