@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -23,7 +25,7 @@ public class Timeline2 extends JFrame {
     private ArrayList<TimelineTask> tasks = new ArrayList<>();
     private ArrayList<TimelineMilestone> milestones = new ArrayList<>();
     private ArrayList<Object> layerOrder = new ArrayList<>(); // Unified list of tasks and milestones for z-ordering
-    private int selectedTaskIndex = -1;
+    private Set<Integer> selectedTaskIndices = new HashSet<>(); // Multi-select for tasks
     private int selectedMilestoneIndex = -1;
 
     // Panel colors - Settings
@@ -68,30 +70,36 @@ public class Timeline2 extends JFrame {
     private JPanel formatPanel;
     private JTextField taskNameField, taskStartField, taskEndField;
     private JLabel formatTitleLabel;
+    private JButton duplicateTaskBtn;
     private JButton fillColorBtn, outlineColorBtn, textColorBtn;
     private JSpinner outlineThicknessSpinner, taskHeightSpinner, fontSizeSpinner;
     private JToggleButton boldBtn, italicBtn;
     private JTextField centerTextField;
+    private JSpinner centerXOffsetSpinner, centerYOffsetSpinner;
     // Front text controls
     private JTextField frontTextField;
     private JSpinner frontFontSizeSpinner;
     private JToggleButton frontBoldBtn, frontItalicBtn;
     private JButton frontTextColorBtn;
+    private JSpinner frontXOffsetSpinner, frontYOffsetSpinner;
     // Above text controls
     private JTextField aboveTextField;
     private JSpinner aboveFontSizeSpinner;
     private JToggleButton aboveBoldBtn, aboveItalicBtn;
     private JButton aboveTextColorBtn;
+    private JSpinner aboveXOffsetSpinner, aboveYOffsetSpinner;
     // Underneath text controls
     private JTextField underneathTextField;
     private JSpinner underneathFontSizeSpinner;
     private JToggleButton underneathBoldBtn, underneathItalicBtn;
     private JButton underneathTextColorBtn;
+    private JSpinner underneathXOffsetSpinner, underneathYOffsetSpinner;
     // Behind text controls
     private JTextField behindTextField;
     private JSpinner behindFontSizeSpinner;
     private JToggleButton behindBoldBtn, behindItalicBtn;
     private JButton behindTextColorBtn;
+    private JSpinner behindXOffsetSpinner, behindYOffsetSpinner;
     // Milestone controls
     private JTextField milestoneNameField, milestoneDateField;
     private JSpinner milestoneWidthSpinner, milestoneHeightSpinner;
@@ -257,6 +265,15 @@ public class Timeline2 extends JFrame {
         formatTitleLabel = new JLabel("No task selected");
         formatTitleLabel.setFont(new Font("Arial", Font.BOLD, 12));
         taskRow.add(formatTitleLabel);
+
+        duplicateTaskBtn = new JButton("Duplicate");
+        duplicateTaskBtn.setFont(new Font("Arial", Font.PLAIN, 10));
+        duplicateTaskBtn.setMargin(new Insets(2, 6, 2, 6));
+        duplicateTaskBtn.setVisible(false);
+        duplicateTaskBtn.setToolTipText("Duplicate selected task(s)");
+        duplicateTaskBtn.addActionListener(e -> duplicateSelectedTasks());
+        taskRow.add(Box.createHorizontalStrut(10));
+        taskRow.add(duplicateTaskBtn);
 
         taskRow.add(Box.createHorizontalStrut(10));
         taskRow.add(new JLabel("Name:"));
@@ -526,6 +543,22 @@ public class Timeline2 extends JFrame {
         frontTextColorBtn.addActionListener(e -> chooseFrontTextColor());
         row2.add(frontTextColorBtn);
 
+        row2.add(Box.createHorizontalStrut(10));
+        row2.add(new JLabel("X:"));
+        frontXOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        frontXOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        frontXOffsetSpinner.setEnabled(false);
+        frontXOffsetSpinner.setToolTipText("X offset from default position");
+        frontXOffsetSpinner.addChangeListener(e -> updateFrontXOffset());
+        row2.add(frontXOffsetSpinner);
+        row2.add(new JLabel("Y:"));
+        frontYOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        frontYOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        frontYOffsetSpinner.setEnabled(false);
+        frontYOffsetSpinner.setToolTipText("Y offset from default position");
+        frontYOffsetSpinner.addChangeListener(e -> updateFrontYOffset());
+        row2.add(frontYOffsetSpinner);
+
         contentPanel.add(row2);
 
         // Row 3: Center text fields (text on the task bar)
@@ -640,6 +673,22 @@ public class Timeline2 extends JFrame {
         textColorBtn.addActionListener(e -> chooseTextColor());
         row3.add(textColorBtn);
 
+        row3.add(Box.createHorizontalStrut(10));
+        row3.add(new JLabel("X:"));
+        centerXOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        centerXOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        centerXOffsetSpinner.setEnabled(false);
+        centerXOffsetSpinner.setToolTipText("X offset from default position");
+        centerXOffsetSpinner.addChangeListener(e -> updateCenterXOffset());
+        row3.add(centerXOffsetSpinner);
+        row3.add(new JLabel("Y:"));
+        centerYOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        centerYOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        centerYOffsetSpinner.setEnabled(false);
+        centerYOffsetSpinner.setToolTipText("Y offset from default position");
+        centerYOffsetSpinner.addChangeListener(e -> updateCenterYOffset());
+        row3.add(centerYOffsetSpinner);
+
         contentPanel.add(row3);
 
         // Row 4: Above text fields
@@ -680,6 +729,21 @@ public class Timeline2 extends JFrame {
         aboveTextColorBtn.setToolTipText("Above text color");
         aboveTextColorBtn.addActionListener(e -> chooseAboveTextColor());
         row4.add(aboveTextColorBtn);
+        row4.add(Box.createHorizontalStrut(10));
+        row4.add(new JLabel("X:"));
+        aboveXOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        aboveXOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        aboveXOffsetSpinner.setEnabled(false);
+        aboveXOffsetSpinner.setToolTipText("X offset from default position");
+        aboveXOffsetSpinner.addChangeListener(e -> updateAboveXOffset());
+        row4.add(aboveXOffsetSpinner);
+        row4.add(new JLabel("Y:"));
+        aboveYOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        aboveYOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        aboveYOffsetSpinner.setEnabled(false);
+        aboveYOffsetSpinner.setToolTipText("Y offset from default position");
+        aboveYOffsetSpinner.addChangeListener(e -> updateAboveYOffset());
+        row4.add(aboveYOffsetSpinner);
         contentPanel.add(row4);
 
         // Row 5: Underneath text fields
@@ -720,6 +784,21 @@ public class Timeline2 extends JFrame {
         underneathTextColorBtn.setToolTipText("Underneath text color");
         underneathTextColorBtn.addActionListener(e -> chooseUnderneathTextColor());
         row5.add(underneathTextColorBtn);
+        row5.add(Box.createHorizontalStrut(10));
+        row5.add(new JLabel("X:"));
+        underneathXOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        underneathXOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        underneathXOffsetSpinner.setEnabled(false);
+        underneathXOffsetSpinner.setToolTipText("X offset from default position");
+        underneathXOffsetSpinner.addChangeListener(e -> updateUnderneathXOffset());
+        row5.add(underneathXOffsetSpinner);
+        row5.add(new JLabel("Y:"));
+        underneathYOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        underneathYOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        underneathYOffsetSpinner.setEnabled(false);
+        underneathYOffsetSpinner.setToolTipText("Y offset from default position");
+        underneathYOffsetSpinner.addChangeListener(e -> updateUnderneathYOffset());
+        row5.add(underneathYOffsetSpinner);
         contentPanel.add(row5);
 
         // Row 6: Behind text fields
@@ -760,6 +839,21 @@ public class Timeline2 extends JFrame {
         behindTextColorBtn.setToolTipText("Behind text color");
         behindTextColorBtn.addActionListener(e -> chooseBehindTextColor());
         row6.add(behindTextColorBtn);
+        row6.add(Box.createHorizontalStrut(10));
+        row6.add(new JLabel("X:"));
+        behindXOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        behindXOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        behindXOffsetSpinner.setEnabled(false);
+        behindXOffsetSpinner.setToolTipText("X offset from default position");
+        behindXOffsetSpinner.addChangeListener(e -> updateBehindXOffset());
+        row6.add(behindXOffsetSpinner);
+        row6.add(new JLabel("Y:"));
+        behindYOffsetSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
+        behindYOffsetSpinner.setPreferredSize(new Dimension(50, 25));
+        behindYOffsetSpinner.setEnabled(false);
+        behindYOffsetSpinner.setToolTipText("Y offset from default position");
+        behindYOffsetSpinner.addChangeListener(e -> updateBehindYOffset());
+        row6.add(behindYOffsetSpinner);
         contentPanel.add(row6);
         contentPanel.add(Box.createVerticalStrut(3));
 
@@ -809,246 +903,417 @@ public class Timeline2 extends JFrame {
     }
 
     private void chooseFillColor() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        Color currentColor = task.fillColor != null ? task.fillColor : TASK_COLORS[selectedTaskIndex % TASK_COLORS.length];
+        if (selectedTaskIndices.isEmpty()) return;
+        Color currentColor = Color.BLUE;
+        if (selectedTaskIndices.size() == 1) {
+            int idx = selectedTaskIndices.iterator().next();
+            TimelineTask t = tasks.get(idx);
+            currentColor = t.fillColor != null ? t.fillColor : TASK_COLORS[idx % TASK_COLORS.length];
+        }
         Color newColor = JColorChooser.showDialog(this, "Choose Fill Color", currentColor);
         if (newColor != null) {
-            task.fillColor = newColor;
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).fillColor = newColor;
+            }
             fillColorBtn.setBackground(newColor);
             refreshTimeline();
         }
     }
 
     private void chooseOutlineColor() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        Color fillColor = task.fillColor != null ? task.fillColor : TASK_COLORS[selectedTaskIndex % TASK_COLORS.length];
-        Color currentColor = task.outlineColor != null ? task.outlineColor : fillColor.darker();
+        if (selectedTaskIndices.isEmpty()) return;
+        Color currentColor = Color.DARK_GRAY;
+        if (selectedTaskIndices.size() == 1) {
+            int idx = selectedTaskIndices.iterator().next();
+            TimelineTask t = tasks.get(idx);
+            Color fill = t.fillColor != null ? t.fillColor : TASK_COLORS[idx % TASK_COLORS.length];
+            currentColor = t.outlineColor != null ? t.outlineColor : fill.darker();
+        }
         Color newColor = JColorChooser.showDialog(this, "Choose Outline Color", currentColor);
         if (newColor != null) {
-            task.outlineColor = newColor;
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).outlineColor = newColor;
+            }
             outlineColorBtn.setBackground(newColor);
             refreshTimeline();
         }
     }
 
     private void updateOutlineThickness() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.outlineThickness = (Integer) outlineThicknessSpinner.getValue();
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) outlineThicknessSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).outlineThickness = value;
+        }
         refreshTimeline();
     }
 
     private void updateTaskHeight() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.height = (Integer) taskHeightSpinner.getValue();
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) taskHeightSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).height = value;
+        }
         refreshTimeline();
     }
 
     private void updateCenterText() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.centerText = centerTextField.getText();
+        if (selectedTaskIndices.isEmpty()) return;
+        String text = centerTextField.getText();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).centerText = text;
+        }
         refreshTimeline();
     }
 
     private void updateFontSize() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.fontSize = (Integer) fontSizeSpinner.getValue();
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) fontSizeSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).fontSize = value;
+        }
         refreshTimeline();
     }
 
     private void updateFontBold() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.fontBold = boldBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = boldBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).fontBold = value;
+        }
         refreshTimeline();
     }
 
     private void updateFontItalic() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.fontItalic = italicBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = italicBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).fontItalic = value;
+        }
         refreshTimeline();
     }
 
     private void chooseTextColor() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        Color currentColor = task.textColor != null ? task.textColor : Color.WHITE;
+        if (selectedTaskIndices.isEmpty()) return;
+        Color currentColor = Color.WHITE;
+        if (selectedTaskIndices.size() == 1) {
+            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+            currentColor = t.textColor != null ? t.textColor : Color.WHITE;
+        }
         Color newColor = JColorChooser.showDialog(this, "Choose Text Color", currentColor);
         if (newColor != null) {
-            task.textColor = newColor;
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).textColor = newColor;
+            }
             textColorBtn.setBackground(newColor);
             refreshTimeline();
         }
     }
 
+    private void updateCenterXOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) centerXOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).centerTextXOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateCenterYOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) centerYOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).centerTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
     // Front text update methods
     private void updateFrontText() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.frontText = frontTextField.getText();
+        if (selectedTaskIndices.isEmpty()) return;
+        String text = frontTextField.getText();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).frontText = text;
+        }
         refreshTimeline();
     }
 
     private void updateFrontFontSize() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.frontFontSize = (Integer) frontFontSizeSpinner.getValue();
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) frontFontSizeSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).frontFontSize = value;
+        }
         refreshTimeline();
     }
 
     private void updateFrontFontBold() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.frontFontBold = frontBoldBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = frontBoldBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).frontFontBold = value;
+        }
         refreshTimeline();
     }
 
     private void updateFrontFontItalic() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.frontFontItalic = frontItalicBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = frontItalicBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).frontFontItalic = value;
+        }
         refreshTimeline();
     }
 
     private void chooseFrontTextColor() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        Color currentColor = task.frontTextColor != null ? task.frontTextColor : Color.BLACK;
+        if (selectedTaskIndices.isEmpty()) return;
+        Color currentColor = Color.BLACK;
+        if (selectedTaskIndices.size() == 1) {
+            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+            currentColor = t.frontTextColor != null ? t.frontTextColor : Color.BLACK;
+        }
         Color newColor = JColorChooser.showDialog(this, "Choose Front Text Color", currentColor);
         if (newColor != null) {
-            task.frontTextColor = newColor;
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).frontTextColor = newColor;
+            }
             frontTextColorBtn.setBackground(newColor);
             refreshTimeline();
         }
     }
 
+    private void updateFrontXOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) frontXOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).frontTextXOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateFrontYOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) frontYOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).frontTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
     // Above text update methods
     private void updateAboveText() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.aboveText = aboveTextField.getText();
+        if (selectedTaskIndices.isEmpty()) return;
+        String text = aboveTextField.getText();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).aboveText = text;
+        }
         refreshTimeline();
     }
 
     private void updateAboveFontSize() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.aboveFontSize = (Integer) aboveFontSizeSpinner.getValue();
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) aboveFontSizeSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).aboveFontSize = value;
+        }
         refreshTimeline();
     }
 
     private void updateAboveFontBold() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.aboveFontBold = aboveBoldBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = aboveBoldBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).aboveFontBold = value;
+        }
         refreshTimeline();
     }
 
     private void updateAboveFontItalic() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.aboveFontItalic = aboveItalicBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = aboveItalicBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).aboveFontItalic = value;
+        }
         refreshTimeline();
     }
 
     private void chooseAboveTextColor() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        Color currentColor = task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK;
+        if (selectedTaskIndices.isEmpty()) return;
+        Color currentColor = Color.BLACK;
+        if (selectedTaskIndices.size() == 1) {
+            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+            currentColor = t.aboveTextColor != null ? t.aboveTextColor : Color.BLACK;
+        }
         Color newColor = JColorChooser.showDialog(this, "Choose Above Text Color", currentColor);
         if (newColor != null) {
-            task.aboveTextColor = newColor;
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).aboveTextColor = newColor;
+            }
             aboveTextColorBtn.setBackground(newColor);
             refreshTimeline();
         }
     }
 
+    private void updateAboveXOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) aboveXOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).aboveTextXOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateAboveYOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) aboveYOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).aboveTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
     // Underneath text update methods
     private void updateUnderneathText() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.underneathText = underneathTextField.getText();
+        if (selectedTaskIndices.isEmpty()) return;
+        String text = underneathTextField.getText();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).underneathText = text;
+        }
         refreshTimeline();
     }
 
     private void updateUnderneathFontSize() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.underneathFontSize = (Integer) underneathFontSizeSpinner.getValue();
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) underneathFontSizeSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).underneathFontSize = value;
+        }
         refreshTimeline();
     }
 
     private void updateUnderneathFontBold() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.underneathFontBold = underneathBoldBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = underneathBoldBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).underneathFontBold = value;
+        }
         refreshTimeline();
     }
 
     private void updateUnderneathFontItalic() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.underneathFontItalic = underneathItalicBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = underneathItalicBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).underneathFontItalic = value;
+        }
         refreshTimeline();
     }
 
     private void chooseUnderneathTextColor() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        Color currentColor = task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK;
+        if (selectedTaskIndices.isEmpty()) return;
+        Color currentColor = Color.BLACK;
+        if (selectedTaskIndices.size() == 1) {
+            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+            currentColor = t.underneathTextColor != null ? t.underneathTextColor : Color.BLACK;
+        }
         Color newColor = JColorChooser.showDialog(this, "Choose Underneath Text Color", currentColor);
         if (newColor != null) {
-            task.underneathTextColor = newColor;
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).underneathTextColor = newColor;
+            }
             underneathTextColorBtn.setBackground(newColor);
             refreshTimeline();
         }
     }
 
+    private void updateUnderneathXOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) underneathXOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).underneathTextXOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateUnderneathYOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) underneathYOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).underneathTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
     // Behind text update methods
     private void updateBehindText() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.behindText = behindTextField.getText();
+        if (selectedTaskIndices.isEmpty()) return;
+        String text = behindTextField.getText();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).behindText = text;
+        }
         refreshTimeline();
     }
 
     private void updateBehindFontSize() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.behindFontSize = (Integer) behindFontSizeSpinner.getValue();
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) behindFontSizeSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).behindFontSize = value;
+        }
         refreshTimeline();
     }
 
     private void updateBehindFontBold() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.behindFontBold = behindBoldBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = behindBoldBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).behindFontBold = value;
+        }
         refreshTimeline();
     }
 
     private void updateBehindFontItalic() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        task.behindFontItalic = behindItalicBtn.isSelected();
+        if (selectedTaskIndices.isEmpty()) return;
+        boolean value = behindItalicBtn.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).behindFontItalic = value;
+        }
         refreshTimeline();
     }
 
     private void chooseBehindTextColor() {
-        if (selectedTaskIndex < 0 || selectedTaskIndex >= tasks.size()) return;
-        TimelineTask task = tasks.get(selectedTaskIndex);
-        Color currentColor = task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150);
+        if (selectedTaskIndices.isEmpty()) return;
+        Color currentColor = new Color(150, 150, 150);
+        if (selectedTaskIndices.size() == 1) {
+            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+            currentColor = t.behindTextColor != null ? t.behindTextColor : new Color(150, 150, 150);
+        }
         Color newColor = JColorChooser.showDialog(this, "Choose Behind Text Color", currentColor);
         if (newColor != null) {
-            task.behindTextColor = newColor;
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).behindTextColor = newColor;
+            }
             behindTextColorBtn.setBackground(newColor);
             refreshTimeline();
         }
+    }
+
+    private void updateBehindXOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) behindXOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).behindTextXOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateBehindYOffset() {
+        if (selectedTaskIndices.isEmpty()) return;
+        int value = (Integer) behindYOffsetSpinner.getValue();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).behindTextYOffset = value;
+        }
+        refreshTimeline();
     }
 
     // Milestone update methods
@@ -1123,185 +1388,36 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
-    void selectTask(int index) {
-        selectedTaskIndex = index;
-        // Deselect milestone when task is selected and switch to task row view
+    void selectTask(int index, boolean ctrlDown) {
+        // Deselect milestone when task is selected
         if (index >= 0) {
             selectedMilestoneIndex = -1;
             row1CardLayout.show(row1Container, "task");
         }
-        if (index >= 0 && index < tasks.size()) {
-            TimelineTask task = tasks.get(index);
-            Color defaultColor = TASK_COLORS[index % TASK_COLORS.length];
-            Color fillColor = task.fillColor != null ? task.fillColor : defaultColor;
-            Color outlineColor = task.outlineColor != null ? task.outlineColor : fillColor.darker();
 
-            formatTitleLabel.setText("Selected: " + task.name);
-            formatTitleLabel.setForeground(fillColor.darker());
-            taskNameField.setText(task.name);
-            taskNameField.setEnabled(true);
-            taskStartField.setText(task.startDate);
-            taskStartField.setEnabled(true);
-            taskEndField.setText(task.endDate);
-            taskEndField.setEnabled(true);
-
-            // Update color buttons
-            fillColorBtn.setBackground(fillColor);
-            fillColorBtn.setEnabled(true);
-            outlineColorBtn.setBackground(outlineColor);
-            outlineColorBtn.setEnabled(true);
-            outlineThicknessSpinner.setValue(task.outlineThickness);
-            outlineThicknessSpinner.setEnabled(true);
-            taskHeightSpinner.setValue(task.height);
-            taskHeightSpinner.setEnabled(true);
-
-            // Update text formatting controls
-            centerTextField.setText(task.centerText);
-            centerTextField.setEnabled(true);
-            fontSizeSpinner.setValue(task.fontSize);
-            fontSizeSpinner.setEnabled(true);
-            boldBtn.setSelected(task.fontBold);
-            boldBtn.setEnabled(true);
-            italicBtn.setSelected(task.fontItalic);
-            italicBtn.setEnabled(true);
-            Color textColor = task.textColor != null ? task.textColor : Color.BLACK;
-            textColorBtn.setBackground(textColor);
-            textColorBtn.setEnabled(true);
-
-            // Update front text controls
-            frontTextField.setText(task.frontText);
-            frontTextField.setEnabled(true);
-            frontFontSizeSpinner.setValue(task.frontFontSize);
-            frontFontSizeSpinner.setEnabled(true);
-            frontBoldBtn.setSelected(task.frontFontBold);
-            frontBoldBtn.setEnabled(true);
-            frontItalicBtn.setSelected(task.frontFontItalic);
-            frontItalicBtn.setEnabled(true);
-            Color frontColor = task.frontTextColor != null ? task.frontTextColor : Color.BLACK;
-            frontTextColorBtn.setBackground(frontColor);
-            frontTextColorBtn.setEnabled(true);
-
-            // Update above text controls
-            aboveTextField.setText(task.aboveText);
-            aboveTextField.setEnabled(true);
-            aboveFontSizeSpinner.setValue(task.aboveFontSize);
-            aboveFontSizeSpinner.setEnabled(true);
-            aboveBoldBtn.setSelected(task.aboveFontBold);
-            aboveBoldBtn.setEnabled(true);
-            aboveItalicBtn.setSelected(task.aboveFontItalic);
-            aboveItalicBtn.setEnabled(true);
-            Color aboveColor = task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK;
-            aboveTextColorBtn.setBackground(aboveColor);
-            aboveTextColorBtn.setEnabled(true);
-
-            // Update underneath text controls
-            underneathTextField.setText(task.underneathText);
-            underneathTextField.setEnabled(true);
-            underneathFontSizeSpinner.setValue(task.underneathFontSize);
-            underneathFontSizeSpinner.setEnabled(true);
-            underneathBoldBtn.setSelected(task.underneathFontBold);
-            underneathBoldBtn.setEnabled(true);
-            underneathItalicBtn.setSelected(task.underneathFontItalic);
-            underneathItalicBtn.setEnabled(true);
-            Color underneathColor = task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK;
-            underneathTextColorBtn.setBackground(underneathColor);
-            underneathTextColorBtn.setEnabled(true);
-
-            // Update behind text controls
-            behindTextField.setText(task.behindText);
-            behindTextField.setEnabled(true);
-            behindFontSizeSpinner.setValue(task.behindFontSize);
-            behindFontSizeSpinner.setEnabled(true);
-            behindBoldBtn.setSelected(task.behindFontBold);
-            behindBoldBtn.setEnabled(true);
-            behindItalicBtn.setSelected(task.behindFontItalic);
-            behindItalicBtn.setEnabled(true);
-            Color behindColor = task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150);
-            behindTextColorBtn.setBackground(behindColor);
-            behindTextColorBtn.setEnabled(true);
+        // Handle multi-select with Ctrl key
+        if (ctrlDown && index >= 0) {
+            // Toggle selection
+            if (selectedTaskIndices.contains(index)) {
+                selectedTaskIndices.remove(index);
+            } else {
+                selectedTaskIndices.add(index);
+            }
         } else {
-            formatTitleLabel.setText("No task selected");
-            formatTitleLabel.setForeground(Color.BLACK);
-            taskNameField.setText("");
-            taskNameField.setEnabled(false);
-            taskStartField.setText("");
-            taskStartField.setEnabled(false);
-            taskEndField.setText("");
-            taskEndField.setEnabled(false);
-            fillColorBtn.setBackground(null);
-            fillColorBtn.setEnabled(false);
-            outlineColorBtn.setBackground(null);
-            outlineColorBtn.setEnabled(false);
-            outlineThicknessSpinner.setValue(2);
-            outlineThicknessSpinner.setEnabled(false);
-            taskHeightSpinner.setValue(25);
-            taskHeightSpinner.setEnabled(false);
-
-            // Reset text formatting controls
-            centerTextField.setText("");
-            centerTextField.setEnabled(false);
-            fontSizeSpinner.setValue(11);
-            fontSizeSpinner.setEnabled(false);
-            boldBtn.setSelected(false);
-            boldBtn.setEnabled(false);
-            italicBtn.setSelected(false);
-            italicBtn.setEnabled(false);
-            textColorBtn.setBackground(null);
-            textColorBtn.setEnabled(false);
-
-            // Reset front text controls
-            frontTextField.setText("");
-            frontTextField.setEnabled(false);
-            frontFontSizeSpinner.setValue(10);
-            frontFontSizeSpinner.setEnabled(false);
-            frontBoldBtn.setSelected(false);
-            frontBoldBtn.setEnabled(false);
-            frontItalicBtn.setSelected(false);
-            frontItalicBtn.setEnabled(false);
-            frontTextColorBtn.setBackground(null);
-            frontTextColorBtn.setEnabled(false);
-
-            // Reset above text controls
-            aboveTextField.setText("");
-            aboveTextField.setEnabled(false);
-            aboveFontSizeSpinner.setValue(10);
-            aboveFontSizeSpinner.setEnabled(false);
-            aboveBoldBtn.setSelected(false);
-            aboveBoldBtn.setEnabled(false);
-            aboveItalicBtn.setSelected(false);
-            aboveItalicBtn.setEnabled(false);
-            aboveTextColorBtn.setBackground(null);
-            aboveTextColorBtn.setEnabled(false);
-
-            // Reset underneath text controls
-            underneathTextField.setText("");
-            underneathTextField.setEnabled(false);
-            underneathFontSizeSpinner.setValue(10);
-            underneathFontSizeSpinner.setEnabled(false);
-            underneathBoldBtn.setSelected(false);
-            underneathBoldBtn.setEnabled(false);
-            underneathItalicBtn.setSelected(false);
-            underneathItalicBtn.setEnabled(false);
-            underneathTextColorBtn.setBackground(null);
-            underneathTextColorBtn.setEnabled(false);
-
-            // Reset behind text controls
-            behindTextField.setText("");
-            behindTextField.setEnabled(false);
-            behindFontSizeSpinner.setValue(10);
-            behindFontSizeSpinner.setEnabled(false);
-            behindBoldBtn.setSelected(false);
-            behindBoldBtn.setEnabled(false);
-            behindItalicBtn.setSelected(false);
-            behindItalicBtn.setEnabled(false);
-            behindTextColorBtn.setBackground(null);
-            behindTextColorBtn.setEnabled(false);
+            // Single select - clear previous and select new
+            selectedTaskIndices.clear();
+            if (index >= 0) {
+                selectedTaskIndices.add(index);
+            }
         }
+
+        updateFormatPanelForSelection();
         timelineDisplayPanel.repaint();
         if (layersPanel != null) {
-            // Find the correct index in layerOrder for this task
-            if (index >= 0 && index < tasks.size()) {
-                TimelineTask task = tasks.get(index);
+            // For layers panel, show the first selected task
+            if (!selectedTaskIndices.isEmpty()) {
+                int firstSelected = selectedTaskIndices.iterator().next();
+                TimelineTask task = tasks.get(firstSelected);
                 int layerIndex = layerOrder.indexOf(task);
                 layersPanel.setSelectedLayer(layerIndex);
             } else {
@@ -1310,11 +1426,238 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    // Overload for calls without ctrlDown parameter
+    void selectTask(int index) {
+        selectTask(index, false);
+    }
+
+    // Update format panel based on current selection
+    private void updateFormatPanelForSelection() {
+        if (selectedTaskIndices.isEmpty()) {
+            // No selection
+            formatTitleLabel.setText("No task selected");
+            formatTitleLabel.setForeground(Color.BLACK);
+            duplicateTaskBtn.setVisible(false);
+            setFormatFieldsEnabled(false);
+            clearFormatFields();
+        } else if (selectedTaskIndices.size() == 1) {
+            // Single selection - show task values
+            int index = selectedTaskIndices.iterator().next();
+            TimelineTask task = tasks.get(index);
+            Color defaultColor = TASK_COLORS[index % TASK_COLORS.length];
+            Color fillColor = task.fillColor != null ? task.fillColor : defaultColor;
+            Color outlineColor = task.outlineColor != null ? task.outlineColor : fillColor.darker();
+
+            formatTitleLabel.setText("Selected: " + task.name);
+            formatTitleLabel.setForeground(fillColor.darker());
+            duplicateTaskBtn.setVisible(true);
+            taskNameField.setText(task.name);
+            taskStartField.setText(task.startDate);
+            taskEndField.setText(task.endDate);
+
+            fillColorBtn.setBackground(fillColor);
+            outlineColorBtn.setBackground(outlineColor);
+            outlineThicknessSpinner.setValue(task.outlineThickness);
+            taskHeightSpinner.setValue(task.height);
+
+            centerTextField.setText(task.centerText);
+            fontSizeSpinner.setValue(task.fontSize);
+            boldBtn.setSelected(task.fontBold);
+            italicBtn.setSelected(task.fontItalic);
+            textColorBtn.setBackground(task.textColor != null ? task.textColor : Color.BLACK);
+
+            frontTextField.setText(task.frontText);
+            frontFontSizeSpinner.setValue(task.frontFontSize);
+            frontBoldBtn.setSelected(task.frontFontBold);
+            frontItalicBtn.setSelected(task.frontFontItalic);
+            frontTextColorBtn.setBackground(task.frontTextColor != null ? task.frontTextColor : Color.BLACK);
+            frontXOffsetSpinner.setValue(task.frontTextXOffset);
+            frontYOffsetSpinner.setValue(task.frontTextYOffset);
+
+            centerXOffsetSpinner.setValue(task.centerTextXOffset);
+            centerYOffsetSpinner.setValue(task.centerTextYOffset);
+
+            aboveTextField.setText(task.aboveText);
+            aboveFontSizeSpinner.setValue(task.aboveFontSize);
+            aboveBoldBtn.setSelected(task.aboveFontBold);
+            aboveItalicBtn.setSelected(task.aboveFontItalic);
+            aboveTextColorBtn.setBackground(task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK);
+            aboveXOffsetSpinner.setValue(task.aboveTextXOffset);
+            aboveYOffsetSpinner.setValue(task.aboveTextYOffset);
+
+            underneathTextField.setText(task.underneathText);
+            underneathFontSizeSpinner.setValue(task.underneathFontSize);
+            underneathBoldBtn.setSelected(task.underneathFontBold);
+            underneathItalicBtn.setSelected(task.underneathFontItalic);
+            underneathTextColorBtn.setBackground(task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK);
+            underneathXOffsetSpinner.setValue(task.underneathTextXOffset);
+            underneathYOffsetSpinner.setValue(task.underneathTextYOffset);
+
+            behindTextField.setText(task.behindText);
+            behindFontSizeSpinner.setValue(task.behindFontSize);
+            behindBoldBtn.setSelected(task.behindFontBold);
+            behindItalicBtn.setSelected(task.behindFontItalic);
+            behindTextColorBtn.setBackground(task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150));
+            behindXOffsetSpinner.setValue(task.behindTextXOffset);
+            behindYOffsetSpinner.setValue(task.behindTextYOffset);
+
+            setFormatFieldsEnabled(true);
+        } else {
+            // Multiple selection - show blank fields for batch editing
+            formatTitleLabel.setText(selectedTaskIndices.size() + " tasks selected");
+            formatTitleLabel.setForeground(Color.BLUE);
+            duplicateTaskBtn.setVisible(true);
+
+            // Clear text fields but keep them enabled for batch input
+            taskNameField.setText("");
+            taskStartField.setText("");
+            taskEndField.setText("");
+            centerTextField.setText("");
+            frontTextField.setText("");
+            aboveTextField.setText("");
+            underneathTextField.setText("");
+            behindTextField.setText("");
+
+            // Reset spinners to default but keep enabled
+            outlineThicknessSpinner.setValue(2);
+            taskHeightSpinner.setValue(25);
+            fontSizeSpinner.setValue(11);
+            frontFontSizeSpinner.setValue(10);
+            aboveFontSizeSpinner.setValue(10);
+            underneathFontSizeSpinner.setValue(10);
+            behindFontSizeSpinner.setValue(10);
+            // Reset offset spinners
+            frontXOffsetSpinner.setValue(0);
+            frontYOffsetSpinner.setValue(0);
+            centerXOffsetSpinner.setValue(0);
+            centerYOffsetSpinner.setValue(0);
+            aboveXOffsetSpinner.setValue(0);
+            aboveYOffsetSpinner.setValue(0);
+            underneathXOffsetSpinner.setValue(0);
+            underneathYOffsetSpinner.setValue(0);
+            behindXOffsetSpinner.setValue(0);
+            behindYOffsetSpinner.setValue(0);
+
+            // Reset toggle buttons
+            boldBtn.setSelected(false);
+            italicBtn.setSelected(false);
+            frontBoldBtn.setSelected(false);
+            frontItalicBtn.setSelected(false);
+            aboveBoldBtn.setSelected(false);
+            aboveItalicBtn.setSelected(false);
+            underneathBoldBtn.setSelected(false);
+            underneathItalicBtn.setSelected(false);
+            behindBoldBtn.setSelected(false);
+            behindItalicBtn.setSelected(false);
+
+            // Set color buttons to null/gray
+            fillColorBtn.setBackground(Color.GRAY);
+            outlineColorBtn.setBackground(Color.GRAY);
+            textColorBtn.setBackground(Color.GRAY);
+            frontTextColorBtn.setBackground(Color.GRAY);
+            aboveTextColorBtn.setBackground(Color.GRAY);
+            underneathTextColorBtn.setBackground(Color.GRAY);
+            behindTextColorBtn.setBackground(Color.GRAY);
+
+            setFormatFieldsEnabled(true);
+        }
+    }
+
+    private void setFormatFieldsEnabled(boolean enabled) {
+        taskNameField.setEnabled(enabled);
+        taskStartField.setEnabled(enabled);
+        taskEndField.setEnabled(enabled);
+        fillColorBtn.setEnabled(enabled);
+        outlineColorBtn.setEnabled(enabled);
+        outlineThicknessSpinner.setEnabled(enabled);
+        taskHeightSpinner.setEnabled(enabled);
+        centerTextField.setEnabled(enabled);
+        fontSizeSpinner.setEnabled(enabled);
+        boldBtn.setEnabled(enabled);
+        italicBtn.setEnabled(enabled);
+        textColorBtn.setEnabled(enabled);
+        frontTextField.setEnabled(enabled);
+        frontFontSizeSpinner.setEnabled(enabled);
+        frontBoldBtn.setEnabled(enabled);
+        frontItalicBtn.setEnabled(enabled);
+        frontTextColorBtn.setEnabled(enabled);
+        frontXOffsetSpinner.setEnabled(enabled);
+        frontYOffsetSpinner.setEnabled(enabled);
+        centerXOffsetSpinner.setEnabled(enabled);
+        centerYOffsetSpinner.setEnabled(enabled);
+        aboveTextField.setEnabled(enabled);
+        aboveFontSizeSpinner.setEnabled(enabled);
+        aboveBoldBtn.setEnabled(enabled);
+        aboveItalicBtn.setEnabled(enabled);
+        aboveTextColorBtn.setEnabled(enabled);
+        aboveXOffsetSpinner.setEnabled(enabled);
+        aboveYOffsetSpinner.setEnabled(enabled);
+        underneathTextField.setEnabled(enabled);
+        underneathFontSizeSpinner.setEnabled(enabled);
+        underneathBoldBtn.setEnabled(enabled);
+        underneathItalicBtn.setEnabled(enabled);
+        underneathTextColorBtn.setEnabled(enabled);
+        underneathXOffsetSpinner.setEnabled(enabled);
+        underneathYOffsetSpinner.setEnabled(enabled);
+        behindTextField.setEnabled(enabled);
+        behindFontSizeSpinner.setEnabled(enabled);
+        behindBoldBtn.setEnabled(enabled);
+        behindItalicBtn.setEnabled(enabled);
+        behindTextColorBtn.setEnabled(enabled);
+        behindXOffsetSpinner.setEnabled(enabled);
+        behindYOffsetSpinner.setEnabled(enabled);
+    }
+
+    private void clearFormatFields() {
+        taskNameField.setText("");
+        taskStartField.setText("");
+        taskEndField.setText("");
+        fillColorBtn.setBackground(null);
+        outlineColorBtn.setBackground(null);
+        outlineThicknessSpinner.setValue(2);
+        taskHeightSpinner.setValue(25);
+        centerTextField.setText("");
+        fontSizeSpinner.setValue(11);
+        boldBtn.setSelected(false);
+        italicBtn.setSelected(false);
+        textColorBtn.setBackground(null);
+        frontTextField.setText("");
+        frontFontSizeSpinner.setValue(10);
+        frontBoldBtn.setSelected(false);
+        frontItalicBtn.setSelected(false);
+        frontTextColorBtn.setBackground(null);
+        frontXOffsetSpinner.setValue(0);
+        frontYOffsetSpinner.setValue(0);
+        centerXOffsetSpinner.setValue(0);
+        centerYOffsetSpinner.setValue(0);
+        aboveTextField.setText("");
+        aboveFontSizeSpinner.setValue(10);
+        aboveBoldBtn.setSelected(false);
+        aboveItalicBtn.setSelected(false);
+        aboveTextColorBtn.setBackground(null);
+        aboveXOffsetSpinner.setValue(0);
+        aboveYOffsetSpinner.setValue(0);
+        underneathTextField.setText("");
+        underneathFontSizeSpinner.setValue(10);
+        underneathBoldBtn.setSelected(false);
+        underneathItalicBtn.setSelected(false);
+        underneathTextColorBtn.setBackground(null);
+        underneathXOffsetSpinner.setValue(0);
+        underneathYOffsetSpinner.setValue(0);
+        behindTextField.setText("");
+        behindFontSizeSpinner.setValue(10);
+        behindBoldBtn.setSelected(false);
+        behindItalicBtn.setSelected(false);
+        behindTextColorBtn.setBackground(null);
+        behindXOffsetSpinner.setValue(0);
+        behindYOffsetSpinner.setValue(0);
+    }
+
     void selectMilestone(int index) {
         selectedMilestoneIndex = index;
-        // Deselect task when milestone is selected and switch to milestone row view
+        // Deselect tasks when milestone is selected and switch to milestone row view
         if (index >= 0) {
-            selectedTaskIndex = -1;
+            selectedTaskIndices.clear();
             row1CardLayout.show(row1Container, "milestone");
         }
 
@@ -1351,11 +1694,88 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void duplicateSelectedTasks() {
+        if (selectedTaskIndices.isEmpty()) return;
+
+        // Collect tasks to duplicate (copy indices to avoid modification during iteration)
+        java.util.List<Integer> indicesToDuplicate = new java.util.ArrayList<>(selectedTaskIndices);
+        java.util.List<TimelineTask> newTasks = new java.util.ArrayList<>();
+
+        for (int idx : indicesToDuplicate) {
+            TimelineTask original = tasks.get(idx);
+            TimelineTask copy = new TimelineTask(original.name + " (copy)", original.startDate, original.endDate);
+
+            // Copy all properties
+            copy.centerText = original.centerText;
+            copy.fillColor = original.fillColor;
+            copy.outlineColor = original.outlineColor;
+            copy.outlineThickness = original.outlineThickness;
+            copy.height = original.height;
+            copy.yPosition = original.yPosition >= 0 ? original.yPosition + original.height + 10 : -1;
+            copy.fontSize = original.fontSize;
+            copy.fontBold = original.fontBold;
+            copy.fontItalic = original.fontItalic;
+            copy.textColor = original.textColor;
+            copy.centerTextXOffset = original.centerTextXOffset;
+            copy.centerTextYOffset = original.centerTextYOffset;
+            // Front text
+            copy.frontText = original.frontText;
+            copy.frontFontSize = original.frontFontSize;
+            copy.frontFontBold = original.frontFontBold;
+            copy.frontFontItalic = original.frontFontItalic;
+            copy.frontTextColor = original.frontTextColor;
+            copy.frontTextXOffset = original.frontTextXOffset;
+            copy.frontTextYOffset = original.frontTextYOffset;
+            // Above text
+            copy.aboveText = original.aboveText;
+            copy.aboveFontSize = original.aboveFontSize;
+            copy.aboveFontBold = original.aboveFontBold;
+            copy.aboveFontItalic = original.aboveFontItalic;
+            copy.aboveTextColor = original.aboveTextColor;
+            copy.aboveTextXOffset = original.aboveTextXOffset;
+            copy.aboveTextYOffset = original.aboveTextYOffset;
+            // Underneath text
+            copy.underneathText = original.underneathText;
+            copy.underneathFontSize = original.underneathFontSize;
+            copy.underneathFontBold = original.underneathFontBold;
+            copy.underneathFontItalic = original.underneathFontItalic;
+            copy.underneathTextColor = original.underneathTextColor;
+            copy.underneathTextXOffset = original.underneathTextXOffset;
+            copy.underneathTextYOffset = original.underneathTextYOffset;
+            // Behind text
+            copy.behindText = original.behindText;
+            copy.behindFontSize = original.behindFontSize;
+            copy.behindFontBold = original.behindFontBold;
+            copy.behindFontItalic = original.behindFontItalic;
+            copy.behindTextColor = original.behindTextColor;
+            copy.behindTextXOffset = original.behindTextXOffset;
+            copy.behindTextYOffset = original.behindTextYOffset;
+
+            newTasks.add(copy);
+        }
+
+        // Add all new tasks and update layer order
+        for (TimelineTask newTask : newTasks) {
+            tasks.add(newTask);
+            layerOrder.add(0, newTask); // Add to top of layer order
+        }
+
+        // Select the new tasks
+        selectedTaskIndices.clear();
+        for (TimelineTask newTask : newTasks) {
+            selectedTaskIndices.add(tasks.indexOf(newTask));
+        }
+
+        updateFormatPanelForSelection();
+        refreshTimeline();
+    }
+
     private void updateSelectedTaskName() {
-        if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.size()) {
+        if (selectedTaskIndices.size() == 1) {
+            int index = selectedTaskIndices.iterator().next();
             String newName = taskNameField.getText().trim();
             if (!newName.isEmpty()) {
-                tasks.get(selectedTaskIndex).name = newName;
+                tasks.get(index).name = newName;
                 formatTitleLabel.setText("Selected: " + newName);
                 refreshTimeline();
             }
@@ -1363,18 +1783,22 @@ public class Timeline2 extends JFrame {
     }
 
     private void updateSelectedTaskDates() {
-        if (selectedTaskIndex >= 0 && selectedTaskIndex < tasks.size()) {
-            String newStart = taskStartField.getText().trim();
-            String newEnd = taskEndField.getText().trim();
-            TimelineTask task = tasks.get(selectedTaskIndex);
-            try {
-                LocalDate.parse(newStart, DATE_FORMAT);
-                LocalDate.parse(newEnd, DATE_FORMAT);
+        if (selectedTaskIndices.isEmpty()) return;
+        String newStart = taskStartField.getText().trim();
+        String newEnd = taskEndField.getText().trim();
+        try {
+            LocalDate.parse(newStart, DATE_FORMAT);
+            LocalDate.parse(newEnd, DATE_FORMAT);
+            for (int idx : selectedTaskIndices) {
+                TimelineTask task = tasks.get(idx);
                 task.startDate = newStart;
                 task.endDate = newEnd;
-                refreshTimeline();
-            } catch (Exception ex) {
-                // Invalid date, revert
+            }
+            refreshTimeline();
+        } catch (Exception ex) {
+            // Invalid date, revert for single selection
+            if (selectedTaskIndices.size() == 1) {
+                TimelineTask task = tasks.get(selectedTaskIndices.iterator().next());
                 taskStartField.setText(task.startDate);
                 taskEndField.setText(task.endDate);
             }
@@ -1493,18 +1917,24 @@ public class Timeline2 extends JFrame {
     private void deleteTask(int index) {
         if (index >= 0 && index < tasks.size()) {
             tasks.remove(index);
-            // Reset selection if deleted task was selected
-            if (selectedTaskIndex == index) {
-                selectTask(-1);
-            } else if (selectedTaskIndex > index) {
-                selectedTaskIndex--;
+            // Update selection indices
+            Set<Integer> newSelection = new HashSet<>();
+            for (int idx : selectedTaskIndices) {
+                if (idx == index) continue; // Remove deleted index
+                if (idx > index) {
+                    newSelection.add(idx - 1); // Shift down
+                } else {
+                    newSelection.add(idx);
+                }
             }
+            selectedTaskIndices = newSelection;
+            updateFormatPanelForSelection();
             refreshTimeline();
         }
     }
 
     void updateFormatPanelDates(int index) {
-        if (index >= 0 && index < tasks.size() && index == selectedTaskIndex) {
+        if (index >= 0 && index < tasks.size() && selectedTaskIndices.contains(index)) {
             TimelineTask task = tasks.get(index);
             taskStartField.setText(task.startDate);
             taskEndField.setText(task.endDate);
@@ -1525,14 +1955,20 @@ public class Timeline2 extends JFrame {
         TimelineTask task = tasks.remove(fromIndex);
         tasks.add(toIndex, task);
 
-        // Update selected index if needed
-        if (selectedTaskIndex == fromIndex) {
-            selectedTaskIndex = toIndex;
-        } else if (fromIndex < selectedTaskIndex && toIndex >= selectedTaskIndex) {
-            selectedTaskIndex--;
-        } else if (fromIndex > selectedTaskIndex && toIndex <= selectedTaskIndex) {
-            selectedTaskIndex++;
+        // Update selected indices
+        Set<Integer> newSelection = new HashSet<>();
+        for (int idx : selectedTaskIndices) {
+            if (idx == fromIndex) {
+                newSelection.add(toIndex);
+            } else if (fromIndex < idx && toIndex >= idx) {
+                newSelection.add(idx - 1);
+            } else if (fromIndex > idx && toIndex <= idx) {
+                newSelection.add(idx + 1);
+            } else {
+                newSelection.add(idx);
+            }
         }
+        selectedTaskIndices = newSelection;
 
         refreshTimeline();
     }
@@ -2270,7 +2706,7 @@ public class Timeline2 extends JFrame {
             tasks.clear();
             milestones.clear();
             layerOrder.clear();
-            selectedTaskIndex = -1;
+            selectedTaskIndices.clear();
             selectedMilestoneIndex = -1;
         }
 
@@ -3098,30 +3534,40 @@ public class Timeline2 extends JFrame {
         boolean fontBold = false;  // default not bold
         boolean fontItalic = false; // default not italic
         Color textColor = Color.BLACK;    // default black
+        int centerTextXOffset = 0; // X offset from default position
+        int centerTextYOffset = 0; // Y offset from default position
         // Front text properties (text in front of task bar)
         String frontText = "";
         int frontFontSize = 10;
         boolean frontFontBold = false;
         boolean frontFontItalic = false;
         Color frontTextColor = Color.BLACK;
+        int frontTextXOffset = 0;
+        int frontTextYOffset = 0;
         // Above text properties (text above task bar)
         String aboveText = "";
         int aboveFontSize = 10;
         boolean aboveFontBold = false;
         boolean aboveFontItalic = false;
         Color aboveTextColor = Color.BLACK;
+        int aboveTextXOffset = 0;
+        int aboveTextYOffset = 0;
         // Underneath text properties (text below task bar)
         String underneathText = "";
         int underneathFontSize = 10;
         boolean underneathFontBold = false;
         boolean underneathFontItalic = false;
         Color underneathTextColor = Color.BLACK;
+        int underneathTextXOffset = 0;
+        int underneathTextYOffset = 0;
         // Behind text properties (text behind task bar)
         String behindText = "";
         int behindFontSize = 10;
         boolean behindFontBold = false;
         boolean behindFontItalic = false;
         Color behindTextColor = new Color(150, 150, 150);
+        int behindTextXOffset = 0;
+        int behindTextYOffset = 0;
         TimelineTask(String name, String startDate, String endDate) {
             this.name = name;
             this.centerText = name; // default center text to name
@@ -3205,6 +3651,67 @@ public class Timeline2 extends JFrame {
         TimelineDisplayPanel() {
             setBackground(Color.WHITE);
             setupMouseListeners();
+            setupKeyListeners();
+        }
+
+        private void setupKeyListeners() {
+            setFocusable(true);
+            addKeyListener(new java.awt.event.KeyAdapter() {
+                @Override
+                public void keyPressed(java.awt.event.KeyEvent e) {
+                    if (selectedTaskIndices.isEmpty()) return;
+
+                    int daysDelta = 0;
+                    int yDelta = 0;
+
+                    switch (e.getKeyCode()) {
+                        case java.awt.event.KeyEvent.VK_LEFT:
+                            daysDelta = -1;
+                            break;
+                        case java.awt.event.KeyEvent.VK_RIGHT:
+                            daysDelta = 1;
+                            break;
+                        case java.awt.event.KeyEvent.VK_UP:
+                            yDelta = -5;
+                            break;
+                        case java.awt.event.KeyEvent.VK_DOWN:
+                            yDelta = 5;
+                            break;
+                        default:
+                            return;
+                    }
+
+                    // Move all selected tasks
+                    for (int idx : selectedTaskIndices) {
+                        TimelineTask task = tasks.get(idx);
+
+                        // Shift dates if left/right arrow
+                        if (daysDelta != 0) {
+                            try {
+                                LocalDate start = LocalDate.parse(task.startDate, DATE_FORMAT);
+                                LocalDate end = LocalDate.parse(task.endDate, DATE_FORMAT);
+                                task.startDate = start.plusDays(daysDelta).format(DATE_FORMAT);
+                                task.endDate = end.plusDays(daysDelta).format(DATE_FORMAT);
+                            } catch (Exception ex) {}
+                        }
+
+                        // Shift Y position if up/down arrow
+                        if (yDelta != 0) {
+                            int currentY = task.yPosition >= 0 ? task.yPosition : getTaskY(idx);
+                            int newY = Math.max(35, currentY + yDelta);
+                            task.yPosition = newY;
+                        }
+                    }
+
+                    // Update format panel if single selection
+                    if (selectedTaskIndices.size() == 1) {
+                        int idx = selectedTaskIndices.iterator().next();
+                        updateFormatPanelDates(idx);
+                    }
+
+                    repaint();
+                }
+            });
         }
 
         private int getTaskHeight(int index) {
@@ -3279,7 +3786,8 @@ public class Timeline2 extends JFrame {
         private void setupMouseListeners() {
             MouseAdapter adapter = new MouseAdapter() {
                 public void mousePressed(MouseEvent e) {
-                    handleMousePressed(e.getX(), e.getY());
+                    requestFocusInWindow();
+                    handleMousePressed(e.getX(), e.getY(), e.isControlDown());
                 }
                 public void mouseReleased(MouseEvent e) {
                     if (isDragging) {
@@ -3339,7 +3847,7 @@ public class Timeline2 extends JFrame {
             addMouseMotionListener(adapter);
         }
 
-        private void handleMousePressed(int x, int y) {
+        private void handleMousePressed(int x, int y, boolean ctrlDown) {
             if (startDate == null || endDate == null) return;
 
             int timelineX = MARGIN_LEFT;
@@ -3359,7 +3867,7 @@ public class Timeline2 extends JFrame {
                     int taskIdx = tasks.indexOf(task);
                     int taskY = getTaskYForLayer(layerIdx);
                     int taskHeight = task.height;
-                    boolean isSelected = (taskIdx == selectedTaskIndex);
+                    boolean isSelected = selectedTaskIndices.contains(taskIdx);
 
                     try {
                         LocalDate taskStart = LocalDate.parse(task.startDate, DATE_FORMAT);
@@ -3397,7 +3905,7 @@ public class Timeline2 extends JFrame {
                                 draggingTaskIndex = taskIdx;
                                 draggingStart = true;
                                 setCursor(Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR));
-                                selectTask(taskIdx);
+                                selectTask(taskIdx, ctrlDown);
                                 return;
                             }
                             if (x >= x1 + barWidth - DRAG_HANDLE_WIDTH && x <= x1 + barWidth + DRAG_HANDLE_WIDTH) {
@@ -3405,11 +3913,11 @@ public class Timeline2 extends JFrame {
                                 draggingTaskIndex = taskIdx;
                                 draggingStart = false;
                                 setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
-                                selectTask(taskIdx);
+                                selectTask(taskIdx, ctrlDown);
                                 return;
                             }
                             if (x >= x1 && x <= x1 + barWidth) {
-                                selectTask(taskIdx);
+                                selectTask(taskIdx, ctrlDown);
                                 isMoveDragging = true;
                                 moveDragTaskIndex = taskIdx;
                                 moveDragStartX = x;
@@ -3701,7 +4209,7 @@ public class Timeline2 extends JFrame {
                 TimelineTask task = tasks.get(i);
                 int taskY = getTaskY(i);
                 int taskHeight = task.height;
-                boolean isSelected = (i == selectedTaskIndex);
+                boolean isSelected = selectedTaskIndices.contains(i);
                 try {
                     LocalDate taskStart = LocalDate.parse(task.startDate, DATE_FORMAT);
                     LocalDate taskEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
@@ -3836,7 +4344,7 @@ public class Timeline2 extends JFrame {
                 Color defaultColor = TASK_COLORS[index % TASK_COLORS.length];
                 Color fillColor = task.fillColor != null ? task.fillColor : defaultColor;
                 Color outlineColor = task.outlineColor != null ? task.outlineColor : fillColor.darker();
-                boolean isSelected = (index == selectedTaskIndex);
+                boolean isSelected = selectedTaskIndices.contains(index);
 
                 int taskHeight = task.height;
 
@@ -3860,8 +4368,8 @@ public class Timeline2 extends JFrame {
                     FontMetrics behindFm = g2d.getFontMetrics();
                     int behindTextWidth = behindFm.stringWidth(task.behindText);
                     // Draw behind text to the right of the task bar with small gap
-                    g2d.drawString(task.behindText, x1 + barWidth + 5,
-                                   y + (taskHeight + behindFm.getAscent() - behindFm.getDescent()) / 2);
+                    g2d.drawString(task.behindText, x1 + barWidth + 5 + task.behindTextXOffset,
+                                   y + (taskHeight + behindFm.getAscent() - behindFm.getDescent()) / 2 + task.behindTextYOffset);
                 }
 
                 // Draw front text (in front of task bar)
@@ -3874,8 +4382,8 @@ public class Timeline2 extends JFrame {
                     FontMetrics frontFm = g2d.getFontMetrics();
                     int frontTextWidth = frontFm.stringWidth(task.frontText);
                     // Draw front text to the left of the task bar with small gap
-                    g2d.drawString(task.frontText, x1 - frontTextWidth - 5,
-                                   y + (taskHeight + frontFm.getAscent() - frontFm.getDescent()) / 2);
+                    g2d.drawString(task.frontText, x1 - frontTextWidth - 5 + task.frontTextXOffset,
+                                   y + (taskHeight + frontFm.getAscent() - frontFm.getDescent()) / 2 + task.frontTextYOffset);
                 }
 
                 g2d.setColor(fillColor);
@@ -3902,8 +4410,8 @@ public class Timeline2 extends JFrame {
                     textWidth = fm.stringWidth(displayText);
                 }
                 if (textWidth <= barWidth - 6) {
-                    g2d.drawString(displayText, x1 + (barWidth - textWidth) / 2,
-                                   y + (taskHeight + fm.getAscent() - fm.getDescent()) / 2);
+                    g2d.drawString(displayText, x1 + (barWidth - textWidth) / 2 + task.centerTextXOffset,
+                                   y + (taskHeight + fm.getAscent() - fm.getDescent()) / 2 + task.centerTextYOffset);
                 }
 
                 // Draw above text (above the task bar)
@@ -3916,8 +4424,8 @@ public class Timeline2 extends JFrame {
                     FontMetrics aboveFm = g2d.getFontMetrics();
                     int aboveTextWidth = aboveFm.stringWidth(task.aboveText);
                     // Draw above text centered above the task bar
-                    g2d.drawString(task.aboveText, x1 + (barWidth - aboveTextWidth) / 2,
-                                   y - 3);
+                    g2d.drawString(task.aboveText, x1 + (barWidth - aboveTextWidth) / 2 + task.aboveTextXOffset,
+                                   y - 3 + task.aboveTextYOffset);
                 }
 
                 // Draw underneath text (below the task bar)
@@ -3930,8 +4438,8 @@ public class Timeline2 extends JFrame {
                     FontMetrics underneathFm = g2d.getFontMetrics();
                     int underneathTextWidth = underneathFm.stringWidth(task.underneathText);
                     // Draw underneath text centered below the task bar
-                    g2d.drawString(task.underneathText, x1 + (barWidth - underneathTextWidth) / 2,
-                                   y + taskHeight + underneathFm.getAscent() + 2);
+                    g2d.drawString(task.underneathText, x1 + (barWidth - underneathTextWidth) / 2 + task.underneathTextXOffset,
+                                   y + taskHeight + underneathFm.getAscent() + 2 + task.underneathTextYOffset);
                 }
 
                 // Draw drag handles - only when selected, positioned outside the outline
