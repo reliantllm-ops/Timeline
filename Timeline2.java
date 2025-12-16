@@ -73,7 +73,7 @@ public class Timeline2 extends JFrame {
     private JButton duplicateTaskBtn;
     private JButton fillColorBtn, outlineColorBtn, textColorBtn;
     // Notes tab fields
-    private JTextField note1Field, note2Field, note3Field, note4Field, note5Field;
+    private JTextArea note1Area, note2Area, note3Area, note4Area, note5Area;
     private JSpinner outlineThicknessSpinner, taskHeightSpinner, fontSizeSpinner;
     private JToggleButton boldBtn, italicBtn;
     private JTextField centerTextField;
@@ -855,71 +855,86 @@ public class Timeline2 extends JFrame {
         contentPanel.add(row6);
         contentPanel.add(Box.createVerticalStrut(3));
 
-        // Create Notes panel with labels in first row, inputs in second row
-        JPanel notesPanel = new JPanel();
-        notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
+        // Create Notes panel with labels above large text areas with scroll bars
+        JPanel notesPanel = new JPanel(new BorderLayout());
         notesPanel.setOpaque(false);
-        notesPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        notesPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Row 1: Labels
-        JPanel labelsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
-        labelsRow.setOpaque(false);
-        JLabel note1Label = new JLabel("Note 1");
-        note1Label.setPreferredSize(new Dimension(150, 20));
-        note1Label.setHorizontalAlignment(SwingConstants.CENTER);
-        labelsRow.add(note1Label);
-        JLabel note2Label = new JLabel("Note 2");
-        note2Label.setPreferredSize(new Dimension(150, 20));
-        note2Label.setHorizontalAlignment(SwingConstants.CENTER);
-        labelsRow.add(note2Label);
-        JLabel note3Label = new JLabel("Note 3");
-        note3Label.setPreferredSize(new Dimension(150, 20));
-        note3Label.setHorizontalAlignment(SwingConstants.CENTER);
-        labelsRow.add(note3Label);
-        JLabel note4Label = new JLabel("Note 4");
-        note4Label.setPreferredSize(new Dimension(150, 20));
-        note4Label.setHorizontalAlignment(SwingConstants.CENTER);
-        labelsRow.add(note4Label);
-        JLabel note5Label = new JLabel("Note 5");
-        note5Label.setPreferredSize(new Dimension(150, 20));
-        note5Label.setHorizontalAlignment(SwingConstants.CENTER);
-        labelsRow.add(note5Label);
-        notesPanel.add(labelsRow);
+        // Container for 5 columns
+        JPanel columnsPanel = new JPanel(new GridLayout(1, 5, 5, 0));
+        columnsPanel.setOpaque(false);
 
-        // Row 2: Input fields
-        JPanel inputsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
-        inputsRow.setOpaque(false);
-        note1Field = new JTextField(12);
-        note1Field.setEnabled(false);
-        note1Field.addFocusListener(new FocusAdapter() {
+        // Note 1 column
+        JPanel note1Panel = new JPanel(new BorderLayout(0, 2));
+        note1Panel.setOpaque(false);
+        note1Panel.add(new JLabel("Note 1"), BorderLayout.NORTH);
+        note1Area = new JTextArea(6, 15);
+        note1Area.setEnabled(false);
+        note1Area.setLineWrap(true);
+        note1Area.setWrapStyleWord(true);
+        note1Area.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        inputsRow.add(note1Field);
-        note2Field = new JTextField(12);
-        note2Field.setEnabled(false);
-        note2Field.addFocusListener(new FocusAdapter() {
+        note1Panel.add(new JScrollPane(note1Area), BorderLayout.CENTER);
+        columnsPanel.add(note1Panel);
+
+        // Note 2 column
+        JPanel note2Panel = new JPanel(new BorderLayout(0, 2));
+        note2Panel.setOpaque(false);
+        note2Panel.add(new JLabel("Note 2"), BorderLayout.NORTH);
+        note2Area = new JTextArea(6, 15);
+        note2Area.setEnabled(false);
+        note2Area.setLineWrap(true);
+        note2Area.setWrapStyleWord(true);
+        note2Area.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        inputsRow.add(note2Field);
-        note3Field = new JTextField(12);
-        note3Field.setEnabled(false);
-        note3Field.addFocusListener(new FocusAdapter() {
+        note2Panel.add(new JScrollPane(note2Area), BorderLayout.CENTER);
+        columnsPanel.add(note2Panel);
+
+        // Note 3 column
+        JPanel note3Panel = new JPanel(new BorderLayout(0, 2));
+        note3Panel.setOpaque(false);
+        note3Panel.add(new JLabel("Note 3"), BorderLayout.NORTH);
+        note3Area = new JTextArea(6, 15);
+        note3Area.setEnabled(false);
+        note3Area.setLineWrap(true);
+        note3Area.setWrapStyleWord(true);
+        note3Area.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        inputsRow.add(note3Field);
-        note4Field = new JTextField(12);
-        note4Field.setEnabled(false);
-        note4Field.addFocusListener(new FocusAdapter() {
+        note3Panel.add(new JScrollPane(note3Area), BorderLayout.CENTER);
+        columnsPanel.add(note3Panel);
+
+        // Note 4 column
+        JPanel note4Panel = new JPanel(new BorderLayout(0, 2));
+        note4Panel.setOpaque(false);
+        note4Panel.add(new JLabel("Note 4"), BorderLayout.NORTH);
+        note4Area = new JTextArea(6, 15);
+        note4Area.setEnabled(false);
+        note4Area.setLineWrap(true);
+        note4Area.setWrapStyleWord(true);
+        note4Area.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        inputsRow.add(note4Field);
-        note5Field = new JTextField(12);
-        note5Field.setEnabled(false);
-        note5Field.addFocusListener(new FocusAdapter() {
+        note4Panel.add(new JScrollPane(note4Area), BorderLayout.CENTER);
+        columnsPanel.add(note4Panel);
+
+        // Note 5 column
+        JPanel note5Panel = new JPanel(new BorderLayout(0, 2));
+        note5Panel.setOpaque(false);
+        note5Panel.add(new JLabel("Note 5"), BorderLayout.NORTH);
+        note5Area = new JTextArea(6, 15);
+        note5Area.setEnabled(false);
+        note5Area.setLineWrap(true);
+        note5Area.setWrapStyleWord(true);
+        note5Area.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        inputsRow.add(note5Field);
-        notesPanel.add(inputsRow);
+        note5Panel.add(new JScrollPane(note5Area), BorderLayout.CENTER);
+        columnsPanel.add(note5Panel);
+
+        notesPanel.add(columnsPanel, BorderLayout.CENTER);
 
         // Create tabbed pane
         JTabbedPane tabbedPane = new JTabbedPane();
@@ -1390,11 +1405,11 @@ public class Timeline2 extends JFrame {
         if (selectedTaskIndices.isEmpty()) return;
         for (int idx : selectedTaskIndices) {
             TimelineTask task = tasks.get(idx);
-            task.note1 = note1Field.getText();
-            task.note2 = note2Field.getText();
-            task.note3 = note3Field.getText();
-            task.note4 = note4Field.getText();
-            task.note5 = note5Field.getText();
+            task.note1 = note1Area.getText();
+            task.note2 = note2Area.getText();
+            task.note3 = note3Area.getText();
+            task.note4 = note4Area.getText();
+            task.note5 = note5Area.getText();
         }
     }
 
@@ -1584,11 +1599,11 @@ public class Timeline2 extends JFrame {
             behindYOffsetSpinner.setValue(task.behindTextYOffset);
 
             // Notes
-            note1Field.setText(task.note1);
-            note2Field.setText(task.note2);
-            note3Field.setText(task.note3);
-            note4Field.setText(task.note4);
-            note5Field.setText(task.note5);
+            note1Area.setText(task.note1);
+            note2Area.setText(task.note2);
+            note3Area.setText(task.note3);
+            note4Area.setText(task.note4);
+            note5Area.setText(task.note5);
 
             setFormatFieldsEnabled(true);
         } else {
@@ -1649,11 +1664,11 @@ public class Timeline2 extends JFrame {
             behindTextColorBtn.setBackground(Color.GRAY);
 
             // Clear notes
-            note1Field.setText("");
-            note2Field.setText("");
-            note3Field.setText("");
-            note4Field.setText("");
-            note5Field.setText("");
+            note1Area.setText("");
+            note2Area.setText("");
+            note3Area.setText("");
+            note4Area.setText("");
+            note5Area.setText("");
 
             setFormatFieldsEnabled(true);
         }
@@ -1703,11 +1718,11 @@ public class Timeline2 extends JFrame {
         behindXOffsetSpinner.setEnabled(enabled);
         behindYOffsetSpinner.setEnabled(enabled);
         // Notes
-        note1Field.setEnabled(enabled);
-        note2Field.setEnabled(enabled);
-        note3Field.setEnabled(enabled);
-        note4Field.setEnabled(enabled);
-        note5Field.setEnabled(enabled);
+        note1Area.setEnabled(enabled);
+        note2Area.setEnabled(enabled);
+        note3Area.setEnabled(enabled);
+        note4Area.setEnabled(enabled);
+        note5Area.setEnabled(enabled);
     }
 
     private void clearFormatFields() {
@@ -1754,11 +1769,11 @@ public class Timeline2 extends JFrame {
         behindXOffsetSpinner.setValue(0);
         behindYOffsetSpinner.setValue(0);
         // Notes
-        note1Field.setText("");
-        note2Field.setText("");
-        note3Field.setText("");
-        note4Field.setText("");
-        note5Field.setText("");
+        note1Area.setText("");
+        note2Area.setText("");
+        note3Area.setText("");
+        note4Area.setText("");
+        note5Area.setText("");
     }
 
     void selectMilestone(int index) {
@@ -3903,6 +3918,39 @@ public class Timeline2 extends JFrame {
             return maxY - 25; // Subtract initial offset
         }
 
+        // Get the lowest Y position (bottom) of any task or milestone
+        private int getLowestItemBottom() {
+            int lowestBottom = 45; // Minimum position
+            int autoY = 45;
+
+            // Check all items in layer order
+            for (int i = layerOrder.size() - 1; i >= 0; i--) {
+                Object item = layerOrder.get(i);
+                if (item instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) item;
+                    int taskBottom;
+                    if (task.yPosition >= 0) {
+                        taskBottom = task.yPosition + task.height;
+                    } else {
+                        taskBottom = autoY + task.height;
+                        autoY = taskBottom + TASK_BAR_SPACING;
+                    }
+                    if (taskBottom > lowestBottom) {
+                        lowestBottom = taskBottom;
+                    }
+                } else if (item instanceof TimelineMilestone) {
+                    TimelineMilestone milestone = (TimelineMilestone) item;
+                    if (milestone.yPosition >= 0) {
+                        int milestoneBottom = milestone.yPosition + milestone.height / 2;
+                        if (milestoneBottom > lowestBottom) {
+                            lowestBottom = milestoneBottom;
+                        }
+                    }
+                }
+            }
+            return lowestBottom;
+        }
+
         private void setupMouseListeners() {
             MouseAdapter adapter = new MouseAdapter() {
                 public void mousePressed(MouseEvent e) {
@@ -3976,7 +4024,7 @@ public class Timeline2 extends JFrame {
             if (totalDays <= 0) return;
 
             int tasksHeight = getTotalTasksHeight();
-            int timelineY = 50 + tasksHeight;
+            int timelineY = getLowestItemBottom() + 30; // 30 pixels below lowest item
 
             // Check items in layer order (front to back - index 0 is topmost)
             for (int layerIdx = 0; layerIdx < layerOrder.size(); layerIdx++) {
@@ -4381,9 +4429,9 @@ public class Timeline2 extends JFrame {
             this.tasks = new ArrayList<>(taskList);
             this.milestones = new ArrayList<>(milestoneList);
 
-            int tasksHeight = getTotalTasksHeight();
+            int lowestItemBottom = getLowestItemBottom();
             int eventsHeight = events.size() * 90 + 100;
-            setPreferredSize(new Dimension(600, 50 + tasksHeight + 70 + eventsHeight));
+            setPreferredSize(new Dimension(600, lowestItemBottom + 100 + eventsHeight));
             revalidate();
             repaint();
         }
@@ -4409,7 +4457,7 @@ public class Timeline2 extends JFrame {
             int timelineX = MARGIN_LEFT;
             int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
             int tasksHeight = getTotalTasksHeight();
-            int timelineY = 50 + tasksHeight;
+            int timelineY = getLowestItemBottom() + 30; // 30 pixels below lowest item
 
             long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
             if (totalDays <= 0) totalDays = 1;
