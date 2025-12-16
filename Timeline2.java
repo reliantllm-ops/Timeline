@@ -125,6 +125,11 @@ public class Timeline2 extends JFrame {
     private JButton axisDateColorBtn;
     private JSpinner axisDateFontSizeSpinner;
     private JToggleButton axisDateBoldBtn, axisDateItalicBtn;
+    // Undo/Redo
+    private java.util.Deque<TimelineState> undoStack = new java.util.ArrayDeque<>();
+    private java.util.Deque<TimelineState> redoStack = new java.util.ArrayDeque<>();
+    private JButton undoBtn, redoBtn;
+    private static final int MAX_UNDO_LEVELS = 50;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -164,6 +169,15 @@ public class Timeline2 extends JFrame {
 
         // Edit menu
         JMenu editMenu = new JMenu("Edit");
+        JMenuItem undoItem = new JMenuItem("Undo");
+        undoItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        undoItem.addActionListener(e -> undo());
+        editMenu.add(undoItem);
+        JMenuItem redoItem = new JMenuItem("Redo");
+        redoItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        redoItem.addActionListener(e -> redo());
+        editMenu.add(redoItem);
+        editMenu.addSeparator();
         JMenuItem preferencesItem = new JMenuItem("Preferences");
         preferencesItem.addActionListener(e -> showPreferencesDialog());
         editMenu.add(preferencesItem);
@@ -194,6 +208,16 @@ public class Timeline2 extends JFrame {
         JButton clearAllBtn = new JButton("Clear All");
         clearAllBtn.addActionListener(e -> clearAll());
         toolbarPanel.add(clearAllBtn);
+        undoBtn = new JButton("Undo");
+        undoBtn.setEnabled(false);
+        undoBtn.setToolTipText("Undo last action (Ctrl+Z)");
+        undoBtn.addActionListener(e -> undo());
+        toolbarPanel.add(undoBtn);
+        redoBtn = new JButton("Redo");
+        redoBtn.setEnabled(false);
+        redoBtn.setToolTipText("Redo last undone action (Ctrl+Y)");
+        redoBtn.addActionListener(e -> redo());
+        toolbarPanel.add(redoBtn);
         centerPanel.add(toolbarPanel, BorderLayout.NORTH);
 
         timelineDisplayPanel = new TimelineDisplayPanel();
@@ -1850,6 +1874,7 @@ public class Timeline2 extends JFrame {
 
     private void duplicateSelectedTasks() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
 
         // Collect tasks to duplicate (copy indices to avoid modification during iteration)
         java.util.List<Integer> indicesToDuplicate = new java.util.ArrayList<>(selectedTaskIndices);
@@ -1966,6 +1991,7 @@ public class Timeline2 extends JFrame {
     }
 
     private void addNewTask() {
+        saveState();
         int taskIndex = tasks.size();
         String taskName = "Task " + (taskIndex + 1);
         String startDate = LocalDate.now().format(DATE_FORMAT);
@@ -2013,6 +2039,7 @@ public class Timeline2 extends JFrame {
     }
 
     private void addNewMilestone(String shape) {
+        saveState();
         int milestoneIndex = milestones.size();
         String name = "Milestone " + (milestoneIndex + 1);
         String date = LocalDate.now().plusWeeks(1).format(DATE_FORMAT);
@@ -2438,6 +2465,7 @@ public class Timeline2 extends JFrame {
     }
 
     private void clearAll() {
+        saveState();
         events.clear();
         tasks.clear();
         milestones.clear();
@@ -2445,6 +2473,57 @@ public class Timeline2 extends JFrame {
         selectTask(-1);
         selectMilestone(-1);
         refreshTimeline();
+    }
+
+    private void saveState() {
+        TimelineState state = new TimelineState(tasks, milestones, layerOrder, events);
+        undoStack.push(state);
+        if (undoStack.size() > MAX_UNDO_LEVELS) {
+            undoStack.removeLast();
+        }
+        redoStack.clear();
+        updateUndoRedoButtons();
+    }
+
+    private void undo() {
+        if (undoStack.isEmpty()) return;
+        // Save current state to redo stack
+        TimelineState currentState = new TimelineState(tasks, milestones, layerOrder, events);
+        redoStack.push(currentState);
+        // Restore previous state
+        TimelineState state = undoStack.pop();
+        restoreState(state);
+        updateUndoRedoButtons();
+    }
+
+    private void redo() {
+        if (redoStack.isEmpty()) return;
+        // Save current state to undo stack
+        TimelineState currentState = new TimelineState(tasks, milestones, layerOrder, events);
+        undoStack.push(currentState);
+        // Restore redo state
+        TimelineState state = redoStack.pop();
+        restoreState(state);
+        updateUndoRedoButtons();
+    }
+
+    private void restoreState(TimelineState state) {
+        tasks.clear();
+        tasks.addAll(state.tasks);
+        milestones.clear();
+        milestones.addAll(state.milestones);
+        layerOrder.clear();
+        layerOrder.addAll(state.layerOrder);
+        events.clear();
+        events.addAll(state.events);
+        selectTask(-1);
+        selectMilestone(-1);
+        refreshTimeline();
+    }
+
+    private void updateUndoRedoButtons() {
+        undoBtn.setEnabled(!undoStack.isEmpty());
+        redoBtn.setEnabled(!redoStack.isEmpty());
     }
 
     private void refreshTimeline() {
@@ -3692,6 +3771,7 @@ public class Timeline2 extends JFrame {
 
         private void commitReorder(int fromIndex, int toIndex) {
             if (fromIndex < 0 || fromIndex >= layerOrder.size() || toIndex < 0 || toIndex >= layerOrder.size()) return;
+            saveState();
 
             Object item = layerOrder.remove(fromIndex);
             layerOrder.add(toIndex, item);
@@ -3743,6 +3823,7 @@ public class Timeline2 extends JFrame {
         private void deleteSelectedLayer() {
             int index = layersList.getSelectedIndex();
             if (index >= 0 && index < layerOrder.size()) {
+                saveState();
                 Object item = layerOrder.get(index);
                 layerOrder.remove(index);
                 if (item instanceof TimelineTask) {
@@ -3854,6 +3935,110 @@ public class Timeline2 extends JFrame {
             this.title = title;
             this.date = date;
             this.description = description;
+        }
+    }
+
+    // State class for undo/redo
+    class TimelineState {
+        ArrayList<TimelineTask> tasks;
+        ArrayList<TimelineMilestone> milestones;
+        ArrayList<Object> layerOrder;
+        ArrayList<TimelineEvent> events;
+
+        TimelineState(ArrayList<TimelineTask> tasks, ArrayList<TimelineMilestone> milestones,
+                      ArrayList<Object> layerOrder, ArrayList<TimelineEvent> events) {
+            // Deep copy tasks
+            this.tasks = new ArrayList<>();
+            for (TimelineTask t : tasks) {
+                this.tasks.add(copyTask(t));
+            }
+            // Deep copy milestones
+            this.milestones = new ArrayList<>();
+            for (TimelineMilestone m : milestones) {
+                this.milestones.add(copyMilestone(m));
+            }
+            // Deep copy layer order (references to new copies)
+            this.layerOrder = new ArrayList<>();
+            for (Object item : layerOrder) {
+                if (item instanceof TimelineTask) {
+                    int idx = tasks.indexOf(item);
+                    if (idx >= 0) this.layerOrder.add(this.tasks.get(idx));
+                } else if (item instanceof TimelineMilestone) {
+                    int idx = milestones.indexOf(item);
+                    if (idx >= 0) this.layerOrder.add(this.milestones.get(idx));
+                }
+            }
+            // Deep copy events
+            this.events = new ArrayList<>();
+            for (TimelineEvent e : events) {
+                this.events.add(new TimelineEvent(e.title, e.date, e.description));
+            }
+        }
+
+        private TimelineTask copyTask(TimelineTask t) {
+            TimelineTask copy = new TimelineTask(t.name, t.startDate, t.endDate);
+            copy.centerText = t.centerText;
+            copy.fillColor = t.fillColor;
+            copy.outlineColor = t.outlineColor;
+            copy.outlineThickness = t.outlineThickness;
+            copy.height = t.height;
+            copy.yPosition = t.yPosition;
+            copy.fontSize = t.fontSize;
+            copy.fontBold = t.fontBold;
+            copy.fontItalic = t.fontItalic;
+            copy.textColor = t.textColor;
+            copy.centerTextXOffset = t.centerTextXOffset;
+            copy.centerTextYOffset = t.centerTextYOffset;
+            copy.frontText = t.frontText;
+            copy.frontFontSize = t.frontFontSize;
+            copy.frontFontBold = t.frontFontBold;
+            copy.frontFontItalic = t.frontFontItalic;
+            copy.frontTextColor = t.frontTextColor;
+            copy.frontTextXOffset = t.frontTextXOffset;
+            copy.frontTextYOffset = t.frontTextYOffset;
+            copy.aboveText = t.aboveText;
+            copy.aboveFontSize = t.aboveFontSize;
+            copy.aboveFontBold = t.aboveFontBold;
+            copy.aboveFontItalic = t.aboveFontItalic;
+            copy.aboveTextColor = t.aboveTextColor;
+            copy.aboveTextXOffset = t.aboveTextXOffset;
+            copy.aboveTextYOffset = t.aboveTextYOffset;
+            copy.underneathText = t.underneathText;
+            copy.underneathFontSize = t.underneathFontSize;
+            copy.underneathFontBold = t.underneathFontBold;
+            copy.underneathFontItalic = t.underneathFontItalic;
+            copy.underneathTextColor = t.underneathTextColor;
+            copy.underneathTextXOffset = t.underneathTextXOffset;
+            copy.underneathTextYOffset = t.underneathTextYOffset;
+            copy.behindText = t.behindText;
+            copy.behindFontSize = t.behindFontSize;
+            copy.behindFontBold = t.behindFontBold;
+            copy.behindFontItalic = t.behindFontItalic;
+            copy.behindTextColor = t.behindTextColor;
+            copy.behindTextXOffset = t.behindTextXOffset;
+            copy.behindTextYOffset = t.behindTextYOffset;
+            copy.note1 = t.note1;
+            copy.note2 = t.note2;
+            copy.note3 = t.note3;
+            copy.note4 = t.note4;
+            copy.note5 = t.note5;
+            return copy;
+        }
+
+        private TimelineMilestone copyMilestone(TimelineMilestone m) {
+            TimelineMilestone copy = new TimelineMilestone(m.name, m.date, m.shape);
+            copy.width = m.width;
+            copy.height = m.height;
+            copy.yPosition = m.yPosition;
+            copy.fillColor = m.fillColor;
+            copy.outlineColor = m.outlineColor;
+            copy.outlineThickness = m.outlineThickness;
+            copy.labelText = m.labelText;
+            copy.fontSize = m.fontSize;
+            copy.fontBold = m.fontBold;
+            copy.fontItalic = m.fontItalic;
+            copy.textColor = m.textColor;
+            return copy;
         }
     }
 
@@ -3990,6 +4175,9 @@ public class Timeline2 extends JFrame {
         private int resizeOriginalWidth = -1;
         private int resizeOriginalHeight = -1;
 
+        // Flag to save state once when drag starts
+        private boolean dragStateSaved = false;
+
         TimelineDisplayPanel() {
             setBackground(Color.WHITE);
             setupMouseListeners();
@@ -4023,6 +4211,7 @@ public class Timeline2 extends JFrame {
                             return;
                     }
 
+                    saveState();
                     // Move all selected tasks
                     for (int idx : selectedTaskIndices) {
                         TimelineTask task = tasks.get(idx);
@@ -4196,8 +4385,14 @@ public class Timeline2 extends JFrame {
                         setCursor(Cursor.getDefaultCursor());
                         refreshTimeline();
                     }
+                    dragStateSaved = false; // Reset for next drag
                 }
                 public void mouseDragged(MouseEvent e) {
+                    // Save state once at start of any drag
+                    if (!dragStateSaved && (isDragging || isMoveDragging || isHeightDragging || isMilestoneDragging || isMilestoneResizing)) {
+                        saveState();
+                        dragStateSaved = true;
+                    }
                     if (isDragging && draggingTaskIndex >= 0) {
                         handleDrag(e.getX());
                     }
