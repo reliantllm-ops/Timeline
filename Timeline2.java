@@ -72,6 +72,8 @@ public class Timeline2 extends JFrame {
     private JLabel formatTitleLabel;
     private JButton duplicateTaskBtn;
     private JButton fillColorBtn, outlineColorBtn, textColorBtn;
+    // Notes tab fields
+    private JTextField note1Field, note2Field, note3Field, note4Field, note5Field;
     private JSpinner outlineThicknessSpinner, taskHeightSpinner, fontSizeSpinner;
     private JToggleButton boldBtn, italicBtn;
     private JTextField centerTextField;
@@ -171,6 +173,11 @@ public class Timeline2 extends JFrame {
         JButton newMilestoneBtn = new JButton("+ New Milestone");
         newMilestoneBtn.addActionListener(e -> showMilestoneShapeMenu(newMilestoneBtn));
         toolbarPanel.add(newMilestoneBtn);
+        duplicateTaskBtn = new JButton("Duplicate");
+        duplicateTaskBtn.setEnabled(false);
+        duplicateTaskBtn.setToolTipText("Duplicate selected task(s)");
+        duplicateTaskBtn.addActionListener(e -> duplicateSelectedTasks());
+        toolbarPanel.add(duplicateTaskBtn);
         JButton clearAllBtn = new JButton("Clear All");
         clearAllBtn.addActionListener(e -> clearAll());
         toolbarPanel.add(clearAllBtn);
@@ -265,15 +272,6 @@ public class Timeline2 extends JFrame {
         formatTitleLabel = new JLabel("No task selected");
         formatTitleLabel.setFont(new Font("Arial", Font.BOLD, 12));
         taskRow.add(formatTitleLabel);
-
-        duplicateTaskBtn = new JButton("Duplicate");
-        duplicateTaskBtn.setFont(new Font("Arial", Font.PLAIN, 10));
-        duplicateTaskBtn.setMargin(new Insets(2, 6, 2, 6));
-        duplicateTaskBtn.setVisible(false);
-        duplicateTaskBtn.setToolTipText("Duplicate selected task(s)");
-        duplicateTaskBtn.addActionListener(e -> duplicateSelectedTasks());
-        taskRow.add(Box.createHorizontalStrut(10));
-        taskRow.add(duplicateTaskBtn);
 
         taskRow.add(Box.createHorizontalStrut(10));
         taskRow.add(new JLabel("Name:"));
@@ -857,7 +855,89 @@ public class Timeline2 extends JFrame {
         contentPanel.add(row6);
         contentPanel.add(Box.createVerticalStrut(3));
 
-        contentWrapper.add(contentPanel, BorderLayout.CENTER);
+        // Create Notes panel
+        JPanel notesPanel = new JPanel();
+        notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
+        notesPanel.setOpaque(false);
+        notesPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Note 1
+        JPanel note1Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        note1Row.setOpaque(false);
+        JLabel note1Label = new JLabel("Note 1:");
+        note1Label.setPreferredSize(new Dimension(50, 20));
+        note1Row.add(note1Label);
+        note1Field = new JTextField(40);
+        note1Field.setEnabled(false);
+        note1Field.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateNotes(); }
+        });
+        note1Row.add(note1Field);
+        notesPanel.add(note1Row);
+
+        // Note 2
+        JPanel note2Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        note2Row.setOpaque(false);
+        JLabel note2Label = new JLabel("Note 2:");
+        note2Label.setPreferredSize(new Dimension(50, 20));
+        note2Row.add(note2Label);
+        note2Field = new JTextField(40);
+        note2Field.setEnabled(false);
+        note2Field.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateNotes(); }
+        });
+        note2Row.add(note2Field);
+        notesPanel.add(note2Row);
+
+        // Note 3
+        JPanel note3Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        note3Row.setOpaque(false);
+        JLabel note3Label = new JLabel("Note 3:");
+        note3Label.setPreferredSize(new Dimension(50, 20));
+        note3Row.add(note3Label);
+        note3Field = new JTextField(40);
+        note3Field.setEnabled(false);
+        note3Field.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateNotes(); }
+        });
+        note3Row.add(note3Field);
+        notesPanel.add(note3Row);
+
+        // Note 4
+        JPanel note4Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        note4Row.setOpaque(false);
+        JLabel note4Label = new JLabel("Note 4:");
+        note4Label.setPreferredSize(new Dimension(50, 20));
+        note4Row.add(note4Label);
+        note4Field = new JTextField(40);
+        note4Field.setEnabled(false);
+        note4Field.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateNotes(); }
+        });
+        note4Row.add(note4Field);
+        notesPanel.add(note4Row);
+
+        // Note 5
+        JPanel note5Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        note5Row.setOpaque(false);
+        JLabel note5Label = new JLabel("Note 5:");
+        note5Label.setPreferredSize(new Dimension(50, 20));
+        note5Row.add(note5Label);
+        note5Field = new JTextField(40);
+        note5Field.setEnabled(false);
+        note5Field.addFocusListener(new FocusAdapter() {
+            public void focusLost(FocusEvent e) { updateNotes(); }
+        });
+        note5Row.add(note5Field);
+        notesPanel.add(note5Row);
+
+        // Create tabbed pane
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Arial", Font.PLAIN, 11));
+        tabbedPane.addTab("Format", contentPanel);
+        tabbedPane.addTab("Notes", notesPanel);
+
+        contentWrapper.add(tabbedPane, BorderLayout.CENTER);
         panel.add(contentWrapper, BorderLayout.CENTER);
 
         return panel;
@@ -1316,6 +1396,18 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
+    private void updateNotes() {
+        if (selectedTaskIndices.isEmpty()) return;
+        for (int idx : selectedTaskIndices) {
+            TimelineTask task = tasks.get(idx);
+            task.note1 = note1Field.getText();
+            task.note2 = note2Field.getText();
+            task.note3 = note3Field.getText();
+            task.note4 = note4Field.getText();
+            task.note5 = note5Field.getText();
+        }
+    }
+
     // Milestone update methods
     private void updateSelectedMilestoneName() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
@@ -1437,7 +1529,7 @@ public class Timeline2 extends JFrame {
             // No selection
             formatTitleLabel.setText("No task selected");
             formatTitleLabel.setForeground(Color.BLACK);
-            duplicateTaskBtn.setVisible(false);
+            duplicateTaskBtn.setEnabled(false);
             setFormatFieldsEnabled(false);
             clearFormatFields();
         } else if (selectedTaskIndices.size() == 1) {
@@ -1450,7 +1542,7 @@ public class Timeline2 extends JFrame {
 
             formatTitleLabel.setText("Selected: " + task.name);
             formatTitleLabel.setForeground(fillColor.darker());
-            duplicateTaskBtn.setVisible(true);
+            duplicateTaskBtn.setEnabled(true);
             taskNameField.setText(task.name);
             taskStartField.setText(task.startDate);
             taskEndField.setText(task.endDate);
@@ -1501,12 +1593,19 @@ public class Timeline2 extends JFrame {
             behindXOffsetSpinner.setValue(task.behindTextXOffset);
             behindYOffsetSpinner.setValue(task.behindTextYOffset);
 
+            // Notes
+            note1Field.setText(task.note1);
+            note2Field.setText(task.note2);
+            note3Field.setText(task.note3);
+            note4Field.setText(task.note4);
+            note5Field.setText(task.note5);
+
             setFormatFieldsEnabled(true);
         } else {
             // Multiple selection - show blank fields for batch editing
             formatTitleLabel.setText(selectedTaskIndices.size() + " tasks selected");
             formatTitleLabel.setForeground(Color.BLUE);
-            duplicateTaskBtn.setVisible(true);
+            duplicateTaskBtn.setEnabled(true);
 
             // Clear text fields but keep them enabled for batch input
             taskNameField.setText("");
@@ -1559,6 +1658,13 @@ public class Timeline2 extends JFrame {
             underneathTextColorBtn.setBackground(Color.GRAY);
             behindTextColorBtn.setBackground(Color.GRAY);
 
+            // Clear notes
+            note1Field.setText("");
+            note2Field.setText("");
+            note3Field.setText("");
+            note4Field.setText("");
+            note5Field.setText("");
+
             setFormatFieldsEnabled(true);
         }
     }
@@ -1606,6 +1712,12 @@ public class Timeline2 extends JFrame {
         behindTextColorBtn.setEnabled(enabled);
         behindXOffsetSpinner.setEnabled(enabled);
         behindYOffsetSpinner.setEnabled(enabled);
+        // Notes
+        note1Field.setEnabled(enabled);
+        note2Field.setEnabled(enabled);
+        note3Field.setEnabled(enabled);
+        note4Field.setEnabled(enabled);
+        note5Field.setEnabled(enabled);
     }
 
     private void clearFormatFields() {
@@ -1651,6 +1763,12 @@ public class Timeline2 extends JFrame {
         behindTextColorBtn.setBackground(null);
         behindXOffsetSpinner.setValue(0);
         behindYOffsetSpinner.setValue(0);
+        // Notes
+        note1Field.setText("");
+        note2Field.setText("");
+        note3Field.setText("");
+        note4Field.setText("");
+        note5Field.setText("");
     }
 
     void selectMilestone(int index) {
@@ -1750,6 +1868,12 @@ public class Timeline2 extends JFrame {
             copy.behindTextColor = original.behindTextColor;
             copy.behindTextXOffset = original.behindTextXOffset;
             copy.behindTextYOffset = original.behindTextYOffset;
+            // Notes
+            copy.note1 = original.note1;
+            copy.note2 = original.note2;
+            copy.note3 = original.note3;
+            copy.note4 = original.note4;
+            copy.note5 = original.note5;
 
             newTasks.add(copy);
         }
@@ -3568,6 +3692,12 @@ public class Timeline2 extends JFrame {
         Color behindTextColor = new Color(150, 150, 150);
         int behindTextXOffset = 0;
         int behindTextYOffset = 0;
+        // Notes
+        String note1 = "";
+        String note2 = "";
+        String note3 = "";
+        String note4 = "";
+        String note5 = "";
         TimelineTask(String name, String startDate, String endDate) {
             this.name = name;
             this.centerText = name; // default center text to name
