@@ -112,6 +112,11 @@ public class Timeline2 extends JFrame {
     private CardLayout row1CardLayout;
     // Timeline background color
     private JButton timelineBgColorBtn;
+    // Timeline axis settings
+    private Color timelineAxisColor = new Color(70, 130, 180);
+    private int timelineAxisThickness = 3;
+    private JButton timelineAxisColorBtn;
+    private JSpinner timelineAxisThicknessSpinner;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -1467,6 +1472,15 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void chooseTimelineAxisColor() {
+        Color newColor = JColorChooser.showDialog(this, "Choose Axis Color", timelineAxisColor);
+        if (newColor != null) {
+            timelineAxisColor = newColor;
+            timelineAxisColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
     private void updateMilestoneOutlineThickness() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
         milestones.get(selectedMilestoneIndex).outlineThickness = (Integer) milestoneOutlineThicknessSpinner.getValue();
@@ -2200,6 +2214,47 @@ public class Timeline2 extends JFrame {
         bgColorRow.add(timelineBgColorBtn);
 
         panel.add(bgColorRow);
+        panel.add(Box.createVerticalStrut(5));
+
+        // Timeline axis color row
+        JPanel axisColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        axisColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        axisColorRow.setOpaque(false);
+        axisColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel axisColorLabel = new JLabel("Axis Color:");
+        axisColorLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisColorRow.add(axisColorLabel);
+
+        timelineAxisColorBtn = new JButton();
+        timelineAxisColorBtn.setPreferredSize(new Dimension(30, 20));
+        timelineAxisColorBtn.setBackground(timelineAxisColor);
+        timelineAxisColorBtn.setToolTipText("Click to change timeline axis color");
+        timelineAxisColorBtn.addActionListener(e -> chooseTimelineAxisColor());
+        axisColorRow.add(timelineAxisColorBtn);
+
+        panel.add(axisColorRow);
+        panel.add(Box.createVerticalStrut(5));
+
+        // Timeline axis thickness row
+        JPanel axisThicknessRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        axisThicknessRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        axisThicknessRow.setOpaque(false);
+        axisThicknessRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel axisThicknessLabel = new JLabel("Axis Thickness:");
+        axisThicknessLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisThicknessRow.add(axisThicknessLabel);
+
+        timelineAxisThicknessSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisThickness, 1, 10, 1));
+        timelineAxisThicknessSpinner.setPreferredSize(new Dimension(50, 20));
+        timelineAxisThicknessSpinner.addChangeListener(e -> {
+            timelineAxisThickness = (Integer) timelineAxisThicknessSpinner.getValue();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        axisThicknessRow.add(timelineAxisThicknessSpinner);
+
+        panel.add(axisThicknessRow);
         panel.add(Box.createVerticalStrut(10));
 
         return panel;
@@ -4483,8 +4538,8 @@ public class Timeline2 extends JFrame {
             }
 
             // Timeline line
-            g2d.setStroke(new BasicStroke(3));
-            g2d.setColor(new Color(70, 130, 180));
+            g2d.setStroke(new BasicStroke(timelineAxisThickness));
+            g2d.setColor(timelineAxisColor);
             g2d.drawLine(timelineX, timelineY, timelineX + timelineWidth, timelineY);
 
             // Date ticks
@@ -4809,8 +4864,8 @@ public class Timeline2 extends JFrame {
             while (!tick.isAfter(endDate)) {
                 int x = getXForDate(tick, timelineX, timelineWidth, totalDays);
 
-                g2d.setColor(new Color(70, 130, 180));
-                g2d.setStroke(new BasicStroke(2));
+                g2d.setColor(timelineAxisColor);
+                g2d.setStroke(new BasicStroke(Math.max(1, timelineAxisThickness - 1)));
                 g2d.drawLine(x, timelineY, x, timelineY + 15);
 
                 g2d.setColor(Color.DARK_GRAY);
@@ -4839,8 +4894,8 @@ public class Timeline2 extends JFrame {
                         int x = getXForDate(eventDate, timelineX, timelineWidth, totalDays);
 
                         // Connector line
-                        g2d.setColor(new Color(70, 130, 180));
-                        g2d.setStroke(new BasicStroke(2));
+                        g2d.setColor(timelineAxisColor);
+                        g2d.setStroke(new BasicStroke(Math.max(1, timelineAxisThickness - 1)));
                         g2d.drawLine(x, timelineY + 35, x, eventY);
 
                         // Event dot
