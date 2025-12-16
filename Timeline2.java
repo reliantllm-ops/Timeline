@@ -2231,7 +2231,7 @@ public class Timeline2 extends JFrame {
         bgColorRow.add(timelineBgColorBtn);
 
         panel.add(bgColorRow);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(2));
 
         // Timeline axis color row
         JPanel axisColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -2251,7 +2251,7 @@ public class Timeline2 extends JFrame {
         axisColorRow.add(timelineAxisColorBtn);
 
         panel.add(axisColorRow);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(2));
 
         // Timeline axis thickness row
         JPanel axisThicknessRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -2272,7 +2272,7 @@ public class Timeline2 extends JFrame {
         axisThicknessRow.add(timelineAxisThicknessSpinner);
 
         panel.add(axisThicknessRow);
-        panel.add(Box.createVerticalStrut(10));
+        panel.add(Box.createVerticalStrut(8));
 
         // Date Labels section header
         addSectionHeader(panel, "Date Labels");
@@ -2295,7 +2295,7 @@ public class Timeline2 extends JFrame {
         dateLabelColorRow.add(axisDateColorBtn);
 
         panel.add(dateLabelColorRow);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(2));
 
         // Date label font size row
         JPanel dateLabelSizeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -2316,7 +2316,7 @@ public class Timeline2 extends JFrame {
         dateLabelSizeRow.add(axisDateFontSizeSpinner);
 
         panel.add(dateLabelSizeRow);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalStrut(2));
 
         // Date label bold/italic row
         JPanel dateLabelStyleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -2328,20 +2328,78 @@ public class Timeline2 extends JFrame {
         dateLabelStyleLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         dateLabelStyleRow.add(dateLabelStyleLabel);
 
-        axisDateBoldBtn = new JToggleButton("B");
-        axisDateBoldBtn.setFont(new Font("Arial", Font.BOLD, 11));
-        axisDateBoldBtn.setPreferredSize(new Dimension(30, 20));
+        // MS Word style Bold button
+        axisDateBoldBtn = new JToggleButton("B") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (isSelected()) {
+                    g2d.setColor(new Color(200, 200, 200));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(150, 150, 150));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(new Color(230, 230, 230));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(180, 180, 180));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else {
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
+                g2d.setColor(Color.BLACK);
+                g2d.setFont(new Font("Times New Roman", Font.BOLD, 14));
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth("B")) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2d.drawString("B", x, y);
+            }
+        };
+        axisDateBoldBtn.setPreferredSize(new Dimension(28, 25));
         axisDateBoldBtn.setToolTipText("Bold");
+        axisDateBoldBtn.setContentAreaFilled(false);
+        axisDateBoldBtn.setBorderPainted(false);
+        axisDateBoldBtn.setFocusPainted(false);
         axisDateBoldBtn.addActionListener(e -> {
             axisDateBold = axisDateBoldBtn.isSelected();
             if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
         });
         dateLabelStyleRow.add(axisDateBoldBtn);
 
-        axisDateItalicBtn = new JToggleButton("I");
-        axisDateItalicBtn.setFont(new Font("Arial", Font.ITALIC, 11));
-        axisDateItalicBtn.setPreferredSize(new Dimension(30, 20));
+        // MS Word style Italic button
+        axisDateItalicBtn = new JToggleButton("I") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (isSelected()) {
+                    g2d.setColor(new Color(200, 200, 200));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(150, 150, 150));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else if (getModel().isRollover()) {
+                    g2d.setColor(new Color(230, 230, 230));
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                    g2d.setColor(new Color(180, 180, 180));
+                    g2d.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+                } else {
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, getWidth(), getHeight());
+                }
+                g2d.setColor(Color.BLACK);
+                g2d.setFont(new Font("Times New Roman", Font.BOLD | Font.ITALIC, 14));
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth("I")) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2d.drawString("I", x, y);
+            }
+        };
+        axisDateItalicBtn.setPreferredSize(new Dimension(28, 25));
         axisDateItalicBtn.setToolTipText("Italic");
+        axisDateItalicBtn.setContentAreaFilled(false);
+        axisDateItalicBtn.setBorderPainted(false);
+        axisDateItalicBtn.setFocusPainted(false);
         axisDateItalicBtn.addActionListener(e -> {
             axisDateItalic = axisDateItalicBtn.isSelected();
             if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
