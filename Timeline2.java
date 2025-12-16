@@ -855,81 +855,71 @@ public class Timeline2 extends JFrame {
         contentPanel.add(row6);
         contentPanel.add(Box.createVerticalStrut(3));
 
-        // Create Notes panel
+        // Create Notes panel with labels in first row, inputs in second row
         JPanel notesPanel = new JPanel();
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
         notesPanel.setOpaque(false);
         notesPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Note 1
-        JPanel note1Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
-        note1Row.setOpaque(false);
-        JLabel note1Label = new JLabel("Note 1:");
-        note1Label.setPreferredSize(new Dimension(50, 20));
-        note1Row.add(note1Label);
-        note1Field = new JTextField(40);
+        // Row 1: Labels
+        JPanel labelsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
+        labelsRow.setOpaque(false);
+        JLabel note1Label = new JLabel("Note 1");
+        note1Label.setPreferredSize(new Dimension(150, 20));
+        note1Label.setHorizontalAlignment(SwingConstants.CENTER);
+        labelsRow.add(note1Label);
+        JLabel note2Label = new JLabel("Note 2");
+        note2Label.setPreferredSize(new Dimension(150, 20));
+        note2Label.setHorizontalAlignment(SwingConstants.CENTER);
+        labelsRow.add(note2Label);
+        JLabel note3Label = new JLabel("Note 3");
+        note3Label.setPreferredSize(new Dimension(150, 20));
+        note3Label.setHorizontalAlignment(SwingConstants.CENTER);
+        labelsRow.add(note3Label);
+        JLabel note4Label = new JLabel("Note 4");
+        note4Label.setPreferredSize(new Dimension(150, 20));
+        note4Label.setHorizontalAlignment(SwingConstants.CENTER);
+        labelsRow.add(note4Label);
+        JLabel note5Label = new JLabel("Note 5");
+        note5Label.setPreferredSize(new Dimension(150, 20));
+        note5Label.setHorizontalAlignment(SwingConstants.CENTER);
+        labelsRow.add(note5Label);
+        notesPanel.add(labelsRow);
+
+        // Row 2: Input fields
+        JPanel inputsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
+        inputsRow.setOpaque(false);
+        note1Field = new JTextField(12);
         note1Field.setEnabled(false);
         note1Field.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        note1Row.add(note1Field);
-        notesPanel.add(note1Row);
-
-        // Note 2
-        JPanel note2Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
-        note2Row.setOpaque(false);
-        JLabel note2Label = new JLabel("Note 2:");
-        note2Label.setPreferredSize(new Dimension(50, 20));
-        note2Row.add(note2Label);
-        note2Field = new JTextField(40);
+        inputsRow.add(note1Field);
+        note2Field = new JTextField(12);
         note2Field.setEnabled(false);
         note2Field.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        note2Row.add(note2Field);
-        notesPanel.add(note2Row);
-
-        // Note 3
-        JPanel note3Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
-        note3Row.setOpaque(false);
-        JLabel note3Label = new JLabel("Note 3:");
-        note3Label.setPreferredSize(new Dimension(50, 20));
-        note3Row.add(note3Label);
-        note3Field = new JTextField(40);
+        inputsRow.add(note2Field);
+        note3Field = new JTextField(12);
         note3Field.setEnabled(false);
         note3Field.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        note3Row.add(note3Field);
-        notesPanel.add(note3Row);
-
-        // Note 4
-        JPanel note4Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
-        note4Row.setOpaque(false);
-        JLabel note4Label = new JLabel("Note 4:");
-        note4Label.setPreferredSize(new Dimension(50, 20));
-        note4Row.add(note4Label);
-        note4Field = new JTextField(40);
+        inputsRow.add(note3Field);
+        note4Field = new JTextField(12);
         note4Field.setEnabled(false);
         note4Field.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        note4Row.add(note4Field);
-        notesPanel.add(note4Row);
-
-        // Note 5
-        JPanel note5Row = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
-        note5Row.setOpaque(false);
-        JLabel note5Label = new JLabel("Note 5:");
-        note5Label.setPreferredSize(new Dimension(50, 20));
-        note5Row.add(note5Label);
-        note5Field = new JTextField(40);
+        inputsRow.add(note4Field);
+        note5Field = new JTextField(12);
         note5Field.setEnabled(false);
         note5Field.addFocusListener(new FocusAdapter() {
             public void focusLost(FocusEvent e) { updateNotes(); }
         });
-        note5Row.add(note5Field);
-        notesPanel.add(note5Row);
+        inputsRow.add(note5Field);
+        notesPanel.add(inputsRow);
 
         // Create tabbed pane
         JTabbedPane tabbedPane = new JTabbedPane();
