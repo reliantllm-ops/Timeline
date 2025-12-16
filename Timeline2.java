@@ -4341,6 +4341,20 @@ public class Timeline2 extends JFrame {
             return y;
         }
 
+        // Lock all task positions so moving one doesn't affect others
+        private void lockAllTaskPositions() {
+            for (int i = 0; i < layerOrder.size(); i++) {
+                Object item = layerOrder.get(i);
+                if (item instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) item;
+                    if (task.yPosition < 0) {
+                        // Calculate and lock the current auto-position
+                        task.yPosition = getTaskYForLayer(i);
+                    }
+                }
+            }
+        }
+
         private int getTotalTasksHeight() {
             int maxY = 45;
             // Calculate based on layerOrder for proper stacking
@@ -4440,6 +4454,10 @@ public class Timeline2 extends JFrame {
                     // Save state once at start of any drag
                     if (!dragStateSaved && (isDragging || isMoveDragging || isHeightDragging || isMilestoneDragging || isMilestoneResizing)) {
                         saveState();
+                        // Lock all task positions before moving so other tasks don't shift
+                        if (isMoveDragging) {
+                            lockAllTaskPositions();
+                        }
                         dragStateSaved = true;
                     }
                     if (isDragging && draggingTaskIndex >= 0) {
