@@ -2250,8 +2250,8 @@ public class Timeline2 extends JFrame {
         panel.add(dateContainer);
 
         // Dual-handle range slider for date range
-        LocalDate sliderBaseDate = LocalDate.now().minusYears(2).minusMonths(6);
-        int totalDays = 365 * 5;  // 5 year span
+        LocalDate sliderBaseDate = LocalDate.now().minusYears(2);
+        int totalDays = 365 * 4;  // 4 year span
         int startDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now());
         int endDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now().plusMonths(3));
 
