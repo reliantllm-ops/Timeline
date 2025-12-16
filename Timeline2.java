@@ -117,6 +117,14 @@ public class Timeline2 extends JFrame {
     private int timelineAxisThickness = 3;
     private JButton timelineAxisColorBtn;
     private JSpinner timelineAxisThicknessSpinner;
+    // Timeline axis date label settings
+    private Color axisDateColor = Color.DARK_GRAY;
+    private int axisDateFontSize = 10;
+    private boolean axisDateBold = false;
+    private boolean axisDateItalic = false;
+    private JButton axisDateColorBtn;
+    private JSpinner axisDateFontSizeSpinner;
+    private JToggleButton axisDateBoldBtn, axisDateItalicBtn;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -1481,6 +1489,15 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void chooseAxisDateColor() {
+        Color newColor = JColorChooser.showDialog(this, "Choose Date Label Color", axisDateColor);
+        if (newColor != null) {
+            axisDateColor = newColor;
+            axisDateColorBtn.setBackground(newColor);
+            refreshTimeline();
+        }
+    }
+
     private void updateMilestoneOutlineThickness() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
         milestones.get(selectedMilestoneIndex).outlineThickness = (Integer) milestoneOutlineThicknessSpinner.getValue();
@@ -2255,6 +2272,83 @@ public class Timeline2 extends JFrame {
         axisThicknessRow.add(timelineAxisThicknessSpinner);
 
         panel.add(axisThicknessRow);
+        panel.add(Box.createVerticalStrut(10));
+
+        // Date Labels section header
+        addSectionHeader(panel, "Date Labels");
+
+        // Date label color row
+        JPanel dateLabelColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        dateLabelColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        dateLabelColorRow.setOpaque(false);
+        dateLabelColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel dateLabelColorLabel = new JLabel("Color:");
+        dateLabelColorLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        dateLabelColorRow.add(dateLabelColorLabel);
+
+        axisDateColorBtn = new JButton();
+        axisDateColorBtn.setPreferredSize(new Dimension(30, 20));
+        axisDateColorBtn.setBackground(axisDateColor);
+        axisDateColorBtn.setToolTipText("Click to change date label color");
+        axisDateColorBtn.addActionListener(e -> chooseAxisDateColor());
+        dateLabelColorRow.add(axisDateColorBtn);
+
+        panel.add(dateLabelColorRow);
+        panel.add(Box.createVerticalStrut(5));
+
+        // Date label font size row
+        JPanel dateLabelSizeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        dateLabelSizeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        dateLabelSizeRow.setOpaque(false);
+        dateLabelSizeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel dateLabelSizeLabel = new JLabel("Size:");
+        dateLabelSizeLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        dateLabelSizeRow.add(dateLabelSizeLabel);
+
+        axisDateFontSizeSpinner = new JSpinner(new SpinnerNumberModel(axisDateFontSize, 6, 24, 1));
+        axisDateFontSizeSpinner.setPreferredSize(new Dimension(50, 20));
+        axisDateFontSizeSpinner.addChangeListener(e -> {
+            axisDateFontSize = (Integer) axisDateFontSizeSpinner.getValue();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        dateLabelSizeRow.add(axisDateFontSizeSpinner);
+
+        panel.add(dateLabelSizeRow);
+        panel.add(Box.createVerticalStrut(5));
+
+        // Date label bold/italic row
+        JPanel dateLabelStyleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        dateLabelStyleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        dateLabelStyleRow.setOpaque(false);
+        dateLabelStyleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel dateLabelStyleLabel = new JLabel("Style:");
+        dateLabelStyleLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        dateLabelStyleRow.add(dateLabelStyleLabel);
+
+        axisDateBoldBtn = new JToggleButton("B");
+        axisDateBoldBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        axisDateBoldBtn.setPreferredSize(new Dimension(30, 20));
+        axisDateBoldBtn.setToolTipText("Bold");
+        axisDateBoldBtn.addActionListener(e -> {
+            axisDateBold = axisDateBoldBtn.isSelected();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        dateLabelStyleRow.add(axisDateBoldBtn);
+
+        axisDateItalicBtn = new JToggleButton("I");
+        axisDateItalicBtn.setFont(new Font("Arial", Font.ITALIC, 11));
+        axisDateItalicBtn.setPreferredSize(new Dimension(30, 20));
+        axisDateItalicBtn.setToolTipText("Italic");
+        axisDateItalicBtn.addActionListener(e -> {
+            axisDateItalic = axisDateItalicBtn.isSelected();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        dateLabelStyleRow.add(axisDateItalicBtn);
+
+        panel.add(dateLabelStyleRow);
         panel.add(Box.createVerticalStrut(10));
 
         return panel;
@@ -4834,7 +4928,12 @@ public class Timeline2 extends JFrame {
         }
 
         private void drawDateTicks(Graphics2D g2d, int timelineX, int timelineWidth, int timelineY, long totalDays) {
-            g2d.setFont(new Font("Arial", Font.PLAIN, 10));
+            // Set font with user-defined style
+            int fontStyle = Font.PLAIN;
+            if (axisDateBold && axisDateItalic) fontStyle = Font.BOLD | Font.ITALIC;
+            else if (axisDateBold) fontStyle = Font.BOLD;
+            else if (axisDateItalic) fontStyle = Font.ITALIC;
+            g2d.setFont(new Font("Arial", fontStyle, axisDateFontSize));
 
             // Determine if we should show months or years based on total days
             boolean showYears = totalDays > 730; // More than 2 years, show years
@@ -4868,7 +4967,7 @@ public class Timeline2 extends JFrame {
                 g2d.setStroke(new BasicStroke(Math.max(1, timelineAxisThickness - 1)));
                 g2d.drawLine(x, timelineY, x, timelineY + 15);
 
-                g2d.setColor(Color.DARK_GRAY);
+                g2d.setColor(axisDateColor);
                 String dateStr = tick.format(tickFormat);
                 FontMetrics fm = g2d.getFontMetrics();
                 g2d.drawString(dateStr, x - fm.stringWidth(dateStr) / 2, timelineY + 30);
