@@ -1,6 +1,8 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -120,6 +122,18 @@ public class Timeline2 extends JFrame {
 
         // Menu bar
         JMenuBar menuBar = new JMenuBar();
+
+        // File menu
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem importItem = new JMenuItem("Import...");
+        importItem.addActionListener(e -> importFromExcel());
+        fileMenu.add(importItem);
+        JMenuItem exportItem = new JMenuItem("Export...");
+        exportItem.addActionListener(e -> exportToExcel());
+        fileMenu.add(exportItem);
+        menuBar.add(fileMenu);
+
+        // Edit menu
         JMenu editMenu = new JMenu("Edit");
         JMenuItem preferencesItem = new JMenuItem("Preferences");
         preferencesItem.addActionListener(e -> showPreferencesDialog());
@@ -1889,6 +1903,182 @@ public class Timeline2 extends JFrame {
 
     private void showWarning(String message) {
         JOptionPane.showMessageDialog(this, message, "Warning", JOptionPane.WARNING_MESSAGE);
+    }
+
+    // Export timeline data to Excel-compatible CSV file
+    private void exportToExcel() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export Timeline Data");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
+        fileChooser.setSelectedFile(new File("timeline_export.csv"));
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            // Ensure .csv extension
+            if (!file.getName().toLowerCase().endsWith(".csv")) {
+                file = new File(file.getAbsolutePath() + ".csv");
+            }
+
+            try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
+                // Write header row
+                writer.println("Type,Name,Center Text,Start Date,End Date");
+
+                // Write tasks
+                for (TimelineTask task : tasks) {
+                    String centerText = task.centerText != null ? task.centerText : "";
+                    // Escape commas and quotes in fields
+                    writer.println(String.format("Task,%s,%s,%s,%s",
+                            escapeCSV(task.name),
+                            escapeCSV(centerText),
+                            escapeCSV(task.startDate),
+                            escapeCSV(task.endDate)));
+                }
+
+                // Write milestones
+                for (TimelineMilestone milestone : milestones) {
+                    writer.println(String.format("Milestone,%s,%s,%s,%s",
+                            escapeCSV(milestone.name),
+                            "", // milestones don't have center text
+                            escapeCSV(milestone.date),
+                            escapeCSV(milestone.date))); // start and end are the same for milestones
+                }
+
+                JOptionPane.showMessageDialog(this,
+                        "Exported " + tasks.size() + " tasks and " + milestones.size() + " milestones to:\n" + file.getAbsolutePath(),
+                        "Export Successful", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Error exporting file: " + ex.getMessage(),
+                        "Export Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // Helper method to escape CSV fields
+    private String escapeCSV(String field) {
+        if (field == null) return "";
+        if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
+            return "\"" + field.replace("\"", "\"\"") + "\"";
+        }
+        return field;
+    }
+
+    // Import timeline data from Excel-compatible CSV file
+    private void importFromExcel() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Import Timeline Data");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+
+            // Ask if user wants to replace or append
+            int choice = JOptionPane.showOptionDialog(this,
+                    "Do you want to replace existing items or add to them?",
+                    "Import Options",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    new String[]{"Replace All", "Add to Existing", "Cancel"},
+                    "Add to Existing");
+
+            if (choice == 2 || choice == JOptionPane.CLOSED_OPTION) {
+                return; // User cancelled
+            }
+
+            boolean replaceAll = (choice == 0);
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                boolean isHeader = true;
+                int tasksImported = 0;
+                int milestonesImported = 0;
+
+                if (replaceAll) {
+                    tasks.clear();
+                    milestones.clear();
+                    layerOrder.clear();
+                    selectedTaskIndex = -1;
+                    selectedMilestoneIndex = -1;
+                }
+
+                while ((line = reader.readLine()) != null) {
+                    if (isHeader) {
+                        isHeader = false;
+                        continue; // Skip header row
+                    }
+
+                    String[] fields = parseCSVLine(line);
+                    if (fields.length < 5) continue;
+
+                    String type = fields[0].trim();
+                    String name = fields[1].trim();
+                    String centerText = fields[2].trim();
+                    String startDate = fields[3].trim();
+                    String endDate = fields[4].trim();
+
+                    if (type.equalsIgnoreCase("Task")) {
+                        TimelineTask task = new TimelineTask(name, startDate, endDate);
+                        task.centerText = centerText.isEmpty() ? name : centerText;
+                        task.fillColor = TASK_COLORS[tasks.size() % TASK_COLORS.length];
+                        tasks.add(task);
+                        layerOrder.add(task);
+                        tasksImported++;
+                    } else if (type.equalsIgnoreCase("Milestone")) {
+                        TimelineMilestone milestone = new TimelineMilestone(name, startDate, "diamond");
+                        milestone.fillColor = TASK_COLORS[(milestones.size() + 3) % TASK_COLORS.length];
+                        milestones.add(milestone);
+                        layerOrder.add(milestone);
+                        milestonesImported++;
+                    }
+                }
+
+                layersPanel.refreshLayers();
+                refreshTimeline();
+
+                JOptionPane.showMessageDialog(this,
+                        "Imported " + tasksImported + " tasks and " + milestonesImported + " milestones.",
+                        "Import Successful", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Error importing file: " + ex.getMessage(),
+                        "Import Error", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Error parsing file: " + ex.getMessage(),
+                        "Import Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // Parse a CSV line, handling quoted fields with commas
+    private String[] parseCSVLine(String line) {
+        ArrayList<String> fields = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inQuotes = false;
+
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    current.append('"');
+                    i++; // Skip the escaped quote
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == ',' && !inQuotes) {
+                fields.add(current.toString());
+                current = new StringBuilder();
+            } else {
+                current.append(c);
+            }
+        }
+        fields.add(current.toString());
+
+        return fields.toArray(new String[0]);
     }
 
     // ==================== Inner Classes ====================
