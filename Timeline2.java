@@ -3,12 +3,18 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class Timeline2 extends JFrame {
 
@@ -1091,66 +1097,12 @@ public class Timeline2 extends JFrame {
     }
 
     private void chooseTimelineBackgroundColor() {
-        // Create color chooser
-        JColorChooser chooser = new JColorChooser(timelineInteriorColor);
-        chooser.setPreviewPanel(new JPanel()); // Remove preview panel
-
-        // Get RGB and Swatches panels
-        javax.swing.colorchooser.AbstractColorChooserPanel[] panels = chooser.getChooserPanels();
-        javax.swing.colorchooser.AbstractColorChooserPanel rgbPanel = null;
-        javax.swing.colorchooser.AbstractColorChooserPanel swatchPanel = null;
-
-        for (javax.swing.colorchooser.AbstractColorChooserPanel panel : panels) {
-            if (panel.getDisplayName().equals("RGB")) rgbPanel = panel;
-            else if (panel.getDisplayName().equals("Swatches")) swatchPanel = panel;
-        }
-
-        // Remove all default panels
-        for (javax.swing.colorchooser.AbstractColorChooserPanel panel : panels) {
-            chooser.removeChooserPanel(panel);
-        }
-
-        // Create combined panel with RGB on top and Swatches below
-        JPanel combinedContent = new JPanel();
-        combinedContent.setLayout(new BoxLayout(combinedContent, BoxLayout.Y_AXIS));
-        if (rgbPanel != null) {
-            combinedContent.add(rgbPanel);
-            combinedContent.add(Box.createVerticalStrut(10));
-        }
-        if (swatchPanel != null) {
-            combinedContent.add(swatchPanel);
-        }
-
-        // Add combined panel directly to chooser
-        chooser.setLayout(new BorderLayout());
-        chooser.add(combinedContent, BorderLayout.CENTER);
-
-        // Store original color to restore on cancel
-        Color originalColor = timelineInteriorColor;
-
-        // Live update as color changes
-        chooser.getSelectionModel().addChangeListener(e -> {
-            Color newColor = chooser.getColor();
+        Color newColor = JColorChooser.showDialog(this, "Choose Background Color", timelineInteriorColor);
+        if (newColor != null) {
             timelineInteriorColor = newColor;
             timelineBgColorBtn.setBackground(newColor);
-            timelineDisplayPanel.setBackground(newColor);
-            timelineDisplayPanel.repaint();
-        });
-
-        // Show dialog
-        JDialog dialog = JColorChooser.createDialog(this, "Choose Background Color", true, chooser,
-            e -> {
-                // OK pressed - color already applied via live update
-                refreshTimeline();
-            },
-            e -> {
-                // Cancel pressed - restore original color
-                timelineInteriorColor = originalColor;
-                timelineBgColorBtn.setBackground(originalColor);
-                timelineDisplayPanel.setBackground(originalColor);
-                timelineDisplayPanel.repaint();
-            });
-        dialog.setVisible(true);
+            refreshTimeline();
+        }
     }
 
     private void updateMilestoneOutlineThickness() {
@@ -1905,48 +1857,24 @@ public class Timeline2 extends JFrame {
         JOptionPane.showMessageDialog(this, message, "Warning", JOptionPane.WARNING_MESSAGE);
     }
 
-    // Export timeline data to Excel-compatible CSV file
+    // Export timeline data to Excel .xlsx file with multiple sheets
     private void exportToExcel() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Export Timeline Data");
-        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
-        fileChooser.setSelectedFile(new File("timeline_export.csv"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+        fileChooser.setSelectedFile(new File("timeline_export.xlsx"));
 
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-            // Ensure .csv extension
-            if (!file.getName().toLowerCase().endsWith(".csv")) {
-                file = new File(file.getAbsolutePath() + ".csv");
+            if (!file.getName().toLowerCase().endsWith(".xlsx")) {
+                file = new File(file.getAbsolutePath() + ".xlsx");
             }
 
-            try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
-                // Write header row
-                writer.println("Type,Name,Center Text,Start Date,End Date");
-
-                // Write tasks
-                for (TimelineTask task : tasks) {
-                    String centerText = task.centerText != null ? task.centerText : "";
-                    // Escape commas and quotes in fields
-                    writer.println(String.format("Task,%s,%s,%s,%s",
-                            escapeCSV(task.name),
-                            escapeCSV(centerText),
-                            escapeCSV(task.startDate),
-                            escapeCSV(task.endDate)));
-                }
-
-                // Write milestones
-                for (TimelineMilestone milestone : milestones) {
-                    writer.println(String.format("Milestone,%s,%s,%s,%s",
-                            escapeCSV(milestone.name),
-                            "", // milestones don't have center text
-                            escapeCSV(milestone.date),
-                            escapeCSV(milestone.date))); // start and end are the same for milestones
-                }
-
+            try {
+                createExcelFile(file);
                 JOptionPane.showMessageDialog(this,
                         "Exported " + tasks.size() + " tasks and " + milestones.size() + " milestones to:\n" + file.getAbsolutePath(),
                         "Export Successful", JOptionPane.INFORMATION_MESSAGE);
-
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(this,
                         "Error exporting file: " + ex.getMessage(),
@@ -1955,25 +1883,337 @@ public class Timeline2 extends JFrame {
         }
     }
 
-    // Helper method to escape CSV fields
-    private String escapeCSV(String field) {
-        if (field == null) return "";
-        if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
-            return "\"" + field.replace("\"", "\"\"") + "\"";
+    private void createExcelFile(File file) throws IOException {
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(file))) {
+            // [Content_Types].xml
+            zos.putNextEntry(new ZipEntry("[Content_Types].xml"));
+            zos.write(getContentTypesXml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // _rels/.rels
+            zos.putNextEntry(new ZipEntry("_rels/.rels"));
+            zos.write(getRelsXml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // xl/workbook.xml
+            zos.putNextEntry(new ZipEntry("xl/workbook.xml"));
+            zos.write(getWorkbookXml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // xl/_rels/workbook.xml.rels
+            zos.putNextEntry(new ZipEntry("xl/_rels/workbook.xml.rels"));
+            zos.write(getWorkbookRelsXml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // xl/styles.xml
+            zos.putNextEntry(new ZipEntry("xl/styles.xml"));
+            zos.write(getStylesXml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // Sheet 1: Basic Data
+            zos.putNextEntry(new ZipEntry("xl/worksheets/sheet1.xml"));
+            zos.write(getSheet1Xml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // Sheet 2: Format Data
+            zos.putNextEntry(new ZipEntry("xl/worksheets/sheet2.xml"));
+            zos.write(getSheet2Xml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // Sheet 3: Settings
+            zos.putNextEntry(new ZipEntry("xl/worksheets/sheet3.xml"));
+            zos.write(getSheet3Xml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
         }
-        return field;
     }
 
-    // Import timeline data from Excel-compatible CSV file
+    private String getContentTypesXml() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">\n" +
+               "  <Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>\n" +
+               "  <Default Extension=\"xml\" ContentType=\"application/xml\"/>\n" +
+               "  <Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>\n" +
+               "  <Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
+               "  <Override PartName=\"/xl/worksheets/sheet2.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
+               "  <Override PartName=\"/xl/worksheets/sheet3.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
+               "  <Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>\n" +
+               "</Types>";
+    }
+
+    private String getRelsXml() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n" +
+               "  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>\n" +
+               "</Relationships>";
+    }
+
+    private String getWorkbookXml() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">\n" +
+               "  <sheets>\n" +
+               "    <sheet name=\"Basic Data\" sheetId=\"1\" r:id=\"rId1\"/>\n" +
+               "    <sheet name=\"Format Data\" sheetId=\"2\" r:id=\"rId2\"/>\n" +
+               "    <sheet name=\"Settings\" sheetId=\"3\" r:id=\"rId3\"/>\n" +
+               "  </sheets>\n" +
+               "</workbook>";
+    }
+
+    private String getWorkbookRelsXml() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n" +
+               "  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>\n" +
+               "  <Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet2.xml\"/>\n" +
+               "  <Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet3.xml\"/>\n" +
+               "  <Relationship Id=\"rId4\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>\n" +
+               "</Relationships>";
+    }
+
+    private String getStylesXml() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">\n" +
+               "  <fonts count=\"2\">\n" +
+               "    <font><sz val=\"11\"/><name val=\"Calibri\"/></font>\n" +
+               "    <font><b/><sz val=\"11\"/><name val=\"Calibri\"/></font>\n" +
+               "  </fonts>\n" +
+               "  <fills count=\"2\">\n" +
+               "    <fill><patternFill patternType=\"none\"/></fill>\n" +
+               "    <fill><patternFill patternType=\"gray125\"/></fill>\n" +
+               "  </fills>\n" +
+               "  <borders count=\"1\"><border/></borders>\n" +
+               "  <cellStyleXfs count=\"1\"><xf/></cellStyleXfs>\n" +
+               "  <cellXfs count=\"2\">\n" +
+               "    <xf/>\n" +
+               "    <xf fontId=\"1\" applyFont=\"1\"/>\n" +
+               "  </cellXfs>\n" +
+               "</styleSheet>";
+    }
+
+    // Sheet 1: Basic Data (Type, Name, Center Text, Start Date, End Date)
+    private String getSheet1Xml() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">\n");
+        sb.append("  <sheetData>\n");
+
+        // Header row
+        sb.append("    <row r=\"1\">\n");
+        sb.append("      <c r=\"A1\" t=\"inlineStr\" s=\"1\"><is><t>Type</t></is></c>\n");
+        sb.append("      <c r=\"B1\" t=\"inlineStr\" s=\"1\"><is><t>Name</t></is></c>\n");
+        sb.append("      <c r=\"C1\" t=\"inlineStr\" s=\"1\"><is><t>Center Text</t></is></c>\n");
+        sb.append("      <c r=\"D1\" t=\"inlineStr\" s=\"1\"><is><t>Start Date</t></is></c>\n");
+        sb.append("      <c r=\"E1\" t=\"inlineStr\" s=\"1\"><is><t>End Date</t></is></c>\n");
+        sb.append("    </row>\n");
+
+        int row = 2;
+        // Tasks
+        for (TimelineTask task : tasks) {
+            sb.append("    <row r=\"").append(row).append("\">\n");
+            sb.append("      <c r=\"A").append(row).append("\" t=\"inlineStr\"><is><t>Task</t></is></c>\n");
+            sb.append("      <c r=\"B").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.name)).append("</t></is></c>\n");
+            sb.append("      <c r=\"C").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.centerText)).append("</t></is></c>\n");
+            sb.append("      <c r=\"D").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.startDate)).append("</t></is></c>\n");
+            sb.append("      <c r=\"E").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.endDate)).append("</t></is></c>\n");
+            sb.append("    </row>\n");
+            row++;
+        }
+        // Milestones
+        for (TimelineMilestone m : milestones) {
+            sb.append("    <row r=\"").append(row).append("\">\n");
+            sb.append("      <c r=\"A").append(row).append("\" t=\"inlineStr\"><is><t>Milestone</t></is></c>\n");
+            sb.append("      <c r=\"B").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(m.name)).append("</t></is></c>\n");
+            sb.append("      <c r=\"C").append(row).append("\" t=\"inlineStr\"><is><t></t></is></c>\n");
+            sb.append("      <c r=\"D").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(m.date)).append("</t></is></c>\n");
+            sb.append("      <c r=\"E").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(m.date)).append("</t></is></c>\n");
+            sb.append("    </row>\n");
+            row++;
+        }
+
+        sb.append("  </sheetData>\n");
+        sb.append("</worksheet>");
+        return sb.toString();
+    }
+
+    // Sheet 2: Format Data (all task/milestone formatting properties)
+    private String getSheet2Xml() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">\n");
+        sb.append("  <sheetData>\n");
+
+        // Header row
+        String[] headers = {"Type", "Name", "Layer Index", "Fill Color", "Outline Color", "Outline Thickness", "Height", "Y Position",
+                "Font Size", "Font Bold", "Font Italic", "Text Color",
+                "Front Text", "Front Font Size", "Front Bold", "Front Italic", "Front Text Color",
+                "Above Text", "Above Font Size", "Above Bold", "Above Italic", "Above Text Color",
+                "Underneath Text", "Underneath Font Size", "Underneath Bold", "Underneath Italic", "Underneath Text Color",
+                "Behind Text", "Behind Font Size", "Behind Bold", "Behind Italic", "Behind Text Color",
+                "Shape", "Width", "Label Text"};
+        sb.append("    <row r=\"1\">\n");
+        for (int i = 0; i < headers.length; i++) {
+            sb.append("      <c r=\"").append(getExcelColumn(i)).append("1\" t=\"inlineStr\" s=\"1\"><is><t>").append(headers[i]).append("</t></is></c>\n");
+        }
+        sb.append("    </row>\n");
+
+        int row = 2;
+        // Tasks
+        for (TimelineTask task : tasks) {
+            int layerIdx = layerOrder.indexOf(task);
+            String[] values = {
+                "Task", escapeXml(task.name), String.valueOf(layerIdx),
+                colorToHex(task.fillColor), colorToHex(task.outlineColor), String.valueOf(task.outlineThickness),
+                String.valueOf(task.height), String.valueOf(task.yPosition), String.valueOf(task.fontSize),
+                String.valueOf(task.fontBold), String.valueOf(task.fontItalic), colorToHex(task.textColor),
+                escapeXml(task.frontText), String.valueOf(task.frontFontSize), String.valueOf(task.frontFontBold),
+                String.valueOf(task.frontFontItalic), colorToHex(task.frontTextColor),
+                escapeXml(task.aboveText), String.valueOf(task.aboveFontSize), String.valueOf(task.aboveFontBold),
+                String.valueOf(task.aboveFontItalic), colorToHex(task.aboveTextColor),
+                escapeXml(task.underneathText), String.valueOf(task.underneathFontSize), String.valueOf(task.underneathFontBold),
+                String.valueOf(task.underneathFontItalic), colorToHex(task.underneathTextColor),
+                escapeXml(task.behindText), String.valueOf(task.behindFontSize), String.valueOf(task.behindFontBold),
+                String.valueOf(task.behindFontItalic), colorToHex(task.behindTextColor),
+                "", "", "" // Shape, Width, Label Text (not applicable for tasks)
+            };
+            sb.append("    <row r=\"").append(row).append("\">\n");
+            for (int i = 0; i < values.length; i++) {
+                sb.append("      <c r=\"").append(getExcelColumn(i)).append(row).append("\" t=\"inlineStr\"><is><t>").append(values[i]).append("</t></is></c>\n");
+            }
+            sb.append("    </row>\n");
+            row++;
+        }
+        // Milestones
+        for (TimelineMilestone m : milestones) {
+            int layerIdx = layerOrder.indexOf(m);
+            String[] values = {
+                "Milestone", escapeXml(m.name), String.valueOf(layerIdx),
+                colorToHex(m.fillColor), colorToHex(m.outlineColor), String.valueOf(m.outlineThickness),
+                String.valueOf(m.height), String.valueOf(m.yPosition), String.valueOf(m.fontSize),
+                String.valueOf(m.fontBold), String.valueOf(m.fontItalic), colorToHex(m.textColor),
+                "", "", "", "", "", // Front text fields (not applicable)
+                "", "", "", "", "", // Above text fields (not applicable)
+                "", "", "", "", "", // Underneath text fields (not applicable)
+                "", "", "", "", "", // Behind text fields (not applicable)
+                escapeXml(m.shape), String.valueOf(m.width), escapeXml(m.labelText)
+            };
+            sb.append("    <row r=\"").append(row).append("\">\n");
+            for (int i = 0; i < values.length; i++) {
+                sb.append("      <c r=\"").append(getExcelColumn(i)).append(row).append("\" t=\"inlineStr\"><is><t>").append(values[i]).append("</t></is></c>\n");
+            }
+            sb.append("    </row>\n");
+            row++;
+        }
+
+        sb.append("  </sheetData>\n");
+        sb.append("</worksheet>");
+        return sb.toString();
+    }
+
+    // Sheet 3: Settings
+    private String getSheet3Xml() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">\n");
+        sb.append("  <sheetData>\n");
+
+        // Header row
+        sb.append("    <row r=\"1\">\n");
+        sb.append("      <c r=\"A1\" t=\"inlineStr\" s=\"1\"><is><t>Setting</t></is></c>\n");
+        sb.append("      <c r=\"B1\" t=\"inlineStr\" s=\"1\"><is><t>Value</t></is></c>\n");
+        sb.append("    </row>\n");
+
+        int row = 2;
+        // Timeline date range
+        row = addSettingRow(sb, row, "Timeline Start Date", startDateField.getText());
+        row = addSettingRow(sb, row, "Timeline End Date", endDateField.getText());
+        // Timeline colors
+        row = addSettingRow(sb, row, "Timeline Background Color", colorToHex(timelineInteriorColor));
+        row = addSettingRow(sb, row, "Timeline Outline Color", colorToHex(timelineOutlineColor));
+        row = addSettingRow(sb, row, "Timeline Line Color", colorToHex(timelineLineColor));
+        row = addSettingRow(sb, row, "Timeline Date Text Color", colorToHex(timelineDateTextColor));
+        row = addSettingRow(sb, row, "Timeline Grid Color", colorToHex(timelineGridColor));
+        row = addSettingRow(sb, row, "Timeline Event Color", colorToHex(timelineEventColor));
+        // Settings panel colors
+        row = addSettingRow(sb, row, "Settings Interior Color", colorToHex(settingsInteriorColor));
+        row = addSettingRow(sb, row, "Settings Outline Color", colorToHex(settingsOutlineColor));
+        row = addSettingRow(sb, row, "Settings Header Color", colorToHex(settingsHeaderColor));
+        row = addSettingRow(sb, row, "Settings Header Text Color", colorToHex(settingsHeaderTextColor));
+        row = addSettingRow(sb, row, "Settings Label Color", colorToHex(settingsLabelColor));
+        row = addSettingRow(sb, row, "Settings Field Background Color", colorToHex(settingsFieldBgColor));
+        row = addSettingRow(sb, row, "Settings Button Background Color", colorToHex(settingsButtonBgColor));
+        row = addSettingRow(sb, row, "Settings Button Text Color", colorToHex(settingsButtonTextColor));
+        // Layers panel colors
+        row = addSettingRow(sb, row, "Layers Interior Color", colorToHex(layersInteriorColor));
+        row = addSettingRow(sb, row, "Layers Outline Color", colorToHex(layersOutlineColor));
+        row = addSettingRow(sb, row, "Layers Header Color", colorToHex(layersHeaderColor));
+        row = addSettingRow(sb, row, "Layers Header Text Color", colorToHex(layersHeaderTextColor));
+        row = addSettingRow(sb, row, "Layers List Background Color", colorToHex(layersListBgColor));
+        row = addSettingRow(sb, row, "Layers Item Text Color", colorToHex(layersItemTextColor));
+        row = addSettingRow(sb, row, "Layers Selected Background Color", colorToHex(layersSelectedBgColor));
+        row = addSettingRow(sb, row, "Layers Drag Handle Color", colorToHex(layersDragHandleColor));
+        // Format panel colors
+        row = addSettingRow(sb, row, "Format Interior Color", colorToHex(formatInteriorColor));
+        row = addSettingRow(sb, row, "Format Outline Color", colorToHex(formatOutlineColor));
+        row = addSettingRow(sb, row, "Format Header Color", colorToHex(formatHeaderColor));
+        row = addSettingRow(sb, row, "Format Label Color", colorToHex(formatLabelColor));
+        row = addSettingRow(sb, row, "Format Separator Color", colorToHex(formatSeparatorColor));
+        addSettingRow(sb, row, "Format Resize Handle Color", colorToHex(formatResizeHandleColor));
+
+        sb.append("  </sheetData>\n");
+        sb.append("</worksheet>");
+        return sb.toString();
+    }
+
+    private int addSettingRow(StringBuilder sb, int row, String setting, String value) {
+        sb.append("    <row r=\"").append(row).append("\">\n");
+        sb.append("      <c r=\"A").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(setting)).append("</t></is></c>\n");
+        sb.append("      <c r=\"B").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(value)).append("</t></is></c>\n");
+        sb.append("    </row>\n");
+        return row + 1;
+    }
+
+    private String colorToHex(Color c) {
+        if (c == null) return "";
+        return String.format("#%02X%02X%02X", c.getRed(), c.getGreen(), c.getBlue());
+    }
+
+    private Color hexToColor(String hex) {
+        if (hex == null || hex.isEmpty() || !hex.startsWith("#")) return null;
+        try {
+            return new Color(
+                Integer.parseInt(hex.substring(1, 3), 16),
+                Integer.parseInt(hex.substring(3, 5), 16),
+                Integer.parseInt(hex.substring(5, 7), 16)
+            );
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String escapeXml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&apos;");
+    }
+
+    // Convert column index (0-based) to Excel column letters (A, B, ..., Z, AA, AB, ...)
+    private String getExcelColumn(int index) {
+        StringBuilder sb = new StringBuilder();
+        index++; // Convert to 1-based
+        while (index > 0) {
+            index--;
+            sb.insert(0, (char) ('A' + (index % 26)));
+            index /= 26;
+        }
+        return sb.toString();
+    }
+
+    // Import timeline data from Excel .xlsx file
     private void importFromExcel() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Import Timeline Data");
-        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
 
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
 
-            // Ask if user wants to replace or append
             int choice = JOptionPane.showOptionDialog(this,
                     "Do you want to replace existing items or add to them?",
                     "Import Options",
@@ -1983,102 +2223,265 @@ public class Timeline2 extends JFrame {
                     new String[]{"Replace All", "Add to Existing", "Cancel"},
                     "Add to Existing");
 
-            if (choice == 2 || choice == JOptionPane.CLOSED_OPTION) {
-                return; // User cancelled
-            }
-
+            if (choice == 2 || choice == JOptionPane.CLOSED_OPTION) return;
             boolean replaceAll = (choice == 0);
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                boolean isHeader = true;
-                int tasksImported = 0;
-                int milestonesImported = 0;
-
-                if (replaceAll) {
-                    tasks.clear();
-                    milestones.clear();
-                    layerOrder.clear();
-                    selectedTaskIndex = -1;
-                    selectedMilestoneIndex = -1;
-                }
-
-                while ((line = reader.readLine()) != null) {
-                    if (isHeader) {
-                        isHeader = false;
-                        continue; // Skip header row
-                    }
-
-                    String[] fields = parseCSVLine(line);
-                    if (fields.length < 5) continue;
-
-                    String type = fields[0].trim();
-                    String name = fields[1].trim();
-                    String centerText = fields[2].trim();
-                    String startDate = fields[3].trim();
-                    String endDate = fields[4].trim();
-
-                    if (type.equalsIgnoreCase("Task")) {
-                        TimelineTask task = new TimelineTask(name, startDate, endDate);
-                        task.centerText = centerText.isEmpty() ? name : centerText;
-                        task.fillColor = TASK_COLORS[tasks.size() % TASK_COLORS.length];
-                        tasks.add(task);
-                        layerOrder.add(task);
-                        tasksImported++;
-                    } else if (type.equalsIgnoreCase("Milestone")) {
-                        TimelineMilestone milestone = new TimelineMilestone(name, startDate, "diamond");
-                        milestone.fillColor = TASK_COLORS[(milestones.size() + 3) % TASK_COLORS.length];
-                        milestones.add(milestone);
-                        layerOrder.add(milestone);
-                        milestonesImported++;
-                    }
-                }
+            try {
+                Map<String, String> sheets = readExcelSheets(file);
+                int[] counts = importFromSheets(sheets, replaceAll);
 
                 layersPanel.refreshLayers();
                 refreshTimeline();
 
                 JOptionPane.showMessageDialog(this,
-                        "Imported " + tasksImported + " tasks and " + milestonesImported + " milestones.",
+                        "Imported " + counts[0] + " tasks and " + counts[1] + " milestones.",
                         "Import Successful", JOptionPane.INFORMATION_MESSAGE);
 
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this,
-                        "Error importing file: " + ex.getMessage(),
-                        "Import Error", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this,
-                        "Error parsing file: " + ex.getMessage(),
+                        "Error importing file: " + ex.getMessage(),
                         "Import Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    // Parse a CSV line, handling quoted fields with commas
-    private String[] parseCSVLine(String line) {
-        ArrayList<String> fields = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inQuotes = false;
-
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-
-            if (c == '"') {
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    current.append('"');
-                    i++; // Skip the escaped quote
-                } else {
-                    inQuotes = !inQuotes;
+    private Map<String, String> readExcelSheets(File file) throws IOException {
+        Map<String, String> sheets = new HashMap<>();
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(file))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (entry.getName().startsWith("xl/worksheets/sheet")) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[4096];
+                    int len;
+                    while ((len = zis.read(buffer)) > 0) {
+                        baos.write(buffer, 0, len);
+                    }
+                    sheets.put(entry.getName(), baos.toString(StandardCharsets.UTF_8.name()));
                 }
-            } else if (c == ',' && !inQuotes) {
-                fields.add(current.toString());
-                current = new StringBuilder();
-            } else {
-                current.append(c);
+                zis.closeEntry();
             }
         }
-        fields.add(current.toString());
+        return sheets;
+    }
 
-        return fields.toArray(new String[0]);
+    private int[] importFromSheets(Map<String, String> sheets, boolean replaceAll) {
+        if (replaceAll) {
+            tasks.clear();
+            milestones.clear();
+            layerOrder.clear();
+            selectedTaskIndex = -1;
+            selectedMilestoneIndex = -1;
+        }
+
+        int tasksImported = 0, milestonesImported = 0;
+
+        // Parse Sheet 1 (Basic Data) and Sheet 2 (Format Data)
+        String sheet1 = sheets.get("xl/worksheets/sheet1.xml");
+        String sheet2 = sheets.get("xl/worksheets/sheet2.xml");
+        String sheet3 = sheets.get("xl/worksheets/sheet3.xml");
+
+        if (sheet1 != null) {
+            ArrayList<String[]> rows = parseSheetRows(sheet1);
+            ArrayList<String[]> formatRows = sheet2 != null ? parseSheetRows(sheet2) : new ArrayList<>();
+
+            // Create a map of name to format data
+            Map<String, String[]> formatMap = new HashMap<>();
+            for (int i = 1; i < formatRows.size(); i++) {
+                String[] fr = formatRows.get(i);
+                if (fr.length > 1) formatMap.put(fr[1], fr);
+            }
+
+            for (int i = 1; i < rows.size(); i++) {
+                String[] r = rows.get(i);
+                if (r.length < 5) continue;
+
+                String type = r[0];
+                String name = r[1];
+                String centerText = r.length > 2 ? r[2] : "";
+                String startDate = r.length > 3 ? r[3] : "";
+                String endDate = r.length > 4 ? r[4] : "";
+
+                String[] fmt = formatMap.get(name);
+
+                if ("Task".equalsIgnoreCase(type)) {
+                    TimelineTask task = new TimelineTask(name, startDate, endDate);
+                    task.centerText = centerText.isEmpty() ? name : centerText;
+                    task.fillColor = TASK_COLORS[tasks.size() % TASK_COLORS.length];
+
+                    // Apply format data if available
+                    if (fmt != null && fmt.length > 10) {
+                        task.fillColor = hexToColor(fmt[3]) != null ? hexToColor(fmt[3]) : task.fillColor;
+                        task.outlineColor = hexToColor(fmt[4]);
+                        task.outlineThickness = parseIntSafe(fmt[5], 2);
+                        task.height = parseIntSafe(fmt[6], 25);
+                        task.yPosition = parseIntSafe(fmt[7], -1);
+                        task.fontSize = parseIntSafe(fmt[8], 11);
+                        task.fontBold = "true".equalsIgnoreCase(fmt[9]);
+                        task.fontItalic = "true".equalsIgnoreCase(fmt[10]);
+                        task.textColor = hexToColor(fmt[11]) != null ? hexToColor(fmt[11]) : Color.BLACK;
+                        if (fmt.length > 16) {
+                            task.frontText = fmt[12];
+                            task.frontFontSize = parseIntSafe(fmt[13], 10);
+                            task.frontFontBold = "true".equalsIgnoreCase(fmt[14]);
+                            task.frontFontItalic = "true".equalsIgnoreCase(fmt[15]);
+                            task.frontTextColor = hexToColor(fmt[16]) != null ? hexToColor(fmt[16]) : Color.BLACK;
+                        }
+                        if (fmt.length > 21) {
+                            task.aboveText = fmt[17];
+                            task.aboveFontSize = parseIntSafe(fmt[18], 10);
+                            task.aboveFontBold = "true".equalsIgnoreCase(fmt[19]);
+                            task.aboveFontItalic = "true".equalsIgnoreCase(fmt[20]);
+                            task.aboveTextColor = hexToColor(fmt[21]) != null ? hexToColor(fmt[21]) : Color.BLACK;
+                        }
+                        if (fmt.length > 26) {
+                            task.underneathText = fmt[22];
+                            task.underneathFontSize = parseIntSafe(fmt[23], 10);
+                            task.underneathFontBold = "true".equalsIgnoreCase(fmt[24]);
+                            task.underneathFontItalic = "true".equalsIgnoreCase(fmt[25]);
+                            task.underneathTextColor = hexToColor(fmt[26]) != null ? hexToColor(fmt[26]) : Color.BLACK;
+                        }
+                        if (fmt.length > 31) {
+                            task.behindText = fmt[27];
+                            task.behindFontSize = parseIntSafe(fmt[28], 10);
+                            task.behindFontBold = "true".equalsIgnoreCase(fmt[29]);
+                            task.behindFontItalic = "true".equalsIgnoreCase(fmt[30]);
+                            task.behindTextColor = hexToColor(fmt[31]) != null ? hexToColor(fmt[31]) : new Color(150, 150, 150);
+                        }
+                    }
+
+                    tasks.add(task);
+                    layerOrder.add(task);
+                    tasksImported++;
+                } else if ("Milestone".equalsIgnoreCase(type)) {
+                    String shape = "diamond";
+                    if (fmt != null && fmt.length > 32) {
+                        shape = fmt[32].isEmpty() ? "diamond" : fmt[32];
+                    }
+                    TimelineMilestone m = new TimelineMilestone(name, startDate, shape);
+                    m.fillColor = TASK_COLORS[(milestones.size() + 3) % TASK_COLORS.length];
+
+                    if (fmt != null && fmt.length > 10) {
+                        m.fillColor = hexToColor(fmt[3]) != null ? hexToColor(fmt[3]) : m.fillColor;
+                        m.outlineColor = hexToColor(fmt[4]) != null ? hexToColor(fmt[4]) : Color.BLACK;
+                        m.outlineThickness = parseIntSafe(fmt[5], 2);
+                        m.height = parseIntSafe(fmt[6], 20);
+                        m.yPosition = parseIntSafe(fmt[7], -1);
+                        m.fontSize = parseIntSafe(fmt[8], 10);
+                        m.fontBold = "true".equalsIgnoreCase(fmt[9]);
+                        m.fontItalic = "true".equalsIgnoreCase(fmt[10]);
+                        m.textColor = hexToColor(fmt[11]) != null ? hexToColor(fmt[11]) : Color.BLACK;
+                        if (fmt.length > 33) m.width = parseIntSafe(fmt[33], 20);
+                        if (fmt.length > 34) m.labelText = fmt[34];
+                    }
+
+                    milestones.add(m);
+                    layerOrder.add(m);
+                    milestonesImported++;
+                }
+            }
+        }
+
+        // Import settings from Sheet 3
+        if (sheet3 != null) {
+            ArrayList<String[]> settingRows = parseSheetRows(sheet3);
+            for (int i = 1; i < settingRows.size(); i++) {
+                String[] r = settingRows.get(i);
+                if (r.length < 2) continue;
+                String setting = r[0];
+                String value = r[1];
+                applySettingValue(setting, value);
+            }
+        }
+
+        return new int[]{tasksImported, milestonesImported};
+    }
+
+    private void applySettingValue(String setting, String value) {
+        switch (setting) {
+            case "Timeline Start Date": startDateField.setText(value); break;
+            case "Timeline End Date": endDateField.setText(value); break;
+            case "Timeline Background Color": timelineInteriorColor = hexToColor(value) != null ? hexToColor(value) : timelineInteriorColor; break;
+            case "Timeline Outline Color": timelineOutlineColor = hexToColor(value) != null ? hexToColor(value) : timelineOutlineColor; break;
+            case "Timeline Line Color": timelineLineColor = hexToColor(value) != null ? hexToColor(value) : timelineLineColor; break;
+            case "Timeline Date Text Color": timelineDateTextColor = hexToColor(value) != null ? hexToColor(value) : timelineDateTextColor; break;
+            case "Timeline Grid Color": timelineGridColor = hexToColor(value) != null ? hexToColor(value) : timelineGridColor; break;
+            case "Timeline Event Color": timelineEventColor = hexToColor(value) != null ? hexToColor(value) : timelineEventColor; break;
+            case "Settings Interior Color": settingsInteriorColor = hexToColor(value) != null ? hexToColor(value) : settingsInteriorColor; break;
+            case "Settings Outline Color": settingsOutlineColor = hexToColor(value) != null ? hexToColor(value) : settingsOutlineColor; break;
+            case "Settings Header Color": settingsHeaderColor = hexToColor(value) != null ? hexToColor(value) : settingsHeaderColor; break;
+            case "Settings Header Text Color": settingsHeaderTextColor = hexToColor(value) != null ? hexToColor(value) : settingsHeaderTextColor; break;
+            case "Settings Label Color": settingsLabelColor = hexToColor(value) != null ? hexToColor(value) : settingsLabelColor; break;
+            case "Settings Field Background Color": settingsFieldBgColor = hexToColor(value) != null ? hexToColor(value) : settingsFieldBgColor; break;
+            case "Settings Button Background Color": settingsButtonBgColor = hexToColor(value) != null ? hexToColor(value) : settingsButtonBgColor; break;
+            case "Settings Button Text Color": settingsButtonTextColor = hexToColor(value) != null ? hexToColor(value) : settingsButtonTextColor; break;
+            case "Layers Interior Color": layersInteriorColor = hexToColor(value) != null ? hexToColor(value) : layersInteriorColor; break;
+            case "Layers Outline Color": layersOutlineColor = hexToColor(value) != null ? hexToColor(value) : layersOutlineColor; break;
+            case "Layers Header Color": layersHeaderColor = hexToColor(value) != null ? hexToColor(value) : layersHeaderColor; break;
+            case "Layers Header Text Color": layersHeaderTextColor = hexToColor(value) != null ? hexToColor(value) : layersHeaderTextColor; break;
+            case "Layers List Background Color": layersListBgColor = hexToColor(value) != null ? hexToColor(value) : layersListBgColor; break;
+            case "Layers Item Text Color": layersItemTextColor = hexToColor(value) != null ? hexToColor(value) : layersItemTextColor; break;
+            case "Layers Selected Background Color": layersSelectedBgColor = hexToColor(value) != null ? hexToColor(value) : layersSelectedBgColor; break;
+            case "Layers Drag Handle Color": layersDragHandleColor = hexToColor(value) != null ? hexToColor(value) : layersDragHandleColor; break;
+            case "Format Interior Color": formatInteriorColor = hexToColor(value) != null ? hexToColor(value) : formatInteriorColor; break;
+            case "Format Outline Color": formatOutlineColor = hexToColor(value) != null ? hexToColor(value) : formatOutlineColor; break;
+            case "Format Header Color": formatHeaderColor = hexToColor(value) != null ? hexToColor(value) : formatHeaderColor; break;
+            case "Format Label Color": formatLabelColor = hexToColor(value) != null ? hexToColor(value) : formatLabelColor; break;
+            case "Format Separator Color": formatSeparatorColor = hexToColor(value) != null ? hexToColor(value) : formatSeparatorColor; break;
+            case "Format Resize Handle Color": formatResizeHandleColor = hexToColor(value) != null ? hexToColor(value) : formatResizeHandleColor; break;
+        }
+    }
+
+    private ArrayList<String[]> parseSheetRows(String sheetXml) {
+        ArrayList<String[]> rows = new ArrayList<>();
+        int rowStart = 0;
+        while ((rowStart = sheetXml.indexOf("<row ", rowStart)) != -1) {
+            int rowEnd = sheetXml.indexOf("</row>", rowStart);
+            if (rowEnd == -1) break;
+            String rowXml = sheetXml.substring(rowStart, rowEnd);
+
+            ArrayList<String> cells = new ArrayList<>();
+            int cellStart = 0;
+            while ((cellStart = rowXml.indexOf("<c ", cellStart)) != -1) {
+                int cellEnd = rowXml.indexOf("</c>", cellStart);
+                if (cellEnd == -1) {
+                    cellEnd = rowXml.indexOf("/>", cellStart);
+                    if (cellEnd == -1) break;
+                    cellStart = cellEnd + 2;
+                    cells.add("");
+                    continue;
+                }
+                String cellXml = rowXml.substring(cellStart, cellEnd);
+
+                // Extract value
+                String value = "";
+                int tStart = cellXml.indexOf("<t>");
+                int tEnd = cellXml.indexOf("</t>");
+                if (tStart != -1 && tEnd != -1) {
+                    value = cellXml.substring(tStart + 3, tEnd);
+                    value = value.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'");
+                } else {
+                    int vStart = cellXml.indexOf("<v>");
+                    int vEnd = cellXml.indexOf("</v>");
+                    if (vStart != -1 && vEnd != -1) {
+                        value = cellXml.substring(vStart + 3, vEnd);
+                    }
+                }
+                cells.add(value);
+                cellStart = cellEnd + 4;
+            }
+            rows.add(cells.toArray(new String[0]));
+            rowStart = rowEnd + 6;
+        }
+        return rows;
+    }
+
+    private int parseIntSafe(String s, int defaultVal) {
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (Exception e) {
+            return defaultVal;
+        }
     }
 
     // ==================== Inner Classes ====================
@@ -3365,10 +3768,15 @@ public class Timeline2 extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            if (startDate == null || endDate == null) return;
 
             Graphics2D g2d = (Graphics2D) g;
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // Explicitly fill background with timelineInteriorColor
+            g2d.setColor(timelineInteriorColor);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+            if (startDate == null || endDate == null) return;
 
             int timelineX = MARGIN_LEFT;
             int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
@@ -3695,11 +4103,33 @@ public class Timeline2 extends JFrame {
         }
 
         private void drawDateTicks(Graphics2D g2d, int timelineX, int timelineWidth, int timelineY, long totalDays) {
-            int interval = totalDays <= 14 ? 1 : totalDays <= 60 ? 7 : totalDays <= 180 ? 14 : totalDays <= 365 ? 30 : 90;
-
             g2d.setFont(new Font("Arial", Font.PLAIN, 10));
-            LocalDate tick = startDate;
 
+            // Determine if we should show months or years based on total days
+            boolean showYears = totalDays > 730; // More than 2 years, show years
+            DateTimeFormatter tickFormat = showYears ?
+                DateTimeFormatter.ofPattern("yyyy") :
+                DateTimeFormatter.ofPattern("MMM yyyy");
+
+            // Find first tick: first of next month or first of next year
+            LocalDate tick;
+            if (showYears) {
+                // Start at first of the year containing startDate, or next year if not Jan 1
+                if (startDate.getDayOfYear() == 1) {
+                    tick = startDate;
+                } else {
+                    tick = startDate.plusYears(1).withDayOfYear(1);
+                }
+            } else {
+                // Start at first of the month containing startDate, or next month if not 1st
+                if (startDate.getDayOfMonth() == 1) {
+                    tick = startDate;
+                } else {
+                    tick = startDate.plusMonths(1).withDayOfMonth(1);
+                }
+            }
+
+            // Draw ticks at first of each month or year
             while (!tick.isAfter(endDate)) {
                 int x = getXForDate(tick, timelineX, timelineWidth, totalDays);
 
@@ -3708,11 +4138,16 @@ public class Timeline2 extends JFrame {
                 g2d.drawLine(x, timelineY, x, timelineY + 15);
 
                 g2d.setColor(Color.DARK_GRAY);
-                String dateStr = tick.format(DATE_FORMAT);
+                String dateStr = tick.format(tickFormat);
                 FontMetrics fm = g2d.getFontMetrics();
                 g2d.drawString(dateStr, x - fm.stringWidth(dateStr) / 2, timelineY + 30);
 
-                tick = tick.plusDays(interval);
+                // Advance to next month or year
+                if (showYears) {
+                    tick = tick.plusYears(1);
+                } else {
+                    tick = tick.plusMonths(1);
+                }
             }
         }
 
