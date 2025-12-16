@@ -1034,6 +1034,7 @@ public class Timeline2 extends JFrame {
         }
         Color newColor = JColorChooser.showDialog(this, "Choose Fill Color", currentColor);
         if (newColor != null) {
+            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).fillColor = newColor;
             }
@@ -1053,6 +1054,7 @@ public class Timeline2 extends JFrame {
         }
         Color newColor = JColorChooser.showDialog(this, "Choose Outline Color", currentColor);
         if (newColor != null) {
+            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).outlineColor = newColor;
             }
@@ -1063,6 +1065,7 @@ public class Timeline2 extends JFrame {
 
     private void updateOutlineThickness() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) outlineThicknessSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).outlineThickness = value;
@@ -1072,6 +1075,7 @@ public class Timeline2 extends JFrame {
 
     private void updateTaskHeight() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) taskHeightSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).height = value;
@@ -1081,6 +1085,7 @@ public class Timeline2 extends JFrame {
 
     private void updateCenterText() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         String text = centerTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).centerText = text;
@@ -1090,6 +1095,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFontSize() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) fontSizeSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).fontSize = value;
@@ -1099,6 +1105,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFontBold() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = boldBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).fontBold = value;
@@ -1108,6 +1115,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFontItalic() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = italicBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).fontItalic = value;
@@ -1124,6 +1132,7 @@ public class Timeline2 extends JFrame {
         }
         Color newColor = JColorChooser.showDialog(this, "Choose Text Color", currentColor);
         if (newColor != null) {
+            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).textColor = newColor;
             }
@@ -1134,6 +1143,7 @@ public class Timeline2 extends JFrame {
 
     private void updateCenterXOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) centerXOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).centerTextXOffset = value;
@@ -1143,6 +1153,7 @@ public class Timeline2 extends JFrame {
 
     private void updateCenterYOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) centerYOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).centerTextYOffset = value;
@@ -1153,6 +1164,7 @@ public class Timeline2 extends JFrame {
     // Front text update methods
     private void updateFrontText() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         String text = frontTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).frontText = text;
@@ -1162,6 +1174,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFrontFontSize() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) frontFontSizeSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).frontFontSize = value;
@@ -1171,6 +1184,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFrontFontBold() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = frontBoldBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).frontFontBold = value;
@@ -1180,6 +1194,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFrontFontItalic() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = frontItalicBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).frontFontItalic = value;
@@ -1196,6 +1211,7 @@ public class Timeline2 extends JFrame {
         }
         Color newColor = JColorChooser.showDialog(this, "Choose Front Text Color", currentColor);
         if (newColor != null) {
+            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).frontTextColor = newColor;
             }
@@ -1206,6 +1222,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFrontXOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) frontXOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).frontTextXOffset = value;
@@ -1215,6 +1232,7 @@ public class Timeline2 extends JFrame {
 
     private void updateFrontYOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) frontYOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).frontTextYOffset = value;
@@ -1225,6 +1243,7 @@ public class Timeline2 extends JFrame {
     // Above text update methods
     private void updateAboveText() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         String text = aboveTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).aboveText = text;
@@ -1234,6 +1253,7 @@ public class Timeline2 extends JFrame {
 
     private void updateAboveFontSize() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) aboveFontSizeSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).aboveFontSize = value;
@@ -1243,6 +1263,7 @@ public class Timeline2 extends JFrame {
 
     private void updateAboveFontBold() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = aboveBoldBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).aboveFontBold = value;
@@ -1252,6 +1273,7 @@ public class Timeline2 extends JFrame {
 
     private void updateAboveFontItalic() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = aboveItalicBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).aboveFontItalic = value;
@@ -1268,6 +1290,7 @@ public class Timeline2 extends JFrame {
         }
         Color newColor = JColorChooser.showDialog(this, "Choose Above Text Color", currentColor);
         if (newColor != null) {
+            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).aboveTextColor = newColor;
             }
@@ -1278,6 +1301,7 @@ public class Timeline2 extends JFrame {
 
     private void updateAboveXOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) aboveXOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).aboveTextXOffset = value;
@@ -1287,6 +1311,7 @@ public class Timeline2 extends JFrame {
 
     private void updateAboveYOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) aboveYOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).aboveTextYOffset = value;
@@ -1297,6 +1322,7 @@ public class Timeline2 extends JFrame {
     // Underneath text update methods
     private void updateUnderneathText() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         String text = underneathTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).underneathText = text;
@@ -1306,6 +1332,7 @@ public class Timeline2 extends JFrame {
 
     private void updateUnderneathFontSize() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) underneathFontSizeSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).underneathFontSize = value;
@@ -1315,6 +1342,7 @@ public class Timeline2 extends JFrame {
 
     private void updateUnderneathFontBold() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = underneathBoldBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).underneathFontBold = value;
@@ -1324,6 +1352,7 @@ public class Timeline2 extends JFrame {
 
     private void updateUnderneathFontItalic() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = underneathItalicBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).underneathFontItalic = value;
@@ -1340,6 +1369,7 @@ public class Timeline2 extends JFrame {
         }
         Color newColor = JColorChooser.showDialog(this, "Choose Underneath Text Color", currentColor);
         if (newColor != null) {
+            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).underneathTextColor = newColor;
             }
@@ -1350,6 +1380,7 @@ public class Timeline2 extends JFrame {
 
     private void updateUnderneathXOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) underneathXOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).underneathTextXOffset = value;
@@ -1359,6 +1390,7 @@ public class Timeline2 extends JFrame {
 
     private void updateUnderneathYOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) underneathYOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).underneathTextYOffset = value;
@@ -1369,6 +1401,7 @@ public class Timeline2 extends JFrame {
     // Behind text update methods
     private void updateBehindText() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         String text = behindTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).behindText = text;
@@ -1378,6 +1411,7 @@ public class Timeline2 extends JFrame {
 
     private void updateBehindFontSize() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) behindFontSizeSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).behindFontSize = value;
@@ -1387,6 +1421,7 @@ public class Timeline2 extends JFrame {
 
     private void updateBehindFontBold() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = behindBoldBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).behindFontBold = value;
@@ -1396,6 +1431,7 @@ public class Timeline2 extends JFrame {
 
     private void updateBehindFontItalic() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         boolean value = behindItalicBtn.isSelected();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).behindFontItalic = value;
@@ -1412,6 +1448,7 @@ public class Timeline2 extends JFrame {
         }
         Color newColor = JColorChooser.showDialog(this, "Choose Behind Text Color", currentColor);
         if (newColor != null) {
+            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).behindTextColor = newColor;
             }
@@ -1422,6 +1459,7 @@ public class Timeline2 extends JFrame {
 
     private void updateBehindXOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) behindXOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).behindTextXOffset = value;
@@ -1431,6 +1469,7 @@ public class Timeline2 extends JFrame {
 
     private void updateBehindYOffset() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         int value = (Integer) behindYOffsetSpinner.getValue();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).behindTextYOffset = value;
@@ -1440,6 +1479,7 @@ public class Timeline2 extends JFrame {
 
     private void updateNotes() {
         if (selectedTaskIndices.isEmpty()) return;
+        saveState();
         for (int idx : selectedTaskIndices) {
             TimelineTask task = tasks.get(idx);
             task.note1 = note1Area.getText();
@@ -1453,6 +1493,7 @@ public class Timeline2 extends JFrame {
     // Milestone update methods
     private void updateSelectedMilestoneName() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        saveState();
         String newName = milestoneNameField.getText().trim();
         if (!newName.isEmpty()) {
             milestones.get(selectedMilestoneIndex).name = newName;
@@ -1463,6 +1504,7 @@ public class Timeline2 extends JFrame {
 
     private void updateSelectedMilestoneDate() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        saveState();
         String newDate = milestoneDateField.getText().trim();
         try {
             LocalDate.parse(newDate, DATE_FORMAT);
@@ -1478,6 +1520,7 @@ public class Timeline2 extends JFrame {
         TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
         Color newColor = JColorChooser.showDialog(this, "Choose Fill Color", milestone.fillColor);
         if (newColor != null) {
+            saveState();
             milestone.fillColor = newColor;
             milestoneFillColorBtn.setBackground(newColor);
             refreshTimeline();
@@ -1489,6 +1532,7 @@ public class Timeline2 extends JFrame {
         TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
         Color newColor = JColorChooser.showDialog(this, "Choose Outline Color", milestone.outlineColor);
         if (newColor != null) {
+            saveState();
             milestone.outlineColor = newColor;
             milestoneOutlineColorBtn.setBackground(newColor);
             refreshTimeline();
@@ -1524,18 +1568,21 @@ public class Timeline2 extends JFrame {
 
     private void updateMilestoneOutlineThickness() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        saveState();
         milestones.get(selectedMilestoneIndex).outlineThickness = (Integer) milestoneOutlineThicknessSpinner.getValue();
         refreshTimeline();
     }
 
     private void updateMilestoneHeight() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        saveState();
         milestones.get(selectedMilestoneIndex).height = (Integer) milestoneHeightSpinner.getValue();
         refreshTimeline();
     }
 
     private void updateMilestoneWidth() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        saveState();
         milestones.get(selectedMilestoneIndex).width = (Integer) milestoneWidthSpinner.getValue();
         refreshTimeline();
     }
@@ -1960,6 +2007,7 @@ public class Timeline2 extends JFrame {
             int index = selectedTaskIndices.iterator().next();
             String newName = taskNameField.getText().trim();
             if (!newName.isEmpty()) {
+                saveState();
                 tasks.get(index).name = newName;
                 formatTitleLabel.setText("Selected: " + newName);
                 refreshTimeline();
@@ -1974,6 +2022,7 @@ public class Timeline2 extends JFrame {
         try {
             LocalDate.parse(newStart, DATE_FORMAT);
             LocalDate.parse(newEnd, DATE_FORMAT);
+            saveState();
             for (int idx : selectedTaskIndices) {
                 TimelineTask task = tasks.get(idx);
                 task.startDate = newStart;
