@@ -75,29 +75,36 @@ public class Timeline2 extends JFrame {
     // Notes tab fields
     private JTextArea note1Area, note2Area, note3Area, note4Area, note5Area;
     private JSpinner outlineThicknessSpinner, taskHeightSpinner, fontSizeSpinner;
+    private JCheckBox bevelFillCheckbox;
+    private JButton bevelSettingsBtn;
+    private JComboBox<String> fontFamilyCombo;
     private JToggleButton boldBtn, italicBtn;
     private JTextField centerTextField;
     private JSpinner centerXOffsetSpinner, centerYOffsetSpinner;
     // Front text controls
     private JTextField frontTextField;
+    private JComboBox<String> frontFontCombo;
     private JSpinner frontFontSizeSpinner;
     private JToggleButton frontBoldBtn, frontItalicBtn;
     private JButton frontTextColorBtn;
     private JSpinner frontXOffsetSpinner, frontYOffsetSpinner;
     // Above text controls
     private JTextField aboveTextField;
+    private JComboBox<String> aboveFontCombo;
     private JSpinner aboveFontSizeSpinner;
     private JToggleButton aboveBoldBtn, aboveItalicBtn;
     private JButton aboveTextColorBtn;
     private JSpinner aboveXOffsetSpinner, aboveYOffsetSpinner;
     // Underneath text controls
     private JTextField underneathTextField;
+    private JComboBox<String> underneathFontCombo;
     private JSpinner underneathFontSizeSpinner;
     private JToggleButton underneathBoldBtn, underneathItalicBtn;
     private JButton underneathTextColorBtn;
     private JSpinner underneathXOffsetSpinner, underneathYOffsetSpinner;
     // Behind text controls
     private JTextField behindTextField;
+    private JComboBox<String> behindFontCombo;
     private JSpinner behindFontSizeSpinner;
     private JToggleButton behindBoldBtn, behindItalicBtn;
     private JButton behindTextColorBtn;
@@ -107,6 +114,8 @@ public class Timeline2 extends JFrame {
     private JSpinner milestoneWidthSpinner, milestoneHeightSpinner;
     private JButton milestoneFillColorBtn, milestoneOutlineColorBtn;
     private JSpinner milestoneOutlineThicknessSpinner;
+    private JCheckBox milestoneBevelCheckbox;
+    private JButton milestoneBevelSettingsBtn;
     // Row 1 switcher (task vs milestone)
     private JPanel row1Container;
     private CardLayout row1CardLayout;
@@ -119,17 +128,28 @@ public class Timeline2 extends JFrame {
     private JSpinner timelineAxisThicknessSpinner;
     // Timeline axis date label settings
     private Color axisDateColor = Color.DARK_GRAY;
+    private String axisDateFontFamily = "SansSerif";
     private int axisDateFontSize = 10;
     private boolean axisDateBold = false;
     private boolean axisDateItalic = false;
     private JButton axisDateColorBtn;
+    private JComboBox<String> axisDateFontCombo;
     private JSpinner axisDateFontSizeSpinner;
     private JToggleButton axisDateBoldBtn, axisDateItalicBtn;
+    // Font family options
+    private static final String[] FONT_FAMILIES = {"SansSerif", "Serif", "Monospaced", "Arial", "Times New Roman", "Courier New", "Verdana", "Georgia", "Tahoma", "Calibri"};
     // Undo/Redo
     private java.util.Deque<TimelineState> undoStack = new java.util.ArrayDeque<>();
     private java.util.Deque<TimelineState> redoStack = new java.util.ArrayDeque<>();
     private JButton undoBtn, redoBtn;
     private static final int MAX_UNDO_LEVELS = 50;
+    // Keyboard shortcuts (configurable)
+    private int selectNextKey = KeyEvent.VK_TAB;
+    private int selectNextModifiers = 0;
+    private int deleteSelectedKey = KeyEvent.VK_DELETE;
+    private int deleteSelectedModifiers = InputEvent.SHIFT_DOWN_MASK;
+    private int duplicateKey = KeyEvent.VK_F1;
+    private int duplicateModifiers = 0;
 
     // Constants
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -376,6 +396,21 @@ public class Timeline2 extends JFrame {
         taskHeightSpinner.addChangeListener(e -> updateTaskHeight());
         taskRow.add(taskHeightSpinner);
 
+        taskRow.add(Box.createHorizontalStrut(10));
+        bevelFillCheckbox = new JCheckBox("Bevel");
+        bevelFillCheckbox.setOpaque(false);
+        bevelFillCheckbox.setEnabled(false);
+        bevelFillCheckbox.setToolTipText("Apply bevel effect to fill");
+        bevelFillCheckbox.addActionListener(e -> updateBevelFill());
+        taskRow.add(bevelFillCheckbox);
+
+        bevelSettingsBtn = new JButton("...");
+        bevelSettingsBtn.setPreferredSize(new Dimension(30, 22));
+        bevelSettingsBtn.setEnabled(false);
+        bevelSettingsBtn.setToolTipText("Bevel settings");
+        bevelSettingsBtn.addActionListener(e -> showBevelSettingsDialog());
+        taskRow.add(bevelSettingsBtn);
+
         row1Container.add(taskRow, "task");
 
         // Milestone row panel
@@ -448,6 +483,21 @@ public class Timeline2 extends JFrame {
         milestoneWidthSpinner.addChangeListener(e -> updateMilestoneWidth());
         milestoneRow.add(milestoneWidthSpinner);
 
+        milestoneRow.add(Box.createHorizontalStrut(10));
+        milestoneBevelCheckbox = new JCheckBox("Bevel");
+        milestoneBevelCheckbox.setOpaque(false);
+        milestoneBevelCheckbox.setEnabled(false);
+        milestoneBevelCheckbox.setToolTipText("Apply bevel effect to fill");
+        milestoneBevelCheckbox.addActionListener(e -> updateMilestoneBevel());
+        milestoneRow.add(milestoneBevelCheckbox);
+
+        milestoneBevelSettingsBtn = new JButton("...");
+        milestoneBevelSettingsBtn.setPreferredSize(new Dimension(30, 22));
+        milestoneBevelSettingsBtn.setEnabled(false);
+        milestoneBevelSettingsBtn.setToolTipText("Bevel settings");
+        milestoneBevelSettingsBtn.addActionListener(e -> showBevelSettingsDialog());
+        milestoneRow.add(milestoneBevelSettingsBtn);
+
         row1Container.add(milestoneRow, "milestone");
 
         // Show task row by default
@@ -485,6 +535,15 @@ public class Timeline2 extends JFrame {
         row2.add(frontTextField);
 
         row2.add(Box.createHorizontalStrut(10));
+        frontFontCombo = new JComboBox<>(FONT_FAMILIES);
+        frontFontCombo.setPreferredSize(new Dimension(100, 25));
+        frontFontCombo.setMaximumSize(new Dimension(100, 25));
+        frontFontCombo.setEnabled(false);
+        frontFontCombo.setToolTipText("Front text font family");
+        frontFontCombo.addActionListener(e -> updateFrontFontFamily());
+        row2.add(frontFontCombo);
+
+        row2.add(Box.createHorizontalStrut(5));
         frontFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
         frontFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
         frontFontSizeSpinner.setEnabled(false);
@@ -615,6 +674,15 @@ public class Timeline2 extends JFrame {
         row3.add(centerTextField);
 
         row3.add(Box.createHorizontalStrut(10));
+        fontFamilyCombo = new JComboBox<>(FONT_FAMILIES);
+        fontFamilyCombo.setPreferredSize(new Dimension(100, 25));
+        fontFamilyCombo.setMaximumSize(new Dimension(100, 25));
+        fontFamilyCombo.setEnabled(false);
+        fontFamilyCombo.setToolTipText("Font family");
+        fontFamilyCombo.addActionListener(e -> updateFontFamily());
+        row3.add(fontFamilyCombo);
+
+        row3.add(Box.createHorizontalStrut(5));
         fontSizeSpinner = new JSpinner(new SpinnerNumberModel(11, 8, 24, 1));
         fontSizeSpinner.setPreferredSize(new Dimension(50, 25));
         fontSizeSpinner.setEnabled(false);
@@ -743,6 +811,14 @@ public class Timeline2 extends JFrame {
         });
         row4.add(aboveTextField);
         row4.add(Box.createHorizontalStrut(10));
+        aboveFontCombo = new JComboBox<>(FONT_FAMILIES);
+        aboveFontCombo.setPreferredSize(new Dimension(100, 25));
+        aboveFontCombo.setMaximumSize(new Dimension(100, 25));
+        aboveFontCombo.setEnabled(false);
+        aboveFontCombo.setToolTipText("Above text font family");
+        aboveFontCombo.addActionListener(e -> updateAboveFontFamily());
+        row4.add(aboveFontCombo);
+        row4.add(Box.createHorizontalStrut(5));
         aboveFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
         aboveFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
         aboveFontSizeSpinner.setEnabled(false);
@@ -798,6 +874,14 @@ public class Timeline2 extends JFrame {
         });
         row5.add(underneathTextField);
         row5.add(Box.createHorizontalStrut(10));
+        underneathFontCombo = new JComboBox<>(FONT_FAMILIES);
+        underneathFontCombo.setPreferredSize(new Dimension(100, 25));
+        underneathFontCombo.setMaximumSize(new Dimension(100, 25));
+        underneathFontCombo.setEnabled(false);
+        underneathFontCombo.setToolTipText("Underneath text font family");
+        underneathFontCombo.addActionListener(e -> updateUnderneathFontFamily());
+        row5.add(underneathFontCombo);
+        row5.add(Box.createHorizontalStrut(5));
         underneathFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
         underneathFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
         underneathFontSizeSpinner.setEnabled(false);
@@ -853,6 +937,14 @@ public class Timeline2 extends JFrame {
         });
         row6.add(behindTextField);
         row6.add(Box.createHorizontalStrut(10));
+        behindFontCombo = new JComboBox<>(FONT_FAMILIES);
+        behindFontCombo.setPreferredSize(new Dimension(100, 25));
+        behindFontCombo.setMaximumSize(new Dimension(100, 25));
+        behindFontCombo.setEnabled(false);
+        behindFontCombo.setToolTipText("Behind text font family");
+        behindFontCombo.addActionListener(e -> updateBehindFontFamily());
+        row6.add(behindFontCombo);
+        row6.add(Box.createHorizontalStrut(5));
         behindFontSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 8, 24, 1));
         behindFontSizeSpinner.setPreferredSize(new Dimension(50, 25));
         behindFontSizeSpinner.setEnabled(false);
@@ -1083,12 +1175,278 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
+    private void updateBevelFill() {
+        if (selectedTaskIndices.isEmpty()) return;
+        saveState();
+        boolean value = bevelFillCheckbox.isSelected();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).bevelFill = value;
+        }
+        refreshTimeline();
+    }
+
+    private void showBevelSettingsDialog() {
+        if (selectedTaskIndices.isEmpty() && selectedMilestoneIndex < 0) return;
+
+        // Save state for undo if user clicks OK
+        saveState();
+
+        // Store original values for cancel
+        final java.util.Map<Integer, int[]> originalTaskValues = new java.util.HashMap<>();
+        final java.util.Map<Integer, String[]> originalTaskStyles = new java.util.HashMap<>();
+        for (int idx : selectedTaskIndices) {
+            TimelineTask t = tasks.get(idx);
+            originalTaskValues.put(idx, new int[]{t.bevelDepth, t.bevelLightAngle, t.bevelHighlightOpacity, t.bevelShadowOpacity});
+            originalTaskStyles.put(idx, new String[]{t.bevelStyle, t.topBevel, t.bottomBevel});
+        }
+        final int[] originalMilestoneValues = selectedMilestoneIndex >= 0 ?
+            new int[]{milestones.get(selectedMilestoneIndex).bevelDepth,
+                      milestones.get(selectedMilestoneIndex).bevelLightAngle,
+                      milestones.get(selectedMilestoneIndex).bevelHighlightOpacity,
+                      milestones.get(selectedMilestoneIndex).bevelShadowOpacity} : null;
+        final String[] originalMilestoneStyles = selectedMilestoneIndex >= 0 ?
+            new String[]{milestones.get(selectedMilestoneIndex).bevelStyle,
+                        milestones.get(selectedMilestoneIndex).topBevel,
+                        milestones.get(selectedMilestoneIndex).bottomBevel} : null;
+
+        JDialog dialog = new JDialog(this, "Bevel Settings", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setSize(900, 380);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 10, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 5, 8, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Get current values from first selected item
+        int currentDepth = 60, currentAngle = 135, currentHighlight = 80, currentShadow = 60;
+        String currentStyle = "Inner Bevel", currentTopBevel = "Circle", currentBottomBevel = "None";
+        if (!selectedTaskIndices.isEmpty()) {
+            TimelineTask task = tasks.get(selectedTaskIndices.iterator().next());
+            currentDepth = task.bevelDepth;
+            currentAngle = task.bevelLightAngle;
+            currentHighlight = task.bevelHighlightOpacity;
+            currentShadow = task.bevelShadowOpacity;
+            currentStyle = task.bevelStyle;
+            currentTopBevel = task.topBevel;
+            currentBottomBevel = task.bottomBevel;
+        } else if (selectedMilestoneIndex >= 0) {
+            TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+            currentDepth = ms.bevelDepth;
+            currentAngle = ms.bevelLightAngle;
+            currentHighlight = ms.bevelHighlightOpacity;
+            currentShadow = ms.bevelShadowOpacity;
+            currentStyle = ms.bevelStyle;
+            currentTopBevel = ms.topBevel;
+            currentBottomBevel = ms.bottomBevel;
+        }
+
+        // Create sliders first so they can be referenced in the lambda
+        JSlider depthSlider = new JSlider(0, 100, currentDepth);
+        JSlider angleSlider = new JSlider(0, 360, currentAngle);
+        JSlider highlightSlider = new JSlider(0, 255, currentHighlight);
+        JSlider shadowSlider = new JSlider(0, 255, currentShadow);
+
+        // PowerPoint-style bevel shape options
+        String[] bevelShapes = {"None", "Circle", "Relaxed Inset", "Cross", "Angle", "Soft Round",
+                                "Convex", "Cool Slant", "Divot", "Riblet", "Hard Edge", "Art Deco"};
+
+        // Bevel Style dropdown
+        gbc.gridx = 0; gbc.gridy = 0;
+        mainPanel.add(new JLabel("Style:"), gbc);
+        String[] bevelStyles = {"Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"};
+        JComboBox<String> styleCombo = new JComboBox<>(bevelStyles);
+        styleCombo.setSelectedItem(currentStyle);
+        styleCombo.setPreferredSize(new Dimension(150, 25));
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(styleCombo, gbc);
+
+        // Top Bevel dropdown
+        gbc.gridx = 2;
+        mainPanel.add(new JLabel("  Top Bevel:"), gbc);
+        JComboBox<String> topBevelCombo = new JComboBox<>(bevelShapes);
+        topBevelCombo.setSelectedItem(currentTopBevel);
+        topBevelCombo.setPreferredSize(new Dimension(130, 25));
+        gbc.gridx = 3;
+        mainPanel.add(topBevelCombo, gbc);
+
+        // Bottom Bevel dropdown
+        gbc.gridx = 4;
+        mainPanel.add(new JLabel("  Bottom Bevel:"), gbc);
+        JComboBox<String> bottomBevelCombo = new JComboBox<>(bevelShapes);
+        bottomBevelCombo.setSelectedItem(currentBottomBevel);
+        bottomBevelCombo.setPreferredSize(new Dimension(130, 25));
+        gbc.gridx = 5;
+        mainPanel.add(bottomBevelCombo, gbc);
+
+        // Live update lambda
+        Runnable updateLive = () -> {
+            int depth = depthSlider.getValue();
+            int angle = angleSlider.getValue();
+            int highlight = highlightSlider.getValue();
+            int shadow = shadowSlider.getValue();
+            String style = (String) styleCombo.getSelectedItem();
+            String topBevel = (String) topBevelCombo.getSelectedItem();
+            String bottomBevel = (String) bottomBevelCombo.getSelectedItem();
+            for (int idx : selectedTaskIndices) {
+                TimelineTask task = tasks.get(idx);
+                task.bevelDepth = depth;
+                task.bevelLightAngle = angle;
+                task.bevelHighlightOpacity = highlight;
+                task.bevelShadowOpacity = shadow;
+                task.bevelStyle = style;
+                task.topBevel = topBevel;
+                task.bottomBevel = bottomBevel;
+            }
+            if (selectedMilestoneIndex >= 0) {
+                TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+                ms.bevelDepth = depth;
+                ms.bevelLightAngle = angle;
+                ms.bevelHighlightOpacity = highlight;
+                ms.bevelShadowOpacity = shadow;
+                ms.bevelStyle = style;
+                ms.topBevel = topBevel;
+                ms.bottomBevel = bottomBevel;
+            }
+            timelineDisplayPanel.repaint();
+        };
+
+        styleCombo.addActionListener(e -> updateLive.run());
+        topBevelCombo.addActionListener(e -> updateLive.run());
+        bottomBevelCombo.addActionListener(e -> updateLive.run());
+
+        // Depth slider (0-100)
+        gbc.gridx = 0; gbc.gridy = 1;
+        mainPanel.add(new JLabel("Depth:"), gbc);
+        depthSlider.setPreferredSize(new Dimension(600, 45));
+        depthSlider.setMajorTickSpacing(25);
+        depthSlider.setPaintTicks(true);
+        depthSlider.setPaintLabels(true);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(depthSlider, gbc);
+        JLabel depthValue = new JLabel(String.valueOf(currentDepth));
+        depthValue.setPreferredSize(new Dimension(40, 20));
+        gbc.gridx = 2; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(depthValue, gbc);
+        depthSlider.addChangeListener(e -> {
+            depthValue.setText(String.valueOf(depthSlider.getValue()));
+            updateLive.run();
+        });
+
+        // Light Angle (0-360)
+        gbc.gridx = 0; gbc.gridy = 2;
+        mainPanel.add(new JLabel("Light Angle:"), gbc);
+        angleSlider.setPreferredSize(new Dimension(600, 45));
+        angleSlider.setMajorTickSpacing(90);
+        angleSlider.setPaintTicks(true);
+        angleSlider.setPaintLabels(true);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(angleSlider, gbc);
+        JLabel angleValue = new JLabel(currentAngle + "°");
+        angleValue.setPreferredSize(new Dimension(40, 20));
+        gbc.gridx = 2; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(angleValue, gbc);
+        angleSlider.addChangeListener(e -> {
+            angleValue.setText(angleSlider.getValue() + "°");
+            updateLive.run();
+        });
+
+        // Highlight Opacity (0-255)
+        gbc.gridx = 0; gbc.gridy = 3;
+        mainPanel.add(new JLabel("Highlight:"), gbc);
+        highlightSlider.setPreferredSize(new Dimension(600, 45));
+        highlightSlider.setMajorTickSpacing(64);
+        highlightSlider.setPaintTicks(true);
+        highlightSlider.setPaintLabels(true);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(highlightSlider, gbc);
+        JLabel highlightValue = new JLabel(String.valueOf(currentHighlight));
+        highlightValue.setPreferredSize(new Dimension(40, 20));
+        gbc.gridx = 2; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(highlightValue, gbc);
+        highlightSlider.addChangeListener(e -> {
+            highlightValue.setText(String.valueOf(highlightSlider.getValue()));
+            updateLive.run();
+        });
+
+        // Shadow Opacity (0-255)
+        gbc.gridx = 0; gbc.gridy = 4;
+        mainPanel.add(new JLabel("Shadow:"), gbc);
+        shadowSlider.setPreferredSize(new Dimension(600, 45));
+        shadowSlider.setMajorTickSpacing(64);
+        shadowSlider.setPaintTicks(true);
+        shadowSlider.setPaintLabels(true);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
+        mainPanel.add(shadowSlider, gbc);
+        JLabel shadowValue = new JLabel(String.valueOf(currentShadow));
+        shadowValue.setPreferredSize(new Dimension(40, 20));
+        gbc.gridx = 2; gbc.fill = GridBagConstraints.NONE;
+        mainPanel.add(shadowValue, gbc);
+        shadowSlider.addChangeListener(e -> {
+            shadowValue.setText(String.valueOf(shadowSlider.getValue()));
+            updateLive.run();
+        });
+
+        dialog.add(mainPanel, BorderLayout.CENTER);
+
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton okBtn = new JButton("OK");
+        okBtn.addActionListener(e -> dialog.dispose());
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.addActionListener(e -> {
+            // Restore original values
+            for (int idx : selectedTaskIndices) {
+                TimelineTask task = tasks.get(idx);
+                int[] vals = originalTaskValues.get(idx);
+                String[] styles = originalTaskStyles.get(idx);
+                task.bevelDepth = vals[0];
+                task.bevelLightAngle = vals[1];
+                task.bevelHighlightOpacity = vals[2];
+                task.bevelShadowOpacity = vals[3];
+                task.bevelStyle = styles[0];
+                task.topBevel = styles[1];
+                task.bottomBevel = styles[2];
+            }
+            if (selectedMilestoneIndex >= 0 && originalMilestoneValues != null && originalMilestoneStyles != null) {
+                TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+                ms.bevelDepth = originalMilestoneValues[0];
+                ms.bevelLightAngle = originalMilestoneValues[1];
+                ms.bevelHighlightOpacity = originalMilestoneValues[2];
+                ms.bevelShadowOpacity = originalMilestoneValues[3];
+                ms.bevelStyle = originalMilestoneStyles[0];
+                ms.topBevel = originalMilestoneStyles[1];
+                ms.bottomBevel = originalMilestoneStyles[2];
+            }
+            undo(); // Undo the saveState we did at the beginning
+            timelineDisplayPanel.repaint();
+            dialog.dispose();
+        });
+        buttonPanel.add(okBtn);
+        buttonPanel.add(cancelBtn);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+    }
+
     private void updateCenterText() {
         if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String text = centerTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).centerText = text;
+        }
+        refreshTimeline();
+    }
+
+    private void updateFontFamily() {
+        if (selectedTaskIndices.isEmpty()) return;
+        saveState();
+        String value = (String) fontFamilyCombo.getSelectedItem();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).fontFamily = value;
         }
         refreshTimeline();
     }
@@ -1172,6 +1530,16 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
+    private void updateFrontFontFamily() {
+        if (selectedTaskIndices.isEmpty()) return;
+        saveState();
+        String value = (String) frontFontCombo.getSelectedItem();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).frontFontFamily = value;
+        }
+        refreshTimeline();
+    }
+
     private void updateFrontFontSize() {
         if (selectedTaskIndices.isEmpty()) return;
         saveState();
@@ -1247,6 +1615,16 @@ public class Timeline2 extends JFrame {
         String text = aboveTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).aboveText = text;
+        }
+        refreshTimeline();
+    }
+
+    private void updateAboveFontFamily() {
+        if (selectedTaskIndices.isEmpty()) return;
+        saveState();
+        String value = (String) aboveFontCombo.getSelectedItem();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).aboveFontFamily = value;
         }
         refreshTimeline();
     }
@@ -1330,6 +1708,16 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
+    private void updateUnderneathFontFamily() {
+        if (selectedTaskIndices.isEmpty()) return;
+        saveState();
+        String value = (String) underneathFontCombo.getSelectedItem();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).underneathFontFamily = value;
+        }
+        refreshTimeline();
+    }
+
     private void updateUnderneathFontSize() {
         if (selectedTaskIndices.isEmpty()) return;
         saveState();
@@ -1405,6 +1793,16 @@ public class Timeline2 extends JFrame {
         String text = behindTextField.getText();
         for (int idx : selectedTaskIndices) {
             tasks.get(idx).behindText = text;
+        }
+        refreshTimeline();
+    }
+
+    private void updateBehindFontFamily() {
+        if (selectedTaskIndices.isEmpty()) return;
+        saveState();
+        String value = (String) behindFontCombo.getSelectedItem();
+        for (int idx : selectedTaskIndices) {
+            tasks.get(idx).behindFontFamily = value;
         }
         refreshTimeline();
     }
@@ -1587,6 +1985,13 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
+    private void updateMilestoneBevel() {
+        if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
+        saveState();
+        milestones.get(selectedMilestoneIndex).bevelFill = milestoneBevelCheckbox.isSelected();
+        refreshTimeline();
+    }
+
     void selectTask(int index, boolean ctrlDown) {
         // Deselect milestone when task is selected
         if (index >= 0) {
@@ -1658,14 +2063,17 @@ public class Timeline2 extends JFrame {
             outlineColorBtn.setBackground(outlineColor);
             outlineThicknessSpinner.setValue(task.outlineThickness);
             taskHeightSpinner.setValue(task.height);
+            bevelFillCheckbox.setSelected(task.bevelFill);
 
             centerTextField.setText(task.centerText);
+            fontFamilyCombo.setSelectedItem(task.fontFamily);
             fontSizeSpinner.setValue(task.fontSize);
             boldBtn.setSelected(task.fontBold);
             italicBtn.setSelected(task.fontItalic);
             textColorBtn.setBackground(task.textColor != null ? task.textColor : Color.BLACK);
 
             frontTextField.setText(task.frontText);
+            frontFontCombo.setSelectedItem(task.frontFontFamily);
             frontFontSizeSpinner.setValue(task.frontFontSize);
             frontBoldBtn.setSelected(task.frontFontBold);
             frontItalicBtn.setSelected(task.frontFontItalic);
@@ -1677,6 +2085,7 @@ public class Timeline2 extends JFrame {
             centerYOffsetSpinner.setValue(task.centerTextYOffset);
 
             aboveTextField.setText(task.aboveText);
+            aboveFontCombo.setSelectedItem(task.aboveFontFamily);
             aboveFontSizeSpinner.setValue(task.aboveFontSize);
             aboveBoldBtn.setSelected(task.aboveFontBold);
             aboveItalicBtn.setSelected(task.aboveFontItalic);
@@ -1685,6 +2094,7 @@ public class Timeline2 extends JFrame {
             aboveYOffsetSpinner.setValue(task.aboveTextYOffset);
 
             underneathTextField.setText(task.underneathText);
+            underneathFontCombo.setSelectedItem(task.underneathFontFamily);
             underneathFontSizeSpinner.setValue(task.underneathFontSize);
             underneathBoldBtn.setSelected(task.underneathFontBold);
             underneathItalicBtn.setSelected(task.underneathFontItalic);
@@ -1693,6 +2103,7 @@ public class Timeline2 extends JFrame {
             underneathYOffsetSpinner.setValue(task.underneathTextYOffset);
 
             behindTextField.setText(task.behindText);
+            behindFontCombo.setSelectedItem(task.behindFontFamily);
             behindFontSizeSpinner.setValue(task.behindFontSize);
             behindBoldBtn.setSelected(task.behindFontBold);
             behindItalicBtn.setSelected(task.behindFontItalic);
@@ -1727,10 +2138,16 @@ public class Timeline2 extends JFrame {
             // Reset spinners to default but keep enabled
             outlineThicknessSpinner.setValue(2);
             taskHeightSpinner.setValue(25);
+            bevelFillCheckbox.setSelected(false);
+            fontFamilyCombo.setSelectedIndex(0);
             fontSizeSpinner.setValue(11);
+            frontFontCombo.setSelectedIndex(0);
             frontFontSizeSpinner.setValue(10);
+            aboveFontCombo.setSelectedIndex(0);
             aboveFontSizeSpinner.setValue(10);
+            underneathFontCombo.setSelectedIndex(0);
             underneathFontSizeSpinner.setValue(10);
+            behindFontCombo.setSelectedIndex(0);
             behindFontSizeSpinner.setValue(10);
             // Reset offset spinners
             frontXOffsetSpinner.setValue(0);
@@ -1784,12 +2201,16 @@ public class Timeline2 extends JFrame {
         outlineColorBtn.setEnabled(enabled);
         outlineThicknessSpinner.setEnabled(enabled);
         taskHeightSpinner.setEnabled(enabled);
+        bevelFillCheckbox.setEnabled(enabled);
+        bevelSettingsBtn.setEnabled(enabled);
         centerTextField.setEnabled(enabled);
+        fontFamilyCombo.setEnabled(enabled);
         fontSizeSpinner.setEnabled(enabled);
         boldBtn.setEnabled(enabled);
         italicBtn.setEnabled(enabled);
         textColorBtn.setEnabled(enabled);
         frontTextField.setEnabled(enabled);
+        frontFontCombo.setEnabled(enabled);
         frontFontSizeSpinner.setEnabled(enabled);
         frontBoldBtn.setEnabled(enabled);
         frontItalicBtn.setEnabled(enabled);
@@ -1799,6 +2220,7 @@ public class Timeline2 extends JFrame {
         centerXOffsetSpinner.setEnabled(enabled);
         centerYOffsetSpinner.setEnabled(enabled);
         aboveTextField.setEnabled(enabled);
+        aboveFontCombo.setEnabled(enabled);
         aboveFontSizeSpinner.setEnabled(enabled);
         aboveBoldBtn.setEnabled(enabled);
         aboveItalicBtn.setEnabled(enabled);
@@ -1806,6 +2228,7 @@ public class Timeline2 extends JFrame {
         aboveXOffsetSpinner.setEnabled(enabled);
         aboveYOffsetSpinner.setEnabled(enabled);
         underneathTextField.setEnabled(enabled);
+        underneathFontCombo.setEnabled(enabled);
         underneathFontSizeSpinner.setEnabled(enabled);
         underneathBoldBtn.setEnabled(enabled);
         underneathItalicBtn.setEnabled(enabled);
@@ -1813,6 +2236,7 @@ public class Timeline2 extends JFrame {
         underneathXOffsetSpinner.setEnabled(enabled);
         underneathYOffsetSpinner.setEnabled(enabled);
         behindTextField.setEnabled(enabled);
+        behindFontCombo.setEnabled(enabled);
         behindFontSizeSpinner.setEnabled(enabled);
         behindBoldBtn.setEnabled(enabled);
         behindItalicBtn.setEnabled(enabled);
@@ -1835,12 +2259,15 @@ public class Timeline2 extends JFrame {
         outlineColorBtn.setBackground(null);
         outlineThicknessSpinner.setValue(2);
         taskHeightSpinner.setValue(25);
+        bevelFillCheckbox.setSelected(false);
         centerTextField.setText("");
+        fontFamilyCombo.setSelectedIndex(0);
         fontSizeSpinner.setValue(11);
         boldBtn.setSelected(false);
         italicBtn.setSelected(false);
         textColorBtn.setBackground(null);
         frontTextField.setText("");
+        frontFontCombo.setSelectedIndex(0);
         frontFontSizeSpinner.setValue(10);
         frontBoldBtn.setSelected(false);
         frontItalicBtn.setSelected(false);
@@ -1850,6 +2277,7 @@ public class Timeline2 extends JFrame {
         centerXOffsetSpinner.setValue(0);
         centerYOffsetSpinner.setValue(0);
         aboveTextField.setText("");
+        aboveFontCombo.setSelectedIndex(0);
         aboveFontSizeSpinner.setValue(10);
         aboveBoldBtn.setSelected(false);
         aboveItalicBtn.setSelected(false);
@@ -1857,6 +2285,7 @@ public class Timeline2 extends JFrame {
         aboveXOffsetSpinner.setValue(0);
         aboveYOffsetSpinner.setValue(0);
         underneathTextField.setText("");
+        underneathFontCombo.setSelectedIndex(0);
         underneathFontSizeSpinner.setValue(10);
         underneathBoldBtn.setSelected(false);
         underneathItalicBtn.setSelected(false);
@@ -1864,6 +2293,7 @@ public class Timeline2 extends JFrame {
         underneathXOffsetSpinner.setValue(0);
         underneathYOffsetSpinner.setValue(0);
         behindTextField.setText("");
+        behindFontCombo.setSelectedIndex(0);
         behindFontSizeSpinner.setValue(10);
         behindBoldBtn.setSelected(false);
         behindItalicBtn.setSelected(false);
@@ -1902,6 +2332,9 @@ public class Timeline2 extends JFrame {
             milestoneHeightSpinner.setEnabled(true);
             milestoneWidthSpinner.setValue(milestone.width);
             milestoneWidthSpinner.setEnabled(true);
+            milestoneBevelCheckbox.setSelected(milestone.bevelFill);
+            milestoneBevelCheckbox.setEnabled(true);
+            milestoneBevelSettingsBtn.setEnabled(true);
         } else {
             // Show task row when no milestone is selected
             row1CardLayout.show(row1Container, "task");
@@ -1936,8 +2369,17 @@ public class Timeline2 extends JFrame {
             copy.fillColor = original.fillColor;
             copy.outlineColor = original.outlineColor;
             copy.outlineThickness = original.outlineThickness;
+            copy.bevelFill = original.bevelFill;
+            copy.bevelDepth = original.bevelDepth;
+            copy.bevelLightAngle = original.bevelLightAngle;
+            copy.bevelHighlightOpacity = original.bevelHighlightOpacity;
+            copy.bevelShadowOpacity = original.bevelShadowOpacity;
+            copy.bevelStyle = original.bevelStyle;
+            copy.topBevel = original.topBevel;
+            copy.bottomBevel = original.bottomBevel;
             copy.height = original.height;
             copy.yPosition = original.yPosition >= 0 ? original.yPosition + original.height + 10 : -1;
+            copy.fontFamily = original.fontFamily;
             copy.fontSize = original.fontSize;
             copy.fontBold = original.fontBold;
             copy.fontItalic = original.fontItalic;
@@ -1946,6 +2388,7 @@ public class Timeline2 extends JFrame {
             copy.centerTextYOffset = original.centerTextYOffset;
             // Front text
             copy.frontText = original.frontText;
+            copy.frontFontFamily = original.frontFontFamily;
             copy.frontFontSize = original.frontFontSize;
             copy.frontFontBold = original.frontFontBold;
             copy.frontFontItalic = original.frontFontItalic;
@@ -1954,6 +2397,7 @@ public class Timeline2 extends JFrame {
             copy.frontTextYOffset = original.frontTextYOffset;
             // Above text
             copy.aboveText = original.aboveText;
+            copy.aboveFontFamily = original.aboveFontFamily;
             copy.aboveFontSize = original.aboveFontSize;
             copy.aboveFontBold = original.aboveFontBold;
             copy.aboveFontItalic = original.aboveFontItalic;
@@ -1962,6 +2406,7 @@ public class Timeline2 extends JFrame {
             copy.aboveTextYOffset = original.aboveTextYOffset;
             // Underneath text
             copy.underneathText = original.underneathText;
+            copy.underneathFontFamily = original.underneathFontFamily;
             copy.underneathFontSize = original.underneathFontSize;
             copy.underneathFontBold = original.underneathFontBold;
             copy.underneathFontItalic = original.underneathFontItalic;
@@ -1970,6 +2415,7 @@ public class Timeline2 extends JFrame {
             copy.underneathTextYOffset = original.underneathTextYOffset;
             // Behind text
             copy.behindText = original.behindText;
+            copy.behindFontFamily = original.behindFontFamily;
             copy.behindFontSize = original.behindFontSize;
             copy.behindFontBold = original.behindFontBold;
             copy.behindFontItalic = original.behindFontItalic;
@@ -2373,6 +2819,27 @@ public class Timeline2 extends JFrame {
         panel.add(dateLabelColorRow);
         panel.add(Box.createVerticalStrut(2));
 
+        // Date label font family row
+        JPanel dateLabelFontRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        dateLabelFontRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        dateLabelFontRow.setOpaque(false);
+        dateLabelFontRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel dateLabelFontLabel = new JLabel("Font:");
+        dateLabelFontLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        dateLabelFontRow.add(dateLabelFontLabel);
+
+        axisDateFontCombo = new JComboBox<>(FONT_FAMILIES);
+        axisDateFontCombo.setPreferredSize(new Dimension(120, 20));
+        axisDateFontCombo.addActionListener(e -> {
+            axisDateFontFamily = (String) axisDateFontCombo.getSelectedItem();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        dateLabelFontRow.add(axisDateFontCombo);
+
+        panel.add(dateLabelFontRow);
+        panel.add(Box.createVerticalStrut(2));
+
         // Date label font size row
         JPanel dateLabelSizeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         dateLabelSizeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -2595,7 +3062,7 @@ public class Timeline2 extends JFrame {
     private void showPreferencesDialog() {
         JDialog dialog = new JDialog(this, "Preferences", true);
         dialog.setLayout(new BorderLayout(10, 10));
-        dialog.setSize(420, 380);
+        dialog.setSize(450, 400);
         dialog.setLocationRelativeTo(this);
 
         JTabbedPane tabbedPane = new JTabbedPane();
@@ -2678,6 +3145,71 @@ public class Timeline2 extends JFrame {
         addColorRow(formatTab, dialog, "Resize Handle:", formatResizeHandleColor, c -> formatResizeHandleColor = c);
         tabbedPane.addTab("Format", formatTab);
 
+        // Shortcuts Tab
+        JPanel shortcutsTab = new JPanel(new GridBagLayout());
+        shortcutsTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Key combo options
+        String[] keyOptions = {"Tab", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+            "Delete", "Insert", "Home", "End", "Page Up", "Page Down", "Space", "Enter", "Escape"};
+        String[] modifierOptions = {"None", "Shift", "Ctrl", "Alt", "Ctrl+Shift", "Ctrl+Alt", "Shift+Alt"};
+
+        // Select Next shortcut
+        gbc.gridx = 0; gbc.gridy = 0;
+        shortcutsTab.add(new JLabel("Select Next:"), gbc);
+        JComboBox<String> selectNextKeyCombo = new JComboBox<>(keyOptions);
+        selectNextKeyCombo.setSelectedItem(getKeyName(selectNextKey));
+        gbc.gridx = 1;
+        shortcutsTab.add(selectNextKeyCombo, gbc);
+        JComboBox<String> selectNextModCombo = new JComboBox<>(modifierOptions);
+        selectNextModCombo.setSelectedItem(getModifierName(selectNextModifiers));
+        gbc.gridx = 2;
+        shortcutsTab.add(selectNextModCombo, gbc);
+
+        // Delete Selected shortcut
+        gbc.gridx = 0; gbc.gridy = 1;
+        shortcutsTab.add(new JLabel("Delete Selected:"), gbc);
+        JComboBox<String> deleteKeyCombo = new JComboBox<>(keyOptions);
+        deleteKeyCombo.setSelectedItem(getKeyName(deleteSelectedKey));
+        gbc.gridx = 1;
+        shortcutsTab.add(deleteKeyCombo, gbc);
+        JComboBox<String> deleteModCombo = new JComboBox<>(modifierOptions);
+        deleteModCombo.setSelectedItem(getModifierName(deleteSelectedModifiers));
+        gbc.gridx = 2;
+        shortcutsTab.add(deleteModCombo, gbc);
+
+        // Duplicate shortcut
+        gbc.gridx = 0; gbc.gridy = 2;
+        shortcutsTab.add(new JLabel("Duplicate Task:"), gbc);
+        JComboBox<String> duplicateKeyCombo = new JComboBox<>(keyOptions);
+        duplicateKeyCombo.setSelectedItem(getKeyName(duplicateKey));
+        gbc.gridx = 1;
+        shortcutsTab.add(duplicateKeyCombo, gbc);
+        JComboBox<String> duplicateModCombo = new JComboBox<>(modifierOptions);
+        duplicateModCombo.setSelectedItem(getModifierName(duplicateModifiers));
+        gbc.gridx = 2;
+        shortcutsTab.add(duplicateModCombo, gbc);
+
+        // Apply shortcuts button
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 3;
+        gbc.anchor = GridBagConstraints.CENTER;
+        JButton applyShortcutsBtn = new JButton("Apply Shortcuts");
+        applyShortcutsBtn.addActionListener(ev -> {
+            selectNextKey = getKeyCode((String) selectNextKeyCombo.getSelectedItem());
+            selectNextModifiers = getModifierCode((String) selectNextModCombo.getSelectedItem());
+            deleteSelectedKey = getKeyCode((String) deleteKeyCombo.getSelectedItem());
+            deleteSelectedModifiers = getModifierCode((String) deleteModCombo.getSelectedItem());
+            duplicateKey = getKeyCode((String) duplicateKeyCombo.getSelectedItem());
+            duplicateModifiers = getModifierCode((String) duplicateModCombo.getSelectedItem());
+            JOptionPane.showMessageDialog(dialog, "Shortcuts updated successfully!");
+        });
+        shortcutsTab.add(applyShortcutsBtn, gbc);
+
+        tabbedPane.addTab("Shortcuts", shortcutsTab);
+
         dialog.add(tabbedPane, BorderLayout.CENTER);
 
         // Buttons panel
@@ -2718,6 +3250,86 @@ public class Timeline2 extends JFrame {
             }
         });
         return btn;
+    }
+
+    private String getKeyName(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.VK_TAB: return "Tab";
+            case KeyEvent.VK_F1: return "F1";
+            case KeyEvent.VK_F2: return "F2";
+            case KeyEvent.VK_F3: return "F3";
+            case KeyEvent.VK_F4: return "F4";
+            case KeyEvent.VK_F5: return "F5";
+            case KeyEvent.VK_F6: return "F6";
+            case KeyEvent.VK_F7: return "F7";
+            case KeyEvent.VK_F8: return "F8";
+            case KeyEvent.VK_F9: return "F9";
+            case KeyEvent.VK_F10: return "F10";
+            case KeyEvent.VK_F11: return "F11";
+            case KeyEvent.VK_F12: return "F12";
+            case KeyEvent.VK_DELETE: return "Delete";
+            case KeyEvent.VK_INSERT: return "Insert";
+            case KeyEvent.VK_HOME: return "Home";
+            case KeyEvent.VK_END: return "End";
+            case KeyEvent.VK_PAGE_UP: return "Page Up";
+            case KeyEvent.VK_PAGE_DOWN: return "Page Down";
+            case KeyEvent.VK_SPACE: return "Space";
+            case KeyEvent.VK_ENTER: return "Enter";
+            case KeyEvent.VK_ESCAPE: return "Escape";
+            default: return "Tab";
+        }
+    }
+
+    private int getKeyCode(String keyName) {
+        switch (keyName) {
+            case "Tab": return KeyEvent.VK_TAB;
+            case "F1": return KeyEvent.VK_F1;
+            case "F2": return KeyEvent.VK_F2;
+            case "F3": return KeyEvent.VK_F3;
+            case "F4": return KeyEvent.VK_F4;
+            case "F5": return KeyEvent.VK_F5;
+            case "F6": return KeyEvent.VK_F6;
+            case "F7": return KeyEvent.VK_F7;
+            case "F8": return KeyEvent.VK_F8;
+            case "F9": return KeyEvent.VK_F9;
+            case "F10": return KeyEvent.VK_F10;
+            case "F11": return KeyEvent.VK_F11;
+            case "F12": return KeyEvent.VK_F12;
+            case "Delete": return KeyEvent.VK_DELETE;
+            case "Insert": return KeyEvent.VK_INSERT;
+            case "Home": return KeyEvent.VK_HOME;
+            case "End": return KeyEvent.VK_END;
+            case "Page Up": return KeyEvent.VK_PAGE_UP;
+            case "Page Down": return KeyEvent.VK_PAGE_DOWN;
+            case "Space": return KeyEvent.VK_SPACE;
+            case "Enter": return KeyEvent.VK_ENTER;
+            case "Escape": return KeyEvent.VK_ESCAPE;
+            default: return KeyEvent.VK_TAB;
+        }
+    }
+
+    private String getModifierName(int modifiers) {
+        if (modifiers == 0) return "None";
+        if (modifiers == InputEvent.SHIFT_DOWN_MASK) return "Shift";
+        if (modifiers == InputEvent.CTRL_DOWN_MASK) return "Ctrl";
+        if (modifiers == InputEvent.ALT_DOWN_MASK) return "Alt";
+        if (modifiers == (InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)) return "Ctrl+Shift";
+        if (modifiers == (InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK)) return "Ctrl+Alt";
+        if (modifiers == (InputEvent.SHIFT_DOWN_MASK | InputEvent.ALT_DOWN_MASK)) return "Shift+Alt";
+        return "None";
+    }
+
+    private int getModifierCode(String modifierName) {
+        switch (modifierName) {
+            case "None": return 0;
+            case "Shift": return InputEvent.SHIFT_DOWN_MASK;
+            case "Ctrl": return InputEvent.CTRL_DOWN_MASK;
+            case "Alt": return InputEvent.ALT_DOWN_MASK;
+            case "Ctrl+Shift": return InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
+            case "Ctrl+Alt": return InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK;
+            case "Shift+Alt": return InputEvent.SHIFT_DOWN_MASK | InputEvent.ALT_DOWN_MASK;
+            default: return 0;
+        }
     }
 
     private void applyPanelColors() {
@@ -2824,6 +3436,11 @@ public class Timeline2 extends JFrame {
             zos.putNextEntry(new ZipEntry("xl/worksheets/sheet3.xml"));
             zos.write(getSheet3Xml().getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
+
+            // Sheet 4: Notes
+            zos.putNextEntry(new ZipEntry("xl/worksheets/sheet4.xml"));
+            zos.write(getSheet4Xml().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
         }
     }
 
@@ -2836,6 +3453,7 @@ public class Timeline2 extends JFrame {
                "  <Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
                "  <Override PartName=\"/xl/worksheets/sheet2.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
                "  <Override PartName=\"/xl/worksheets/sheet3.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
+               "  <Override PartName=\"/xl/worksheets/sheet4.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
                "  <Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>\n" +
                "</Types>";
     }
@@ -2854,6 +3472,7 @@ public class Timeline2 extends JFrame {
                "    <sheet name=\"Basic Data\" sheetId=\"1\" r:id=\"rId1\"/>\n" +
                "    <sheet name=\"Format Data\" sheetId=\"2\" r:id=\"rId2\"/>\n" +
                "    <sheet name=\"Settings\" sheetId=\"3\" r:id=\"rId3\"/>\n" +
+               "    <sheet name=\"Notes\" sheetId=\"4\" r:id=\"rId4\"/>\n" +
                "  </sheets>\n" +
                "</workbook>";
     }
@@ -2864,7 +3483,8 @@ public class Timeline2 extends JFrame {
                "  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>\n" +
                "  <Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet2.xml\"/>\n" +
                "  <Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet3.xml\"/>\n" +
-               "  <Relationship Id=\"rId4\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>\n" +
+               "  <Relationship Id=\"rId4\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet4.xml\"/>\n" +
+               "  <Relationship Id=\"rId5\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>\n" +
                "</Relationships>";
     }
 
@@ -3056,6 +3676,44 @@ public class Timeline2 extends JFrame {
         row = addSettingRow(sb, row, "Format Label Color", colorToHex(formatLabelColor));
         row = addSettingRow(sb, row, "Format Separator Color", colorToHex(formatSeparatorColor));
         addSettingRow(sb, row, "Format Resize Handle Color", colorToHex(formatResizeHandleColor));
+
+        sb.append("  </sheetData>\n");
+        sb.append("</worksheet>");
+        return sb.toString();
+    }
+
+    // Sheet 4: Notes (Type, Name, Note 1-5)
+    private String getSheet4Xml() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">\n");
+        sb.append("  <sheetData>\n");
+
+        // Header row
+        sb.append("    <row r=\"1\">\n");
+        sb.append("      <c r=\"A1\" t=\"inlineStr\" s=\"1\"><is><t>Type</t></is></c>\n");
+        sb.append("      <c r=\"B1\" t=\"inlineStr\" s=\"1\"><is><t>Name</t></is></c>\n");
+        sb.append("      <c r=\"C1\" t=\"inlineStr\" s=\"1\"><is><t>Note 1</t></is></c>\n");
+        sb.append("      <c r=\"D1\" t=\"inlineStr\" s=\"1\"><is><t>Note 2</t></is></c>\n");
+        sb.append("      <c r=\"E1\" t=\"inlineStr\" s=\"1\"><is><t>Note 3</t></is></c>\n");
+        sb.append("      <c r=\"F1\" t=\"inlineStr\" s=\"1\"><is><t>Note 4</t></is></c>\n");
+        sb.append("      <c r=\"G1\" t=\"inlineStr\" s=\"1\"><is><t>Note 5</t></is></c>\n");
+        sb.append("    </row>\n");
+
+        int row = 2;
+        // Tasks with notes
+        for (TimelineTask task : tasks) {
+            sb.append("    <row r=\"").append(row).append("\">\n");
+            sb.append("      <c r=\"A").append(row).append("\" t=\"inlineStr\"><is><t>Task</t></is></c>\n");
+            sb.append("      <c r=\"B").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.name)).append("</t></is></c>\n");
+            sb.append("      <c r=\"C").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.note1)).append("</t></is></c>\n");
+            sb.append("      <c r=\"D").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.note2)).append("</t></is></c>\n");
+            sb.append("      <c r=\"E").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.note3)).append("</t></is></c>\n");
+            sb.append("      <c r=\"F").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.note4)).append("</t></is></c>\n");
+            sb.append("      <c r=\"G").append(row).append("\" t=\"inlineStr\"><is><t>").append(escapeXml(task.note5)).append("</t></is></c>\n");
+            sb.append("    </row>\n");
+            row++;
+        }
 
         sb.append("  </sheetData>\n");
         sb.append("</worksheet>");
@@ -3291,6 +3949,31 @@ public class Timeline2 extends JFrame {
                 String setting = r[0];
                 String value = r[1];
                 applySettingValue(setting, value);
+            }
+        }
+
+        // Import notes from Sheet 4
+        String sheet4 = sheets.get("xl/worksheets/sheet4.xml");
+        if (sheet4 != null) {
+            ArrayList<String[]> notesRows = parseSheetRows(sheet4);
+            // Create a map of task name to notes
+            Map<String, String[]> notesMap = new HashMap<>();
+            for (int i = 1; i < notesRows.size(); i++) {
+                String[] r = notesRows.get(i);
+                if (r.length >= 2 && "Task".equalsIgnoreCase(r[0])) {
+                    notesMap.put(r[1], r);
+                }
+            }
+            // Apply notes to tasks
+            for (TimelineTask task : tasks) {
+                String[] notes = notesMap.get(task.name);
+                if (notes != null) {
+                    task.note1 = notes.length > 2 ? notes[2] : "";
+                    task.note2 = notes.length > 3 ? notes[3] : "";
+                    task.note3 = notes.length > 4 ? notes[4] : "";
+                    task.note4 = notes.length > 5 ? notes[5] : "";
+                    task.note5 = notes.length > 6 ? notes[6] : "";
+                }
             }
         }
 
@@ -4030,8 +4713,17 @@ public class Timeline2 extends JFrame {
             copy.fillColor = t.fillColor;
             copy.outlineColor = t.outlineColor;
             copy.outlineThickness = t.outlineThickness;
+            copy.bevelFill = t.bevelFill;
+            copy.bevelDepth = t.bevelDepth;
+            copy.bevelLightAngle = t.bevelLightAngle;
+            copy.bevelHighlightOpacity = t.bevelHighlightOpacity;
+            copy.bevelShadowOpacity = t.bevelShadowOpacity;
+            copy.bevelStyle = t.bevelStyle;
+            copy.topBevel = t.topBevel;
+            copy.bottomBevel = t.bottomBevel;
             copy.height = t.height;
             copy.yPosition = t.yPosition;
+            copy.fontFamily = t.fontFamily;
             copy.fontSize = t.fontSize;
             copy.fontBold = t.fontBold;
             copy.fontItalic = t.fontItalic;
@@ -4039,6 +4731,7 @@ public class Timeline2 extends JFrame {
             copy.centerTextXOffset = t.centerTextXOffset;
             copy.centerTextYOffset = t.centerTextYOffset;
             copy.frontText = t.frontText;
+            copy.frontFontFamily = t.frontFontFamily;
             copy.frontFontSize = t.frontFontSize;
             copy.frontFontBold = t.frontFontBold;
             copy.frontFontItalic = t.frontFontItalic;
@@ -4046,6 +4739,7 @@ public class Timeline2 extends JFrame {
             copy.frontTextXOffset = t.frontTextXOffset;
             copy.frontTextYOffset = t.frontTextYOffset;
             copy.aboveText = t.aboveText;
+            copy.aboveFontFamily = t.aboveFontFamily;
             copy.aboveFontSize = t.aboveFontSize;
             copy.aboveFontBold = t.aboveFontBold;
             copy.aboveFontItalic = t.aboveFontItalic;
@@ -4053,6 +4747,7 @@ public class Timeline2 extends JFrame {
             copy.aboveTextXOffset = t.aboveTextXOffset;
             copy.aboveTextYOffset = t.aboveTextYOffset;
             copy.underneathText = t.underneathText;
+            copy.underneathFontFamily = t.underneathFontFamily;
             copy.underneathFontSize = t.underneathFontSize;
             copy.underneathFontBold = t.underneathFontBold;
             copy.underneathFontItalic = t.underneathFontItalic;
@@ -4060,6 +4755,7 @@ public class Timeline2 extends JFrame {
             copy.underneathTextXOffset = t.underneathTextXOffset;
             copy.underneathTextYOffset = t.underneathTextYOffset;
             copy.behindText = t.behindText;
+            copy.behindFontFamily = t.behindFontFamily;
             copy.behindFontSize = t.behindFontSize;
             copy.behindFontBold = t.behindFontBold;
             copy.behindFontItalic = t.behindFontItalic;
@@ -4082,7 +4778,16 @@ public class Timeline2 extends JFrame {
             copy.fillColor = m.fillColor;
             copy.outlineColor = m.outlineColor;
             copy.outlineThickness = m.outlineThickness;
+            copy.bevelFill = m.bevelFill;
+            copy.bevelDepth = m.bevelDepth;
+            copy.bevelLightAngle = m.bevelLightAngle;
+            copy.bevelHighlightOpacity = m.bevelHighlightOpacity;
+            copy.bevelShadowOpacity = m.bevelShadowOpacity;
+            copy.bevelStyle = m.bevelStyle;
+            copy.topBevel = m.topBevel;
+            copy.bottomBevel = m.bottomBevel;
             copy.labelText = m.labelText;
+            copy.fontFamily = m.fontFamily;
             copy.fontSize = m.fontSize;
             copy.fontBold = m.fontBold;
             copy.fontItalic = m.fontItalic;
@@ -4097,9 +4802,18 @@ public class Timeline2 extends JFrame {
         Color fillColor = null;    // null means use default
         Color outlineColor = null; // null means use default (darker fill)
         int outlineThickness = 2;  // default thickness
+        boolean bevelFill = false; // bevel effect on fill
+        int bevelDepth = 60;       // bevel intensity (0-100)
+        int bevelLightAngle = 135; // light angle in degrees (0-360, 135 = top-left)
+        int bevelHighlightOpacity = 80; // highlight opacity (0-255)
+        int bevelShadowOpacity = 60;    // shadow opacity (0-255)
+        String bevelStyle = "Inner Bevel";  // "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"
+        String topBevel = "Circle";    // PowerPoint-style top bevel shape
+        String bottomBevel = "None";   // PowerPoint-style bottom bevel shape
         int height = 25;           // default height
         int yPosition = -1;        // Y position on timeline (-1 means auto-calculate)
         // Center text formatting properties
+        String fontFamily = "SansSerif";  // default font family
         int fontSize = 11;         // default font size
         boolean fontBold = false;  // default not bold
         boolean fontItalic = false; // default not italic
@@ -4108,6 +4822,7 @@ public class Timeline2 extends JFrame {
         int centerTextYOffset = 0; // Y offset from default position
         // Front text properties (text in front of task bar)
         String frontText = "";
+        String frontFontFamily = "SansSerif";
         int frontFontSize = 10;
         boolean frontFontBold = false;
         boolean frontFontItalic = false;
@@ -4116,6 +4831,7 @@ public class Timeline2 extends JFrame {
         int frontTextYOffset = 0;
         // Above text properties (text above task bar)
         String aboveText = "";
+        String aboveFontFamily = "SansSerif";
         int aboveFontSize = 10;
         boolean aboveFontBold = false;
         boolean aboveFontItalic = false;
@@ -4124,6 +4840,7 @@ public class Timeline2 extends JFrame {
         int aboveTextYOffset = 0;
         // Underneath text properties (text below task bar)
         String underneathText = "";
+        String underneathFontFamily = "SansSerif";
         int underneathFontSize = 10;
         boolean underneathFontBold = false;
         boolean underneathFontItalic = false;
@@ -4132,6 +4849,7 @@ public class Timeline2 extends JFrame {
         int underneathTextYOffset = 0;
         // Behind text properties (text behind task bar)
         String behindText = "";
+        String behindFontFamily = "SansSerif";
         int behindFontSize = 10;
         boolean behindFontBold = false;
         boolean behindFontItalic = false;
@@ -4162,8 +4880,17 @@ public class Timeline2 extends JFrame {
         Color fillColor = new Color(255, 193, 7);  // default gold/yellow
         Color outlineColor = Color.BLACK;
         int outlineThickness = 2;
+        boolean bevelFill = false; // bevel effect on fill
+        int bevelDepth = 60;       // bevel intensity (0-100)
+        int bevelLightAngle = 135; // light angle in degrees (0-360, 135 = top-left)
+        int bevelHighlightOpacity = 80; // highlight opacity (0-255)
+        int bevelShadowOpacity = 60;    // shadow opacity (0-255)
+        String bevelStyle = "Inner Bevel";  // "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"
+        String topBevel = "Circle";    // PowerPoint-style top bevel shape
+        String bottomBevel = "None";   // PowerPoint-style bottom bevel shape
         // Text properties
         String labelText = "";
+        String fontFamily = "SansSerif";
         int fontSize = 10;
         boolean fontBold = false;
         boolean fontItalic = false;
@@ -4235,15 +4962,43 @@ public class Timeline2 extends JFrame {
 
         private void setupKeyListeners() {
             setFocusable(true);
+            // Disable Tab key focus traversal so Tab can be used as a shortcut
+            setFocusTraversalKeysEnabled(false);
             addKeyListener(new java.awt.event.KeyAdapter() {
                 @Override
                 public void keyPressed(java.awt.event.KeyEvent e) {
-                    if (selectedTaskIndices.isEmpty()) return;
+                    int keyCode = e.getKeyCode();
+                    int modifiers = e.getModifiersEx();
+
+                    // Check for configurable shortcuts first
+                    // Select next (Tab)
+                    if (keyCode == selectNextKey && modifiers == selectNextModifiers) {
+                        selectNextItem();
+                        e.consume();
+                        return;
+                    }
+                    // Delete selected (Shift+Delete)
+                    if (keyCode == deleteSelectedKey && (modifiers & deleteSelectedModifiers) == deleteSelectedModifiers) {
+                        deleteSelectedItem();
+                        e.consume();
+                        return;
+                    }
+                    // Duplicate (F1)
+                    if (keyCode == duplicateKey && modifiers == duplicateModifiers) {
+                        if (!selectedTaskIndices.isEmpty()) {
+                            duplicateSelectedTasks();
+                        }
+                        e.consume();
+                        return;
+                    }
+
+                    // Arrow key movement for selected tasks
+                    if (selectedTaskIndices.isEmpty() && selectedMilestoneIndex < 0) return;
 
                     int daysDelta = 0;
                     int yDelta = 0;
 
-                    switch (e.getKeyCode()) {
+                    switch (keyCode) {
                         case java.awt.event.KeyEvent.VK_LEFT:
                             daysDelta = -1;
                             break;
@@ -4283,6 +5038,20 @@ public class Timeline2 extends JFrame {
                         }
                     }
 
+                    // Move selected milestone
+                    if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                        TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+                        if (daysDelta != 0) {
+                            try {
+                                LocalDate date = LocalDate.parse(ms.date, DATE_FORMAT);
+                                ms.date = date.plusDays(daysDelta).format(DATE_FORMAT);
+                            } catch (Exception ex) {}
+                        }
+                        if (yDelta != 0) {
+                            ms.yPosition = Math.max(35, ms.yPosition + yDelta);
+                        }
+                    }
+
                     // Update format panel if single selection
                     if (selectedTaskIndices.size() == 1) {
                         int idx = selectedTaskIndices.iterator().next();
@@ -4292,6 +5061,72 @@ public class Timeline2 extends JFrame {
                     repaint();
                 }
             });
+        }
+
+        private void selectNextItem() {
+            // Combine tasks and milestones into a single list for navigation
+            int totalItems = tasks.size() + milestones.size();
+            if (totalItems == 0) return;
+
+            int currentIndex = -1;
+
+            // Find current selection
+            if (selectedMilestoneIndex >= 0) {
+                currentIndex = tasks.size() + selectedMilestoneIndex;
+            } else if (!selectedTaskIndices.isEmpty()) {
+                // Get the highest selected task index
+                currentIndex = selectedTaskIndices.stream().max(Integer::compare).orElse(-1);
+            }
+
+            // Calculate next index
+            int nextIndex = (currentIndex + 1) % totalItems;
+
+            // Clear all selections
+            selectedTaskIndices.clear();
+            selectedMilestoneIndex = -1;
+
+            // Select next item
+            if (nextIndex < tasks.size()) {
+                selectedTaskIndices.add(nextIndex);
+            } else {
+                selectedMilestoneIndex = nextIndex - tasks.size();
+            }
+
+            updateFormatPanelForSelection();
+            layersPanel.refreshLayers();
+            repaint();
+        }
+
+        private void deleteSelectedItem() {
+            if (selectedTaskIndices.isEmpty() && selectedMilestoneIndex < 0) return;
+
+            saveState();
+
+            // Delete selected tasks
+            if (!selectedTaskIndices.isEmpty()) {
+                java.util.List<Integer> sortedIndices = new java.util.ArrayList<>(selectedTaskIndices);
+                java.util.Collections.sort(sortedIndices, java.util.Collections.reverseOrder());
+                for (int idx : sortedIndices) {
+                    if (idx >= 0 && idx < tasks.size()) {
+                        TimelineTask task = tasks.get(idx);
+                        layerOrder.remove(task);
+                        tasks.remove(idx);
+                    }
+                }
+                selectedTaskIndices.clear();
+            }
+
+            // Delete selected milestone
+            if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+                layerOrder.remove(ms);
+                milestones.remove(selectedMilestoneIndex);
+                selectedMilestoneIndex = -1;
+            }
+
+            clearFormatFields();
+            layersPanel.refreshLayers();
+            repaint();
         }
 
         private int getTaskHeight(int index) {
@@ -5000,7 +5835,7 @@ public class Timeline2 extends JFrame {
                     int behindFontStyle = Font.PLAIN;
                     if (task.behindFontBold) behindFontStyle |= Font.BOLD;
                     if (task.behindFontItalic) behindFontStyle |= Font.ITALIC;
-                    g2d.setFont(new Font("Arial", behindFontStyle, task.behindFontSize));
+                    g2d.setFont(new Font(task.behindFontFamily, behindFontStyle, task.behindFontSize));
                     g2d.setColor(task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150));
                     FontMetrics behindFm = g2d.getFontMetrics();
                     int behindTextWidth = behindFm.stringWidth(task.behindText);
@@ -5014,7 +5849,7 @@ public class Timeline2 extends JFrame {
                     int frontFontStyle = Font.PLAIN;
                     if (task.frontFontBold) frontFontStyle |= Font.BOLD;
                     if (task.frontFontItalic) frontFontStyle |= Font.ITALIC;
-                    g2d.setFont(new Font("Arial", frontFontStyle, task.frontFontSize));
+                    g2d.setFont(new Font(task.frontFontFamily, frontFontStyle, task.frontFontSize));
                     g2d.setColor(task.frontTextColor != null ? task.frontTextColor : Color.BLACK);
                     FontMetrics frontFm = g2d.getFontMetrics();
                     int frontTextWidth = frontFm.stringWidth(task.frontText);
@@ -5023,8 +5858,107 @@ public class Timeline2 extends JFrame {
                                    y + (taskHeight + frontFm.getAscent() - frontFm.getDescent()) / 2 + task.frontTextYOffset);
                 }
 
-                g2d.setColor(fillColor);
-                g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
+                if (task.bevelFill) {
+                    // Draw beveled fill effect using task's bevel settings
+                    int depth = task.bevelDepth;
+                    Color lighter = new Color(
+                        Math.min(255, fillColor.getRed() + depth),
+                        Math.min(255, fillColor.getGreen() + depth),
+                        Math.min(255, fillColor.getBlue() + depth));
+                    Color darker = new Color(
+                        Math.max(0, fillColor.getRed() - depth),
+                        Math.max(0, fillColor.getGreen() - depth),
+                        Math.max(0, fillColor.getBlue() - depth));
+
+                    String style = task.bevelStyle != null ? task.bevelStyle : "Inner Bevel";
+
+                    if (style.equals("Pillow Emboss")) {
+                        // Pillow emboss - inward pressed effect
+                        g2d.setColor(fillColor);
+                        g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
+                        // Inner shadow (top-left)
+                        g2d.setColor(new Color(0, 0, 0, task.bevelShadowOpacity));
+                        g2d.setStroke(new BasicStroke(Math.max(1, depth / 20)));
+                        g2d.drawLine(x1 + 4, y + 2, x1 + barWidth - 4, y + 2);
+                        g2d.drawLine(x1 + 2, y + 4, x1 + 2, y + taskHeight - 4);
+                        // Inner highlight (bottom-right)
+                        g2d.setColor(new Color(255, 255, 255, task.bevelHighlightOpacity));
+                        g2d.drawLine(x1 + 4, y + taskHeight - 2, x1 + barWidth - 4, y + taskHeight - 2);
+                        g2d.drawLine(x1 + barWidth - 2, y + 4, x1 + barWidth - 2, y + taskHeight - 4);
+                    } else if (style.equals("Outer Bevel")) {
+                        // Outer bevel - raised effect with outer edges
+                        double angleRad = Math.toRadians(task.bevelLightAngle);
+                        float dx = (float) Math.cos(angleRad) * barWidth;
+                        float dy = (float) Math.sin(angleRad) * taskHeight;
+                        float startX = x1 + barWidth / 2f - dx / 2;
+                        float startY = y + taskHeight / 2f - dy / 2;
+                        float endX = x1 + barWidth / 2f + dx / 2;
+                        float endY = y + taskHeight / 2f + dy / 2;
+                        GradientPaint gradient = new GradientPaint(startX, startY, lighter, endX, endY, darker);
+                        g2d.setPaint(gradient);
+                        g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
+                        // Outer highlight edge (thicker, outside feel)
+                        int edgeWidth = Math.max(2, depth / 15);
+                        g2d.setColor(new Color(255, 255, 255, task.bevelHighlightOpacity));
+                        g2d.setStroke(new BasicStroke(edgeWidth));
+                        g2d.drawLine(x1 - 1, y - 1, x1 + barWidth + 1, y - 1);
+                        g2d.drawLine(x1 - 1, y - 1, x1 - 1, y + taskHeight + 1);
+                        // Outer shadow edge
+                        g2d.setColor(new Color(0, 0, 0, task.bevelShadowOpacity));
+                        g2d.drawLine(x1 - 1, y + taskHeight + 1, x1 + barWidth + 1, y + taskHeight + 1);
+                        g2d.drawLine(x1 + barWidth + 1, y - 1, x1 + barWidth + 1, y + taskHeight + 1);
+                    } else if (style.equals("Emboss")) {
+                        // Emboss - raised text/stamp effect
+                        g2d.setColor(fillColor);
+                        g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
+                        int offset = Math.max(1, depth / 30);
+                        // Shadow offset (bottom-right)
+                        g2d.setColor(new Color(0, 0, 0, task.bevelShadowOpacity));
+                        g2d.setStroke(new BasicStroke(Math.max(1, depth / 25)));
+                        g2d.drawRoundRect(x1 + offset, y + offset, barWidth, taskHeight, 8, 8);
+                        // Highlight offset (top-left)
+                        g2d.setColor(new Color(255, 255, 255, task.bevelHighlightOpacity));
+                        g2d.drawRoundRect(x1 - offset, y - offset, barWidth, taskHeight, 8, 8);
+                    } else {
+                        // Inner Bevel - default inward gradient bevel
+                        double angleRad = Math.toRadians(task.bevelLightAngle);
+                        float dx = (float) Math.cos(angleRad) * barWidth;
+                        float dy = (float) Math.sin(angleRad) * taskHeight;
+                        float startX = x1 + barWidth / 2f - dx / 2;
+                        float startY = y + taskHeight / 2f - dy / 2;
+                        float endX = x1 + barWidth / 2f + dx / 2;
+                        float endY = y + taskHeight / 2f + dy / 2;
+                        GradientPaint gradient = new GradientPaint(startX, startY, lighter, endX, endY, darker);
+                        g2d.setPaint(gradient);
+                        g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
+                        // Add highlight edge using task's highlight opacity
+                        g2d.setColor(new Color(255, 255, 255, task.bevelHighlightOpacity));
+                        g2d.setStroke(new BasicStroke(1));
+                        g2d.drawLine(x1 + 4, y + 1, x1 + barWidth - 4, y + 1);
+                        g2d.drawLine(x1 + 1, y + 4, x1 + 1, y + taskHeight - 4);
+                        // Add shadow edge using task's shadow opacity
+                        g2d.setColor(new Color(0, 0, 0, task.bevelShadowOpacity));
+                        g2d.drawLine(x1 + 4, y + taskHeight - 1, x1 + barWidth - 4, y + taskHeight - 1);
+                        g2d.drawLine(x1 + barWidth - 1, y + 4, x1 + barWidth - 1, y + taskHeight - 4);
+                    }
+
+                    // Draw top bevel edge shape
+                    String topBevel = task.topBevel != null ? task.topBevel : "Circle";
+                    if (!topBevel.equals("None")) {
+                        drawBevelEdge(g2d, topBevel, x1, y, barWidth, taskHeight, depth,
+                                     task.bevelHighlightOpacity, task.bevelShadowOpacity, true, lighter, darker);
+                    }
+
+                    // Draw bottom bevel edge shape
+                    String bottomBevel = task.bottomBevel != null ? task.bottomBevel : "None";
+                    if (!bottomBevel.equals("None")) {
+                        drawBevelEdge(g2d, bottomBevel, x1, y, barWidth, taskHeight, depth,
+                                     task.bevelHighlightOpacity, task.bevelShadowOpacity, false, lighter, darker);
+                    }
+                } else {
+                    g2d.setColor(fillColor);
+                    g2d.fillRoundRect(x1, y, barWidth, taskHeight, 8, 8);
+                }
                 int thickness = task.outlineThickness;
                 if (thickness > 0) {
                     g2d.setColor(outlineColor);
@@ -5038,7 +5972,7 @@ public class Timeline2 extends JFrame {
                 int fontStyle = Font.PLAIN;
                 if (task.fontBold) fontStyle |= Font.BOLD;
                 if (task.fontItalic) fontStyle |= Font.ITALIC;
-                g2d.setFont(new Font("Arial", fontStyle, task.fontSize));
+                g2d.setFont(new Font(task.fontFamily, fontStyle, task.fontSize));
                 FontMetrics fm = g2d.getFontMetrics();
                 String displayText = task.centerText != null && !task.centerText.isEmpty() ? task.centerText : task.name;
                 int textWidth = fm.stringWidth(displayText);
@@ -5056,7 +5990,7 @@ public class Timeline2 extends JFrame {
                     int aboveFontStyle = Font.PLAIN;
                     if (task.aboveFontBold) aboveFontStyle |= Font.BOLD;
                     if (task.aboveFontItalic) aboveFontStyle |= Font.ITALIC;
-                    g2d.setFont(new Font("Arial", aboveFontStyle, task.aboveFontSize));
+                    g2d.setFont(new Font(task.aboveFontFamily, aboveFontStyle, task.aboveFontSize));
                     g2d.setColor(task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK);
                     FontMetrics aboveFm = g2d.getFontMetrics();
                     int aboveTextWidth = aboveFm.stringWidth(task.aboveText);
@@ -5070,7 +6004,7 @@ public class Timeline2 extends JFrame {
                     int underneathFontStyle = Font.PLAIN;
                     if (task.underneathFontBold) underneathFontStyle |= Font.BOLD;
                     if (task.underneathFontItalic) underneathFontStyle |= Font.ITALIC;
-                    g2d.setFont(new Font("Arial", underneathFontStyle, task.underneathFontSize));
+                    g2d.setFont(new Font(task.underneathFontFamily, underneathFontStyle, task.underneathFontSize));
                     g2d.setColor(task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK);
                     FontMetrics underneathFm = g2d.getFontMetrics();
                     int underneathTextWidth = underneathFm.stringWidth(task.underneathText);
@@ -5169,8 +6103,33 @@ public class Timeline2 extends JFrame {
                 }
 
                 // Draw the milestone shape
-                g2d.setColor(milestone.fillColor);
-                drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width, milestone.height, true);
+                if (milestone.bevelFill) {
+                    // Draw beveled fill effect for milestone using milestone's bevel settings
+                    Color fillColor = milestone.fillColor;
+                    int depth = milestone.bevelDepth;
+                    Color lighter = new Color(
+                        Math.min(255, fillColor.getRed() + depth),
+                        Math.min(255, fillColor.getGreen() + depth),
+                        Math.min(255, fillColor.getBlue() + depth));
+                    Color darker = new Color(
+                        Math.max(0, fillColor.getRed() - depth),
+                        Math.max(0, fillColor.getGreen() - depth),
+                        Math.max(0, fillColor.getBlue() - depth));
+                    // Calculate gradient direction based on light angle
+                    double angleRad = Math.toRadians(milestone.bevelLightAngle);
+                    float dx = (float) Math.cos(angleRad) * milestone.width;
+                    float dy = (float) Math.sin(angleRad) * milestone.height;
+                    float startX = x - dx / 2;
+                    float startY = y - dy / 2;
+                    float endX = x + dx / 2;
+                    float endY = y + dy / 2;
+                    GradientPaint gradient = new GradientPaint(startX, startY, lighter, endX, endY, darker);
+                    g2d.setPaint(gradient);
+                    drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width, milestone.height, true);
+                } else {
+                    g2d.setColor(milestone.fillColor);
+                    drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width, milestone.height, true);
+                }
 
                 // Draw outline
                 if (milestone.outlineThickness > 0) {
@@ -5184,13 +6143,132 @@ public class Timeline2 extends JFrame {
                     int fontStyle = Font.PLAIN;
                     if (milestone.fontBold) fontStyle |= Font.BOLD;
                     if (milestone.fontItalic) fontStyle |= Font.ITALIC;
-                    g2d.setFont(new Font("Arial", fontStyle, milestone.fontSize));
+                    g2d.setFont(new Font(milestone.fontFamily, fontStyle, milestone.fontSize));
                     g2d.setColor(milestone.textColor);
                     FontMetrics fm = g2d.getFontMetrics();
                     int textWidth = fm.stringWidth(milestone.labelText);
                     g2d.drawString(milestone.labelText, x - textWidth / 2, y + milestone.height / 2 + fm.getAscent() + 3);
                 }
             } catch (Exception e) {}
+        }
+
+        private void drawBevelEdge(Graphics2D g2d, String bevelType, int x, int y, int width, int height,
+                                   int depth, int highlightOpacity, int shadowOpacity, boolean isTop,
+                                   Color lighter, Color darker) {
+            int edgeHeight = Math.max(2, Math.min(depth / 8, height / 4));
+            int yPos = isTop ? y : y + height - edgeHeight;
+            Color highlightColor = new Color(255, 255, 255, highlightOpacity);
+            Color shadowColor = new Color(0, 0, 0, shadowOpacity);
+
+            g2d.setStroke(new BasicStroke(1));
+
+            switch (bevelType) {
+                case "Circle":
+                    // Smooth rounded edge
+                    GradientPaint circleGrad = isTop ?
+                        new GradientPaint(x, yPos, highlightColor, x, yPos + edgeHeight, new Color(255,255,255,0)) :
+                        new GradientPaint(x, yPos, new Color(0,0,0,0), x, yPos + edgeHeight, shadowColor);
+                    g2d.setPaint(circleGrad);
+                    g2d.fillRoundRect(x + 2, yPos, width - 4, edgeHeight, 4, 4);
+                    break;
+
+                case "Relaxed Inset":
+                    // Gentle inward curve
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    for (int i = 0; i < edgeHeight; i++) {
+                        int alpha = isTop ? highlightOpacity - (i * highlightOpacity / edgeHeight) :
+                                          (i * shadowOpacity / edgeHeight);
+                        g2d.setColor(new Color(isTop ? 255 : 0, isTop ? 255 : 0, isTop ? 255 : 0, Math.max(0, Math.min(255, alpha))));
+                        g2d.drawLine(x + 4 + i, yPos + i, x + width - 4 - i, yPos + i);
+                    }
+                    break;
+
+                case "Cross":
+                    // Cross pattern
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    int crossSize = edgeHeight / 2;
+                    for (int i = x + 8; i < x + width - 8; i += crossSize * 2) {
+                        g2d.drawLine(i, yPos, i + crossSize, yPos + edgeHeight);
+                        g2d.drawLine(i + crossSize, yPos, i, yPos + edgeHeight);
+                    }
+                    break;
+
+                case "Angle":
+                    // Sharp angled edge
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    int[] xAngle = {x + 4, x + width - 4, x + width - 4 - edgeHeight, x + 4 + edgeHeight};
+                    int[] yAngle = isTop ? new int[]{yPos, yPos, yPos + edgeHeight, yPos + edgeHeight} :
+                                          new int[]{yPos + edgeHeight, yPos + edgeHeight, yPos, yPos};
+                    g2d.fillPolygon(xAngle, yAngle, 4);
+                    break;
+
+                case "Soft Round":
+                    // Soft rounded highlight
+                    GradientPaint softGrad = isTop ?
+                        new GradientPaint(x, yPos, lighter, x, yPos + edgeHeight * 2, new Color(lighter.getRed(), lighter.getGreen(), lighter.getBlue(), 0)) :
+                        new GradientPaint(x, yPos - edgeHeight, new Color(darker.getRed(), darker.getGreen(), darker.getBlue(), 0), x, yPos + edgeHeight, darker);
+                    g2d.setPaint(softGrad);
+                    g2d.fillRect(x + 2, yPos, width - 4, edgeHeight);
+                    break;
+
+                case "Convex":
+                    // Outward curving bulge
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    for (int i = 0; i < edgeHeight; i++) {
+                        double curve = Math.sin(Math.PI * i / edgeHeight);
+                        int offset = (int)(curve * edgeHeight / 3);
+                        int alpha = (int)((isTop ? highlightOpacity : shadowOpacity) * (1 - (double)i / edgeHeight));
+                        g2d.setColor(new Color(isTop ? 255 : 0, isTop ? 255 : 0, isTop ? 255 : 0, Math.max(0, Math.min(255, alpha))));
+                        g2d.drawLine(x + 4, yPos + i - (isTop ? offset : -offset), x + width - 4, yPos + i - (isTop ? offset : -offset));
+                    }
+                    break;
+
+                case "Cool Slant":
+                    // Slanted edge
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    int slant = edgeHeight;
+                    int[] xSlant = {x + 4, x + width - 4, x + width - 4, x + 4 + slant};
+                    int[] ySlant = isTop ? new int[]{yPos, yPos, yPos + edgeHeight, yPos + edgeHeight} :
+                                          new int[]{yPos, yPos, yPos + edgeHeight, yPos + edgeHeight};
+                    g2d.fillPolygon(xSlant, ySlant, 4);
+                    break;
+
+                case "Divot":
+                    // Indented groove
+                    g2d.setColor(isTop ? shadowColor : highlightColor);
+                    g2d.drawLine(x + 8, yPos + edgeHeight/2, x + width - 8, yPos + edgeHeight/2);
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    g2d.drawLine(x + 8, yPos + edgeHeight/2 + 1, x + width - 8, yPos + edgeHeight/2 + 1);
+                    break;
+
+                case "Riblet":
+                    // Ribbed pattern
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    int ribSpacing = Math.max(3, edgeHeight);
+                    for (int i = x + 6; i < x + width - 6; i += ribSpacing) {
+                        g2d.drawLine(i, yPos, i, yPos + edgeHeight);
+                    }
+                    break;
+
+                case "Hard Edge":
+                    // Sharp hard line
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    g2d.setStroke(new BasicStroke(Math.max(2, edgeHeight / 2)));
+                    g2d.drawLine(x + 4, yPos + edgeHeight/2, x + width - 4, yPos + edgeHeight/2);
+                    break;
+
+                case "Art Deco":
+                    // Decorative stepped pattern
+                    g2d.setColor(isTop ? highlightColor : shadowColor);
+                    int stepWidth = Math.max(8, width / 10);
+                    int steps = width / stepWidth;
+                    for (int i = 0; i < steps; i++) {
+                        int stepX = x + 4 + i * stepWidth;
+                        int stepH = (i % 2 == 0) ? edgeHeight : edgeHeight / 2;
+                        g2d.fillRect(stepX, isTop ? yPos : yPos + edgeHeight - stepH, stepWidth - 2, stepH);
+                    }
+                    break;
+            }
         }
 
         private void drawMilestoneShapeOnPanel(Graphics2D g2d, String shape, int cx, int cy, int w, int h, boolean fill) {
@@ -5253,7 +6331,7 @@ public class Timeline2 extends JFrame {
             if (axisDateBold && axisDateItalic) fontStyle = Font.BOLD | Font.ITALIC;
             else if (axisDateBold) fontStyle = Font.BOLD;
             else if (axisDateItalic) fontStyle = Font.ITALIC;
-            g2d.setFont(new Font("Arial", fontStyle, axisDateFontSize));
+            g2d.setFont(new Font(axisDateFontFamily, fontStyle, axisDateFontSize));
 
             // Determine if we should show months or years based on total days
             boolean showYears = totalDays > 730; // More than 2 years, show years
