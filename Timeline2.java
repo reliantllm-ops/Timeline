@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.event.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
@@ -17,6 +18,8 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 
 public class Timeline2 extends JFrame {
 
@@ -27,11 +30,22 @@ public class Timeline2 extends JFrame {
     private ArrayList<Object> layerOrder = new ArrayList<>(); // Unified list of tasks and milestones for z-ordering
     private Set<Integer> selectedTaskIndices = new HashSet<>(); // Multi-select for tasks
     private int selectedMilestoneIndex = -1;
+    private Set<Integer> selectedMilestoneIndices = new HashSet<>(); // Multi-select for milestones
 
     // Panel colors - Settings
     private Color settingsInteriorColor = new Color(250, 250, 250);
+    private Color settingsInteriorColor2 = new Color(250, 250, 250);
+    private boolean settingsUseGradient = false;
+    private String settingsGradientDir = "Vertical";
+    private double settingsGradientAngle = 90.0; // 0=right, 90=down, 180=left, 270=up
+    private ArrayList<float[]> settingsGradientStops = new ArrayList<>();
     private Color settingsOutlineColor = new Color(200, 200, 200);
     private Color settingsHeaderColor = new Color(70, 130, 180);
+    private Color settingsHeaderColor2 = new Color(70, 130, 180);
+    private boolean settingsHeaderUseGradient = false;
+    private String settingsHeaderGradientDir = "Horizontal";
+    private double settingsHeaderGradientAngle = 0.0; // 0=right, 90=down, 180=left, 270=up
+    private ArrayList<float[]> settingsHeaderGradientStops = new ArrayList<>();
     private Color settingsHeaderTextColor = Color.WHITE;
     private Color settingsLabelColor = Color.BLACK;
     private Color settingsFieldBgColor = Color.WHITE;
@@ -39,6 +53,11 @@ public class Timeline2 extends JFrame {
     private Color settingsButtonTextColor = Color.BLACK;
     // Panel colors - Timeline
     private Color timelineInteriorColor = Color.WHITE;
+    private Color timelineInteriorColor2 = new Color(230, 230, 230);
+    private boolean timelineUseGradient = false;
+    private String timelineGradientDir = "Vertical";
+    private double timelineGradientAngle = 90.0; // 0=right, 90=down, 180=left, 270=up
+    private ArrayList<float[]> timelineGradientStops = new ArrayList<>();
     private Color timelineOutlineColor = new Color(200, 200, 200);
     private Color timelineLineColor = new Color(70, 130, 180);
     private Color timelineDateTextColor = Color.BLACK;
@@ -46,28 +65,71 @@ public class Timeline2 extends JFrame {
     private Color timelineEventColor = new Color(220, 53, 69);
     // Panel colors - Layers
     private Color layersInteriorColor = new Color(250, 250, 250);
+    private Color layersInteriorColor2 = new Color(250, 250, 250);
+    private boolean layersUseGradient = false;
+    private double layersGradientAngle = 90.0;
+    private ArrayList<float[]> layersGradientStops = new ArrayList<>();
     private Color layersOutlineColor = new Color(200, 200, 200);
     private Color layersHeaderColor = new Color(70, 130, 180);
+    private Color layersHeaderColor2 = new Color(70, 130, 180);
+    private boolean layersHeaderUseGradient = false;
+    private double layersHeaderGradientAngle = 0.0;
+    private ArrayList<float[]> layersHeaderGradientStops = new ArrayList<>();
     private Color layersHeaderTextColor = Color.WHITE;
     private Color layersListBgColor = Color.WHITE;
+    private Color layersListBgColor2 = Color.WHITE;
+    private boolean layersListBgUseGradient = false;
+    private double layersListBgGradientAngle = 90.0;
+    private ArrayList<float[]> layersListBgGradientStops = new ArrayList<>();
     private Color layersItemTextColor = Color.BLACK;
     private Color layersSelectedBgColor = new Color(200, 200, 200);
     private Color layersDragHandleColor = new Color(150, 150, 150);
+    private Color layersTaskColor = new Color(245, 245, 245);
+    private Color layersTaskColor2 = new Color(245, 245, 245);
+    private boolean layersTaskUseGradient = false;
+    private double layersTaskGradientAngle = 90.0;
+    private ArrayList<float[]> layersTaskGradientStops = new ArrayList<>();
     // Panel colors - Format
     private Color formatInteriorColor = new Color(250, 250, 250);
+    private Color formatInteriorColor2 = new Color(250, 250, 250);
+    private boolean formatUseGradient = false;
+    private double formatGradientAngle = 90.0;
+    private ArrayList<float[]> formatGradientStops = new ArrayList<>();
     private Color formatOutlineColor = new Color(200, 200, 200);
     private Color formatHeaderColor = new Color(70, 130, 180);
+    private Color formatHeaderColor2 = new Color(70, 130, 180);
+    private boolean formatHeaderUseGradient = false;
+    private double formatHeaderGradientAngle = 0.0;
+    private ArrayList<float[]> formatHeaderGradientStops = new ArrayList<>();
     private Color formatLabelColor = Color.BLACK;
     private Color formatSeparatorColor = new Color(200, 200, 200);
     private Color formatResizeHandleColor = new Color(230, 230, 230);
+    private Color formatTabColor = new Color(220, 220, 220);
+    private Color formatTabColor2 = new Color(220, 220, 220);
+    private boolean formatTabUseGradient = false;
+    private double formatTabGradientAngle = 90.0;
+    private ArrayList<float[]> formatTabGradientStops = new ArrayList<>();
+    private Color formatSelectedTabColor = new Color(255, 255, 255);
+    private Color formatSelectedTabColor2 = new Color(255, 255, 255);
+    private boolean formatSelectedTabUseGradient = false;
+    private double formatSelectedTabGradientAngle = 90.0;
+    private ArrayList<float[]> formatSelectedTabGradientStops = new ArrayList<>();
+    private Color formatTabContentColor = new Color(240, 240, 240);
+    private Color formatTabContentColor2 = new Color(240, 240, 240);
+    private boolean formatTabContentUseGradient = false;
+    private double formatTabContentGradientAngle = 90.0;
+    private ArrayList<float[]> formatTabContentGradientStops = new ArrayList<>();
 
     // UI Components
     private TimelineDisplayPanel timelineDisplayPanel;
     private JTextField startDateField, endDateField;
-    private CollapsiblePanel leftPanel;
     private CollapsiblePanel rightPanel;
     private LayersPanel layersPanel;
+    private JTabbedPane rightTabbedPane;
+    private JPanel settingsPanel;
     private JPanel formatPanel;
+    private JPanel formatHeaderBar;
+    private JTabbedPane formatTabbedPane;
     private JTextField taskNameField, taskStartField, taskEndField;
     private JLabel formatTitleLabel;
     private JButton duplicateTaskBtn;
@@ -81,6 +143,8 @@ public class Timeline2 extends JFrame {
     private JToggleButton boldBtn, italicBtn;
     private JTextField centerTextField;
     private JSpinner centerXOffsetSpinner, centerYOffsetSpinner;
+    private JCheckBox centerWrapCheckbox;
+    private JCheckBox centerVisibleCheckbox;
     // Front text controls
     private JTextField frontTextField;
     private JComboBox<String> frontFontCombo;
@@ -88,6 +152,8 @@ public class Timeline2 extends JFrame {
     private JToggleButton frontBoldBtn, frontItalicBtn;
     private JButton frontTextColorBtn;
     private JSpinner frontXOffsetSpinner, frontYOffsetSpinner;
+    private JCheckBox frontWrapCheckbox;
+    private JCheckBox frontVisibleCheckbox;
     // Above text controls
     private JTextField aboveTextField;
     private JComboBox<String> aboveFontCombo;
@@ -95,6 +161,8 @@ public class Timeline2 extends JFrame {
     private JToggleButton aboveBoldBtn, aboveItalicBtn;
     private JButton aboveTextColorBtn;
     private JSpinner aboveXOffsetSpinner, aboveYOffsetSpinner;
+    private JCheckBox aboveWrapCheckbox;
+    private JCheckBox aboveVisibleCheckbox;
     // Underneath text controls
     private JTextField underneathTextField;
     private JComboBox<String> underneathFontCombo;
@@ -102,6 +170,8 @@ public class Timeline2 extends JFrame {
     private JToggleButton underneathBoldBtn, underneathItalicBtn;
     private JButton underneathTextColorBtn;
     private JSpinner underneathXOffsetSpinner, underneathYOffsetSpinner;
+    private JCheckBox underneathWrapCheckbox;
+    private JCheckBox underneathVisibleCheckbox;
     // Behind text controls
     private JTextField behindTextField;
     private JComboBox<String> behindFontCombo;
@@ -109,6 +179,8 @@ public class Timeline2 extends JFrame {
     private JToggleButton behindBoldBtn, behindItalicBtn;
     private JButton behindTextColorBtn;
     private JSpinner behindXOffsetSpinner, behindYOffsetSpinner;
+    private JCheckBox behindWrapCheckbox;
+    private JCheckBox behindVisibleCheckbox;
     // Milestone controls
     private JTextField milestoneNameField, milestoneDateField;
     private JSpinner milestoneWidthSpinner, milestoneHeightSpinner;
@@ -126,6 +198,17 @@ public class Timeline2 extends JFrame {
     private int timelineAxisThickness = 3;
     private JButton timelineAxisColorBtn;
     private JSpinner timelineAxisThicknessSpinner;
+    // Extend ticks settings
+    private boolean extendTicks = false;
+    private Color extendTicksColor = new Color(200, 200, 200);
+    private int extendTicksThickness = 1;
+    private String extendTicksLineType = "Solid";
+    private JCheckBox extendTicksCheckBox;
+    private JButton extendTicksColorBtn;
+    private JSpinner extendTicksThicknessSpinner;
+    private JComboBox<String> extendTicksLineTypeCombo;
+    private JPanel extendTicksOptionsPanel;
+    private static final String[] LINE_TYPES = {"Solid", "Dashed", "Dotted", "Dash-Dot"};
     // Timeline axis date label settings
     private Color axisDateColor = Color.DARK_GRAY;
     private String axisDateFontFamily = "SansSerif";
@@ -185,6 +268,9 @@ public class Timeline2 extends JFrame {
         JMenuItem exportItem = new JMenuItem("Export...");
         exportItem.addActionListener(e -> exportToExcel());
         fileMenu.add(exportItem);
+        JMenuItem exportGraphicItem = new JMenuItem("Export Graphic...");
+        exportGraphicItem.addActionListener(e -> exportGraphic());
+        fileMenu.add(exportGraphicItem);
         menuBar.add(fileMenu);
 
         // Edit menu
@@ -201,12 +287,11 @@ public class Timeline2 extends JFrame {
         JMenuItem preferencesItem = new JMenuItem("Preferences");
         preferencesItem.addActionListener(e -> showPreferencesDialog());
         editMenu.add(preferencesItem);
+        JMenuItem skinsItem = new JMenuItem("Skins");
+        skinsItem.addActionListener(e -> showSkinsDialog());
+        editMenu.add(skinsItem);
         menuBar.add(editMenu);
         setJMenuBar(menuBar);
-
-        // Left panel - Settings
-        leftPanel = new CollapsiblePanel("Settings", createSettingsPanel(), true);
-        add(leftPanel, BorderLayout.WEST);
 
         // Center - Timeline display with New Task button
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -247,9 +332,20 @@ public class Timeline2 extends JFrame {
 
         add(centerPanel, BorderLayout.CENTER);
 
-        // Right panel - Layers (collapsible)
+        // Right panel - Timeline Range at top, then tabs with Layers and Settings
         layersPanel = new LayersPanel();
-        rightPanel = new CollapsiblePanel("Layers", layersPanel, false);
+        settingsPanel = createSettingsPanel();
+        JPanel timelineRangePanel = createTimelineRangePanel();
+
+        rightTabbedPane = new JTabbedPane();
+        rightTabbedPane.addTab("Layers", layersPanel);
+        rightTabbedPane.addTab("Settings", new JScrollPane(settingsPanel));
+
+        JPanel rightTabbedWrapper = new JPanel(new BorderLayout());
+        rightTabbedWrapper.add(timelineRangePanel, BorderLayout.NORTH);
+        rightTabbedWrapper.add(rightTabbedPane, BorderLayout.CENTER);
+
+        rightPanel = new CollapsiblePanel("Right Panel", rightTabbedWrapper, false);
         add(rightPanel, BorderLayout.EAST);
 
         // Bottom - Format panel
@@ -261,54 +357,45 @@ public class Timeline2 extends JFrame {
     }
 
     private JPanel createFormatPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 5));
+        JPanel panel = new JPanel(new BorderLayout(10, 5)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (formatUseGradient && formatGradientStops.size() >= 2) {
+                    // Make children non-opaque so gradient shows through
+                    for (Component c : getComponents()) {
+                        if (c instanceof JPanel) {
+                            setFormatChildrenOpaque((JPanel) c, false);
+                        }
+                    }
+
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+
+                    float[] fractions = new float[formatGradientStops.size()];
+                    Color[] colors = new Color[formatGradientStops.size()];
+                    for (int i = 0; i < formatGradientStops.size(); i++) {
+                        float[] stop = formatGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+
+                    java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, formatGradientAngle, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
         panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
         panel.setPreferredSize(new Dimension(0, 250));
         panel.setBackground(new Color(250, 250, 250));
 
-        // Header bar with minimize/maximize toggle
-        JPanel headerBar = new JPanel(new BorderLayout());
-        headerBar.setPreferredSize(new Dimension(0, 20));
-        headerBar.setBackground(new Color(70, 130, 180));
-
-        JLabel formatTitle = new JLabel("  Format");
-        formatTitle.setForeground(Color.WHITE);
-        formatTitle.setFont(new Font("Arial", Font.BOLD, 11));
-        headerBar.add(formatTitle, BorderLayout.WEST);
-
-        // Minimize/maximize button
-        JButton toggleBtn = new JButton("\u25BC");  // Down arrow (expanded)
-        toggleBtn.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 10));
-        toggleBtn.setMargin(new Insets(0, 5, 0, 5));
-        toggleBtn.setFocusPainted(false);
-        toggleBtn.setToolTipText("Minimize");
-
-        // Content wrapper to show/hide
+        // Content wrapper
         JPanel contentWrapper = new JPanel(new BorderLayout());
         contentWrapper.setOpaque(false);
-        contentWrapper.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-
-        final boolean[] isExpanded = {true};
-        toggleBtn.addActionListener(e -> {
-            isExpanded[0] = !isExpanded[0];
-            if (isExpanded[0]) {
-                panel.setPreferredSize(new Dimension(0, 250));
-                toggleBtn.setText("\u25BC");  // Down arrow
-                toggleBtn.setToolTipText("Minimize");
-                contentWrapper.setVisible(true);
-            } else {
-                panel.setPreferredSize(new Dimension(0, 20));
-                toggleBtn.setText("\u25B2");  // Up arrow
-                toggleBtn.setToolTipText("Expand");
-                contentWrapper.setVisible(false);
-            }
-            panel.revalidate();
-            Timeline2.this.revalidate();
-            Timeline2.this.repaint();
-        });
-        headerBar.add(toggleBtn, BorderLayout.EAST);
-
-        panel.add(headerBar, BorderLayout.NORTH);
+        contentWrapper.setBorder(BorderFactory.createEmptyBorder(2, 10, 5, 10));
 
         // Main content panel with rows
         JPanel contentPanel = new JPanel();
@@ -323,16 +410,15 @@ public class Timeline2 extends JFrame {
         row1Container.setPreferredSize(new Dimension(1200, 30));
 
         // Task row panel
-        JPanel taskRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        JPanel taskRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
         taskRow.setOpaque(false);
 
         formatTitleLabel = new JLabel("No task selected");
         formatTitleLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        taskRow.add(formatTitleLabel);
 
-        taskRow.add(Box.createHorizontalStrut(10));
         taskRow.add(new JLabel("Name:"));
-        taskNameField = new JTextField(10);
+        taskNameField = new JTextField(8);
+        taskNameField.setPreferredSize(new Dimension(40, taskNameField.getPreferredSize().height));
         taskNameField.setEnabled(false);
         taskNameField.addActionListener(e -> updateSelectedTaskName());
         taskNameField.addFocusListener(new FocusAdapter() {
@@ -340,7 +426,6 @@ public class Timeline2 extends JFrame {
         });
         taskRow.add(taskNameField);
 
-        taskRow.add(Box.createHorizontalStrut(10));
         taskRow.add(new JLabel("Start:"));
         taskStartField = new JTextField(8);
         taskStartField.setEnabled(false);
@@ -350,7 +435,6 @@ public class Timeline2 extends JFrame {
         });
         taskRow.add(taskStartField);
 
-        taskRow.add(Box.createHorizontalStrut(10));
         taskRow.add(new JLabel("End:"));
         taskEndField = new JTextField(8);
         taskEndField.setEnabled(false);
@@ -360,7 +444,6 @@ public class Timeline2 extends JFrame {
         });
         taskRow.add(taskEndField);
 
-        taskRow.add(Box.createHorizontalStrut(15));
         taskRow.add(new JLabel("Fill:"));
         fillColorBtn = new JButton();
         fillColorBtn.setPreferredSize(new Dimension(30, 25));
@@ -369,7 +452,6 @@ public class Timeline2 extends JFrame {
         fillColorBtn.addActionListener(e -> chooseFillColor());
         taskRow.add(fillColorBtn);
 
-        taskRow.add(Box.createHorizontalStrut(10));
         taskRow.add(new JLabel("Outline:"));
         outlineColorBtn = new JButton();
         outlineColorBtn.setPreferredSize(new Dimension(30, 25));
@@ -378,7 +460,6 @@ public class Timeline2 extends JFrame {
         outlineColorBtn.addActionListener(e -> chooseOutlineColor());
         taskRow.add(outlineColorBtn);
 
-        taskRow.add(Box.createHorizontalStrut(10));
         taskRow.add(new JLabel("Thickness:"));
         outlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 10, 1));
         outlineThicknessSpinner.setPreferredSize(new Dimension(50, 25));
@@ -387,8 +468,7 @@ public class Timeline2 extends JFrame {
         outlineThicknessSpinner.addChangeListener(e -> updateOutlineThickness());
         taskRow.add(outlineThicknessSpinner);
 
-        taskRow.add(Box.createHorizontalStrut(10));
-        taskRow.add(new JLabel("Height:"));
+        taskRow.add(new JLabel("H:"));
         taskHeightSpinner = new JSpinner(new SpinnerNumberModel(25, 10, 100, 5));
         taskHeightSpinner.setPreferredSize(new Dimension(55, 25));
         taskHeightSpinner.setEnabled(false);
@@ -396,7 +476,6 @@ public class Timeline2 extends JFrame {
         taskHeightSpinner.addChangeListener(e -> updateTaskHeight());
         taskRow.add(taskHeightSpinner);
 
-        taskRow.add(Box.createHorizontalStrut(10));
         bevelFillCheckbox = new JCheckBox("Bevel");
         bevelFillCheckbox.setOpaque(false);
         bevelFillCheckbox.setEnabled(false);
@@ -411,19 +490,22 @@ public class Timeline2 extends JFrame {
         bevelSettingsBtn.addActionListener(e -> showBevelSettingsDialog());
         taskRow.add(bevelSettingsBtn);
 
+        JLabel taskMoreLabel = new JLabel("More >");
+        taskMoreLabel.setFont(new Font("Arial", Font.PLAIN, 13));
+        taskMoreLabel.setForeground(Color.BLACK);
+        taskMoreLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        taskMoreLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+        taskRow.add(taskMoreLabel);
+
         row1Container.add(taskRow, "task");
 
         // Milestone row panel
-        JPanel milestoneRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        JPanel milestoneRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
         milestoneRow.setOpaque(false);
 
-        JLabel milestoneTitleLabel = new JLabel("Milestone selected");
-        milestoneTitleLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        milestoneRow.add(milestoneTitleLabel);
-
-        milestoneRow.add(Box.createHorizontalStrut(10));
         milestoneRow.add(new JLabel("Name:"));
-        milestoneNameField = new JTextField(10);
+        milestoneNameField = new JTextField(8);
+        milestoneNameField.setPreferredSize(new Dimension(40, milestoneNameField.getPreferredSize().height));
         milestoneNameField.setEnabled(false);
         milestoneNameField.addActionListener(e -> updateSelectedMilestoneName());
         milestoneNameField.addFocusListener(new FocusAdapter() {
@@ -431,7 +513,6 @@ public class Timeline2 extends JFrame {
         });
         milestoneRow.add(milestoneNameField);
 
-        milestoneRow.add(Box.createHorizontalStrut(10));
         milestoneRow.add(new JLabel("Date:"));
         milestoneDateField = new JTextField(8);
         milestoneDateField.setEnabled(false);
@@ -441,7 +522,6 @@ public class Timeline2 extends JFrame {
         });
         milestoneRow.add(milestoneDateField);
 
-        milestoneRow.add(Box.createHorizontalStrut(15));
         milestoneRow.add(new JLabel("Fill:"));
         milestoneFillColorBtn = new JButton();
         milestoneFillColorBtn.setPreferredSize(new Dimension(30, 25));
@@ -450,7 +530,6 @@ public class Timeline2 extends JFrame {
         milestoneFillColorBtn.addActionListener(e -> chooseMilestoneFillColor());
         milestoneRow.add(milestoneFillColorBtn);
 
-        milestoneRow.add(Box.createHorizontalStrut(10));
         milestoneRow.add(new JLabel("Outline:"));
         milestoneOutlineColorBtn = new JButton();
         milestoneOutlineColorBtn.setPreferredSize(new Dimension(30, 25));
@@ -459,7 +538,6 @@ public class Timeline2 extends JFrame {
         milestoneOutlineColorBtn.addActionListener(e -> chooseMilestoneOutlineColor());
         milestoneRow.add(milestoneOutlineColorBtn);
 
-        milestoneRow.add(Box.createHorizontalStrut(10));
         milestoneRow.add(new JLabel("Thickness:"));
         milestoneOutlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 10, 1));
         milestoneOutlineThicknessSpinner.setPreferredSize(new Dimension(50, 25));
@@ -467,23 +545,20 @@ public class Timeline2 extends JFrame {
         milestoneOutlineThicknessSpinner.addChangeListener(e -> updateMilestoneOutlineThickness());
         milestoneRow.add(milestoneOutlineThicknessSpinner);
 
-        milestoneRow.add(Box.createHorizontalStrut(10));
-        milestoneRow.add(new JLabel("Height:"));
+        milestoneRow.add(new JLabel("H:"));
         milestoneHeightSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
         milestoneHeightSpinner.setPreferredSize(new Dimension(55, 25));
         milestoneHeightSpinner.setEnabled(false);
         milestoneHeightSpinner.addChangeListener(e -> updateMilestoneHeight());
         milestoneRow.add(milestoneHeightSpinner);
 
-        milestoneRow.add(Box.createHorizontalStrut(10));
-        milestoneRow.add(new JLabel("Width:"));
+        milestoneRow.add(new JLabel("W:"));
         milestoneWidthSpinner = new JSpinner(new SpinnerNumberModel(20, 10, 100, 5));
         milestoneWidthSpinner.setPreferredSize(new Dimension(55, 25));
         milestoneWidthSpinner.setEnabled(false);
         milestoneWidthSpinner.addChangeListener(e -> updateMilestoneWidth());
         milestoneRow.add(milestoneWidthSpinner);
 
-        milestoneRow.add(Box.createHorizontalStrut(10));
         milestoneBevelCheckbox = new JCheckBox("Bevel");
         milestoneBevelCheckbox.setOpaque(false);
         milestoneBevelCheckbox.setEnabled(false);
@@ -498,23 +573,17 @@ public class Timeline2 extends JFrame {
         milestoneBevelSettingsBtn.addActionListener(e -> showBevelSettingsDialog());
         milestoneRow.add(milestoneBevelSettingsBtn);
 
+        JLabel milestoneMoreLabel = new JLabel("More >");
+        milestoneMoreLabel.setFont(new Font("Arial", Font.PLAIN, 13));
+        milestoneMoreLabel.setForeground(Color.BLACK);
+        milestoneMoreLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        milestoneMoreLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+        milestoneRow.add(milestoneMoreLabel);
+
         row1Container.add(milestoneRow, "milestone");
 
         // Show task row by default
         row1CardLayout.show(row1Container, "task");
-
-        contentPanel.add(row1Container);
-
-        // Separator between rows with 5px spacing above and 3px below
-        contentPanel.add(Box.createVerticalStrut(5));
-        JPanel separatorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        separatorPanel.setOpaque(false);
-        JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
-        separator.setPreferredSize(new Dimension(1200, 2));
-        separatorPanel.add(Box.createHorizontalStrut(10));
-        separatorPanel.add(separator);
-        contentPanel.add(separatorPanel);
-        contentPanel.add(Box.createVerticalStrut(3));
 
         // Row 2: Front text fields (text in front of task bar)
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
@@ -652,6 +721,20 @@ public class Timeline2 extends JFrame {
         frontYOffsetSpinner.setToolTipText("Y offset from default position");
         frontYOffsetSpinner.addChangeListener(e -> updateFrontYOffset());
         row2.add(frontYOffsetSpinner);
+        row2.add(Box.createHorizontalStrut(5));
+        frontWrapCheckbox = new JCheckBox("Wrap");
+        frontWrapCheckbox.setOpaque(false);
+        frontWrapCheckbox.setEnabled(false);
+        frontWrapCheckbox.setToolTipText("Wrap text");
+        frontWrapCheckbox.addActionListener(e -> updateFrontTextWrap());
+        row2.add(frontWrapCheckbox);
+        frontVisibleCheckbox = new JCheckBox("Visible");
+        frontVisibleCheckbox.setOpaque(false);
+        frontVisibleCheckbox.setEnabled(false);
+        frontVisibleCheckbox.setSelected(true);
+        frontVisibleCheckbox.setToolTipText("Show/hide front text");
+        frontVisibleCheckbox.addActionListener(e -> updateFrontTextVisible());
+        row2.add(frontVisibleCheckbox);
 
         contentPanel.add(row2);
 
@@ -791,6 +874,20 @@ public class Timeline2 extends JFrame {
         centerYOffsetSpinner.setToolTipText("Y offset from default position");
         centerYOffsetSpinner.addChangeListener(e -> updateCenterYOffset());
         row3.add(centerYOffsetSpinner);
+        row3.add(Box.createHorizontalStrut(5));
+        centerWrapCheckbox = new JCheckBox("Wrap");
+        centerWrapCheckbox.setOpaque(false);
+        centerWrapCheckbox.setEnabled(false);
+        centerWrapCheckbox.setToolTipText("Wrap text within task bar");
+        centerWrapCheckbox.addActionListener(e -> updateCenterTextWrap());
+        row3.add(centerWrapCheckbox);
+        centerVisibleCheckbox = new JCheckBox("Visible");
+        centerVisibleCheckbox.setOpaque(false);
+        centerVisibleCheckbox.setEnabled(false);
+        centerVisibleCheckbox.setSelected(true);
+        centerVisibleCheckbox.setToolTipText("Show/hide center text");
+        centerVisibleCheckbox.addActionListener(e -> updateCenterTextVisible());
+        row3.add(centerVisibleCheckbox);
 
         contentPanel.add(row3);
 
@@ -855,6 +952,20 @@ public class Timeline2 extends JFrame {
         aboveYOffsetSpinner.setToolTipText("Y offset from default position");
         aboveYOffsetSpinner.addChangeListener(e -> updateAboveYOffset());
         row4.add(aboveYOffsetSpinner);
+        row4.add(Box.createHorizontalStrut(5));
+        aboveWrapCheckbox = new JCheckBox("Wrap");
+        aboveWrapCheckbox.setOpaque(false);
+        aboveWrapCheckbox.setEnabled(false);
+        aboveWrapCheckbox.setToolTipText("Wrap text");
+        aboveWrapCheckbox.addActionListener(e -> updateAboveTextWrap());
+        row4.add(aboveWrapCheckbox);
+        aboveVisibleCheckbox = new JCheckBox("Visible");
+        aboveVisibleCheckbox.setOpaque(false);
+        aboveVisibleCheckbox.setEnabled(false);
+        aboveVisibleCheckbox.setSelected(true);
+        aboveVisibleCheckbox.setToolTipText("Show/hide above text");
+        aboveVisibleCheckbox.addActionListener(e -> updateAboveTextVisible());
+        row4.add(aboveVisibleCheckbox);
         contentPanel.add(row4);
 
         // Row 5: Underneath text fields
@@ -918,6 +1029,20 @@ public class Timeline2 extends JFrame {
         underneathYOffsetSpinner.setToolTipText("Y offset from default position");
         underneathYOffsetSpinner.addChangeListener(e -> updateUnderneathYOffset());
         row5.add(underneathYOffsetSpinner);
+        row5.add(Box.createHorizontalStrut(5));
+        underneathWrapCheckbox = new JCheckBox("Wrap");
+        underneathWrapCheckbox.setOpaque(false);
+        underneathWrapCheckbox.setEnabled(false);
+        underneathWrapCheckbox.setToolTipText("Wrap text");
+        underneathWrapCheckbox.addActionListener(e -> updateUnderneathTextWrap());
+        row5.add(underneathWrapCheckbox);
+        underneathVisibleCheckbox = new JCheckBox("Visible");
+        underneathVisibleCheckbox.setOpaque(false);
+        underneathVisibleCheckbox.setEnabled(false);
+        underneathVisibleCheckbox.setSelected(true);
+        underneathVisibleCheckbox.setToolTipText("Show/hide underneath text");
+        underneathVisibleCheckbox.addActionListener(e -> updateUnderneathTextVisible());
+        row5.add(underneathVisibleCheckbox);
         contentPanel.add(row5);
 
         // Row 6: Behind text fields
@@ -981,6 +1106,20 @@ public class Timeline2 extends JFrame {
         behindYOffsetSpinner.setToolTipText("Y offset from default position");
         behindYOffsetSpinner.addChangeListener(e -> updateBehindYOffset());
         row6.add(behindYOffsetSpinner);
+        row6.add(Box.createHorizontalStrut(5));
+        behindWrapCheckbox = new JCheckBox("Wrap");
+        behindWrapCheckbox.setOpaque(false);
+        behindWrapCheckbox.setEnabled(false);
+        behindWrapCheckbox.setToolTipText("Wrap text");
+        behindWrapCheckbox.addActionListener(e -> updateBehindTextWrap());
+        row6.add(behindWrapCheckbox);
+        behindVisibleCheckbox = new JCheckBox("Visible");
+        behindVisibleCheckbox.setOpaque(false);
+        behindVisibleCheckbox.setEnabled(false);
+        behindVisibleCheckbox.setSelected(true);
+        behindVisibleCheckbox.setToolTipText("Show/hide behind text");
+        behindVisibleCheckbox.addActionListener(e -> updateBehindTextVisible());
+        row6.add(behindVisibleCheckbox);
         contentPanel.add(row6);
         contentPanel.add(Box.createVerticalStrut(3));
 
@@ -1065,13 +1204,43 @@ public class Timeline2 extends JFrame {
 
         notesPanel.add(columnsPanel, BorderLayout.CENTER);
 
-        // Create tabbed pane
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Arial", Font.PLAIN, 11));
-        tabbedPane.addTab("Format", contentPanel);
-        tabbedPane.addTab("Notes", notesPanel);
+        // Create tabbed pane with custom tab colors and gradient support
+        formatTabbedPane = new JTabbedPane();
+        formatTabbedPane.setUI(new GradientTabbedPaneUI());
+        formatTabbedPane.setFont(new Font("Arial", Font.PLAIN, 11));
+        formatTabbedPane.addTab("Details", contentPanel);
+        formatTabbedPane.addTab("Notes", notesPanel);
+        formatTabbedPane.setBackground(formatTabColor);
 
-        contentWrapper.add(tabbedPane, BorderLayout.CENTER);
+        // Hide tabs by default, set collapsed panel size
+        formatTabbedPane.setVisible(false);
+        panel.setPreferredSize(new Dimension(0, 45));
+
+        // Add mouse listeners to both More labels
+        java.awt.event.MouseAdapter moreMouseAdapter = new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = !formatTabbedPane.isVisible();
+                formatTabbedPane.setVisible(visible);
+                String text = visible ? "Less <" : "More >";
+                taskMoreLabel.setText(text);
+                milestoneMoreLabel.setText(text);
+                panel.setPreferredSize(new Dimension(0, visible ? 230 : 45));
+                panel.revalidate();
+                Timeline2.this.revalidate();
+                Timeline2.this.repaint();
+            }
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                ((JLabel)e.getSource()).setFont(new Font("Arial", Font.BOLD, 13));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                ((JLabel)e.getSource()).setFont(new Font("Arial", Font.PLAIN, 13));
+            }
+        };
+        taskMoreLabel.addMouseListener(moreMouseAdapter);
+        milestoneMoreLabel.addMouseListener(moreMouseAdapter);
+
+        contentWrapper.add(row1Container, BorderLayout.NORTH);
+        contentWrapper.add(formatTabbedPane, BorderLayout.CENTER);
         panel.add(contentWrapper, BorderLayout.CENTER);
 
         return panel;
@@ -1116,6 +1285,93 @@ public class Timeline2 extends JFrame {
         return btn;
     }
 
+    // Custom color chooser with alpha/transparency slider and live updates
+    private Color showColorChooserWithAlpha(String title, Color initialColor, java.util.function.Consumer<Color> liveUpdate) {
+        final Color[] result = {null};
+        final Color startColor = initialColor != null ? initialColor : Color.WHITE;
+
+        JDialog dialog = new JDialog(this, title, true);
+        dialog.setLayout(new BorderLayout());
+
+        JColorChooser colorChooser = new JColorChooser(new Color(startColor.getRed(), startColor.getGreen(), startColor.getBlue()));
+        colorChooser.setPreviewPanel(new JPanel()); // Remove preview panel
+
+        // Alpha slider panel
+        JPanel alphaPanel = new JPanel(new BorderLayout(10, 5));
+        alphaPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 5, 15));
+
+        JLabel alphaLabel = new JLabel("Transparency:");
+        JSlider alphaSlider = new JSlider(0, 255, startColor.getAlpha());
+        alphaSlider.setMajorTickSpacing(64);
+        alphaSlider.setMinorTickSpacing(16);
+        alphaSlider.setPaintTicks(true);
+        alphaSlider.setPaintLabels(true);
+
+        // Custom labels for the slider (0% = opaque, 100% = transparent)
+        java.util.Hashtable<Integer, JLabel> labels = new java.util.Hashtable<>();
+        labels.put(255, new JLabel("0%"));
+        labels.put(191, new JLabel("25%"));
+        labels.put(128, new JLabel("50%"));
+        labels.put(64, new JLabel("75%"));
+        labels.put(0, new JLabel("100%"));
+        alphaSlider.setLabelTable(labels);
+
+        JLabel alphaValue = new JLabel(String.format("%d%%", (int)((255 - startColor.getAlpha()) * 100.0 / 255)));
+        alphaValue.setPreferredSize(new Dimension(45, 20));
+
+        alphaPanel.add(alphaLabel, BorderLayout.WEST);
+        alphaPanel.add(alphaSlider, BorderLayout.CENTER);
+        alphaPanel.add(alphaValue, BorderLayout.EAST);
+
+        // Live update handler
+        Runnable doLiveUpdate = () -> {
+            Color c = colorChooser.getColor();
+            Color withAlpha = new Color(c.getRed(), c.getGreen(), c.getBlue(), alphaSlider.getValue());
+            if (liveUpdate != null) {
+                liveUpdate.accept(withAlpha);
+            }
+        };
+
+        // Add listeners for live updates
+        colorChooser.getSelectionModel().addChangeListener(e -> doLiveUpdate.run());
+        alphaSlider.addChangeListener(e -> {
+            alphaValue.setText(String.format("%d%%", (int)((255 - alphaSlider.getValue()) * 100.0 / 255)));
+            doLiveUpdate.run();
+        });
+
+        // Layout
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add(alphaPanel, BorderLayout.NORTH);
+
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton okBtn = new JButton("OK");
+        okBtn.addActionListener(e -> {
+            Color c = colorChooser.getColor();
+            result[0] = new Color(c.getRed(), c.getGreen(), c.getBlue(), alphaSlider.getValue());
+            dialog.dispose();
+        });
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.addActionListener(e -> {
+            // Restore original color
+            if (liveUpdate != null) {
+                liveUpdate.accept(startColor);
+            }
+            dialog.dispose();
+        });
+        buttonPanel.add(okBtn);
+        buttonPanel.add(cancelBtn);
+        bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.add(colorChooser, BorderLayout.CENTER);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+
+        return result[0];
+    }
+
     private void chooseFillColor() {
         if (selectedTaskIndices.isEmpty()) return;
         Color currentColor = Color.BLUE;
@@ -1124,14 +1380,23 @@ public class Timeline2 extends JFrame {
             TimelineTask t = tasks.get(idx);
             currentColor = t.fillColor != null ? t.fillColor : TASK_COLORS[idx % TASK_COLORS.length];
         }
-        Color newColor = JColorChooser.showDialog(this, "Choose Fill Color", currentColor);
+        final Color originalColor = currentColor;
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Fill Color", currentColor, color -> {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).fillColor = color;
+            }
+            fillColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).fillColor = newColor;
             }
             fillColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo(); // Cancel - restore original
         }
     }
 
@@ -1144,14 +1409,22 @@ public class Timeline2 extends JFrame {
             Color fill = t.fillColor != null ? t.fillColor : TASK_COLORS[idx % TASK_COLORS.length];
             currentColor = t.outlineColor != null ? t.outlineColor : fill.darker();
         }
-        Color newColor = JColorChooser.showDialog(this, "Choose Outline Color", currentColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Outline Color", currentColor, color -> {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).outlineColor = color;
+            }
+            outlineColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
             for (int idx : selectedTaskIndices) {
                 tasks.get(idx).outlineColor = newColor;
             }
             outlineColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo(); // Cancel - restore original
         }
     }
 
@@ -1432,445 +1705,689 @@ public class Timeline2 extends JFrame {
     }
 
     private void updateCenterText() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String text = centerTextField.getText();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).centerText = text;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).centerText = text;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).centerText = text;
         }
         refreshTimeline();
     }
 
     private void updateFontFamily() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String value = (String) fontFamilyCombo.getSelectedItem();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).fontFamily = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).fontFamily = value;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).fontFamily = value;
         }
         refreshTimeline();
     }
 
     private void updateFontSize() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) fontSizeSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).fontSize = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).fontSize = value;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).fontSize = value;
         }
         refreshTimeline();
     }
 
     private void updateFontBold() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = boldBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).fontBold = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).fontBold = value;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).fontBold = value;
         }
         refreshTimeline();
     }
 
     private void updateFontItalic() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = italicBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).fontItalic = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).fontItalic = value;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).fontItalic = value;
         }
         refreshTimeline();
     }
 
     private void chooseTextColor() {
-        if (selectedTaskIndices.isEmpty()) return;
         Color currentColor = Color.WHITE;
-        if (selectedTaskIndices.size() == 1) {
-            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
-            currentColor = t.textColor != null ? t.textColor : Color.WHITE;
+        if (!selectedTaskIndices.isEmpty()) {
+            if (selectedTaskIndices.size() == 1) {
+                TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+                currentColor = t.textColor != null ? t.textColor : Color.WHITE;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            currentColor = milestones.get(selectedMilestoneIndex).textColor;
+        } else {
+            return;
         }
-        Color newColor = JColorChooser.showDialog(this, "Choose Text Color", currentColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Text Color", currentColor, color -> {
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) {
+                    tasks.get(idx).textColor = color;
+                }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).textColor = color;
+            }
+            textColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
-            for (int idx : selectedTaskIndices) {
-                tasks.get(idx).textColor = newColor;
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) {
+                    tasks.get(idx).textColor = newColor;
+                }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).textColor = newColor;
             }
             textColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
     private void updateCenterXOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) centerXOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).centerTextXOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).centerTextXOffset = value;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).centerTextXOffset = value;
         }
         refreshTimeline();
     }
 
     private void updateCenterYOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) centerYOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).centerTextYOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).centerTextYOffset = value;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).centerTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateCenterTextWrap() {
+        saveState();
+        boolean wrap = centerWrapCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).centerTextWrap = wrap;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).centerTextWrap = wrap;
+        }
+        refreshTimeline();
+    }
+
+    private void updateCenterTextVisible() {
+        saveState();
+        boolean visible = centerVisibleCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) {
+                tasks.get(idx).centerTextVisible = visible;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).centerTextVisible = visible;
         }
         refreshTimeline();
     }
 
     // Front text update methods
     private void updateFrontText() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String text = frontTextField.getText();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).frontText = text;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontText = text; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontText = text;
         }
         refreshTimeline();
     }
 
     private void updateFrontFontFamily() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String value = (String) frontFontCombo.getSelectedItem();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).frontFontFamily = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontFontFamily = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontFontFamily = value;
         }
         refreshTimeline();
     }
 
     private void updateFrontFontSize() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) frontFontSizeSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).frontFontSize = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontFontSize = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontFontSize = value;
         }
         refreshTimeline();
     }
 
     private void updateFrontFontBold() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = frontBoldBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).frontFontBold = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontFontBold = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontFontBold = value;
         }
         refreshTimeline();
     }
 
     private void updateFrontFontItalic() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = frontItalicBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).frontFontItalic = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontFontItalic = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontFontItalic = value;
         }
         refreshTimeline();
     }
 
     private void chooseFrontTextColor() {
-        if (selectedTaskIndices.isEmpty()) return;
         Color currentColor = Color.BLACK;
-        if (selectedTaskIndices.size() == 1) {
-            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
-            currentColor = t.frontTextColor != null ? t.frontTextColor : Color.BLACK;
-        }
-        Color newColor = JColorChooser.showDialog(this, "Choose Front Text Color", currentColor);
+        if (!selectedTaskIndices.isEmpty()) {
+            if (selectedTaskIndices.size() == 1) {
+                currentColor = tasks.get(selectedTaskIndices.iterator().next()).frontTextColor;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            currentColor = milestones.get(selectedMilestoneIndex).frontTextColor;
+        } else { return; }
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Front Text Color", currentColor, color -> {
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).frontTextColor = color; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).frontTextColor = color;
+            }
+            frontTextColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
-            for (int idx : selectedTaskIndices) {
-                tasks.get(idx).frontTextColor = newColor;
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).frontTextColor = newColor; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).frontTextColor = newColor;
             }
             frontTextColorBtn.setBackground(newColor);
             refreshTimeline();
-        }
+        } else { undo(); }
     }
 
     private void updateFrontXOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) frontXOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).frontTextXOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontTextXOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontTextXOffset = value;
         }
         refreshTimeline();
     }
 
     private void updateFrontYOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) frontYOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).frontTextYOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontTextYOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateFrontTextWrap() {
+        saveState();
+        boolean wrap = frontWrapCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontTextWrap = wrap; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontTextWrap = wrap;
+        }
+        refreshTimeline();
+    }
+
+    private void updateFrontTextVisible() {
+        saveState();
+        boolean visible = frontVisibleCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).frontTextVisible = visible; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).frontTextVisible = visible;
         }
         refreshTimeline();
     }
 
     // Above text update methods
     private void updateAboveText() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String text = aboveTextField.getText();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).aboveText = text;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveText = text; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveText = text;
         }
         refreshTimeline();
     }
 
     private void updateAboveFontFamily() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String value = (String) aboveFontCombo.getSelectedItem();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).aboveFontFamily = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveFontFamily = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveFontFamily = value;
         }
         refreshTimeline();
     }
 
     private void updateAboveFontSize() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) aboveFontSizeSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).aboveFontSize = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveFontSize = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveFontSize = value;
         }
         refreshTimeline();
     }
 
     private void updateAboveFontBold() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = aboveBoldBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).aboveFontBold = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveFontBold = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveFontBold = value;
         }
         refreshTimeline();
     }
 
     private void updateAboveFontItalic() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = aboveItalicBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).aboveFontItalic = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveFontItalic = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveFontItalic = value;
         }
         refreshTimeline();
     }
 
     private void chooseAboveTextColor() {
-        if (selectedTaskIndices.isEmpty()) return;
         Color currentColor = Color.BLACK;
-        if (selectedTaskIndices.size() == 1) {
-            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
-            currentColor = t.aboveTextColor != null ? t.aboveTextColor : Color.BLACK;
+        if (!selectedTaskIndices.isEmpty()) {
+            if (selectedTaskIndices.size() == 1) {
+                TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+                currentColor = t.aboveTextColor != null ? t.aboveTextColor : Color.BLACK;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            TimelineMilestone m = milestones.get(selectedMilestoneIndex);
+            currentColor = m.aboveTextColor != null ? m.aboveTextColor : Color.BLACK;
         }
-        Color newColor = JColorChooser.showDialog(this, "Choose Above Text Color", currentColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Above Text Color", currentColor, color -> {
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).aboveTextColor = color; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).aboveTextColor = color;
+            }
+            aboveTextColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
-            for (int idx : selectedTaskIndices) {
-                tasks.get(idx).aboveTextColor = newColor;
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).aboveTextColor = newColor; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).aboveTextColor = newColor;
             }
             aboveTextColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
     private void updateAboveXOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) aboveXOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).aboveTextXOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveTextXOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveTextXOffset = value;
         }
         refreshTimeline();
     }
 
     private void updateAboveYOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) aboveYOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).aboveTextYOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveTextYOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateAboveTextWrap() {
+        saveState();
+        boolean wrap = aboveWrapCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveTextWrap = wrap; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveTextWrap = wrap;
+        }
+        refreshTimeline();
+    }
+
+    private void updateAboveTextVisible() {
+        saveState();
+        boolean visible = aboveVisibleCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).aboveTextVisible = visible; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).aboveTextVisible = visible;
         }
         refreshTimeline();
     }
 
     // Underneath text update methods
     private void updateUnderneathText() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String text = underneathTextField.getText();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).underneathText = text;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathText = text; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathText = text;
         }
         refreshTimeline();
     }
 
     private void updateUnderneathFontFamily() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String value = (String) underneathFontCombo.getSelectedItem();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).underneathFontFamily = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathFontFamily = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathFontFamily = value;
         }
         refreshTimeline();
     }
 
     private void updateUnderneathFontSize() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) underneathFontSizeSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).underneathFontSize = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathFontSize = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathFontSize = value;
         }
         refreshTimeline();
     }
 
     private void updateUnderneathFontBold() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = underneathBoldBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).underneathFontBold = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathFontBold = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathFontBold = value;
         }
         refreshTimeline();
     }
 
     private void updateUnderneathFontItalic() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = underneathItalicBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).underneathFontItalic = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathFontItalic = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathFontItalic = value;
         }
         refreshTimeline();
     }
 
     private void chooseUnderneathTextColor() {
-        if (selectedTaskIndices.isEmpty()) return;
         Color currentColor = Color.BLACK;
-        if (selectedTaskIndices.size() == 1) {
-            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
-            currentColor = t.underneathTextColor != null ? t.underneathTextColor : Color.BLACK;
+        if (!selectedTaskIndices.isEmpty()) {
+            if (selectedTaskIndices.size() == 1) {
+                TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+                currentColor = t.underneathTextColor != null ? t.underneathTextColor : Color.BLACK;
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            TimelineMilestone m = milestones.get(selectedMilestoneIndex);
+            currentColor = m.underneathTextColor != null ? m.underneathTextColor : Color.BLACK;
         }
-        Color newColor = JColorChooser.showDialog(this, "Choose Underneath Text Color", currentColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Underneath Text Color", currentColor, color -> {
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).underneathTextColor = color; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).underneathTextColor = color;
+            }
+            underneathTextColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
-            for (int idx : selectedTaskIndices) {
-                tasks.get(idx).underneathTextColor = newColor;
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).underneathTextColor = newColor; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).underneathTextColor = newColor;
             }
             underneathTextColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
     private void updateUnderneathXOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) underneathXOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).underneathTextXOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathTextXOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathTextXOffset = value;
         }
         refreshTimeline();
     }
 
     private void updateUnderneathYOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) underneathYOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).underneathTextYOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathTextYOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateUnderneathTextWrap() {
+        saveState();
+        boolean wrap = underneathWrapCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathTextWrap = wrap; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathTextWrap = wrap;
+        }
+        refreshTimeline();
+    }
+
+    private void updateUnderneathTextVisible() {
+        saveState();
+        boolean visible = underneathVisibleCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).underneathTextVisible = visible; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).underneathTextVisible = visible;
         }
         refreshTimeline();
     }
 
     // Behind text update methods
     private void updateBehindText() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String text = behindTextField.getText();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).behindText = text;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindText = text; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindText = text;
         }
         refreshTimeline();
     }
 
     private void updateBehindFontFamily() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         String value = (String) behindFontCombo.getSelectedItem();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).behindFontFamily = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindFontFamily = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindFontFamily = value;
         }
         refreshTimeline();
     }
 
     private void updateBehindFontSize() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) behindFontSizeSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).behindFontSize = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindFontSize = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindFontSize = value;
         }
         refreshTimeline();
     }
 
     private void updateBehindFontBold() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = behindBoldBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).behindFontBold = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindFontBold = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindFontBold = value;
         }
         refreshTimeline();
     }
 
     private void updateBehindFontItalic() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         boolean value = behindItalicBtn.isSelected();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).behindFontItalic = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindFontItalic = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindFontItalic = value;
         }
         refreshTimeline();
     }
 
     private void chooseBehindTextColor() {
-        if (selectedTaskIndices.isEmpty()) return;
         Color currentColor = new Color(150, 150, 150);
-        if (selectedTaskIndices.size() == 1) {
-            TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
-            currentColor = t.behindTextColor != null ? t.behindTextColor : new Color(150, 150, 150);
+        if (!selectedTaskIndices.isEmpty()) {
+            if (selectedTaskIndices.size() == 1) {
+                TimelineTask t = tasks.get(selectedTaskIndices.iterator().next());
+                currentColor = t.behindTextColor != null ? t.behindTextColor : new Color(150, 150, 150);
+            }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            TimelineMilestone m = milestones.get(selectedMilestoneIndex);
+            currentColor = m.behindTextColor != null ? m.behindTextColor : new Color(150, 150, 150);
         }
-        Color newColor = JColorChooser.showDialog(this, "Choose Behind Text Color", currentColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Behind Text Color", currentColor, color -> {
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).behindTextColor = color; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).behindTextColor = color;
+            }
+            behindTextColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
-            for (int idx : selectedTaskIndices) {
-                tasks.get(idx).behindTextColor = newColor;
+            if (!selectedTaskIndices.isEmpty()) {
+                for (int idx : selectedTaskIndices) { tasks.get(idx).behindTextColor = newColor; }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                milestones.get(selectedMilestoneIndex).behindTextColor = newColor;
             }
             behindTextColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
     private void updateBehindXOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) behindXOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).behindTextXOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindTextXOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindTextXOffset = value;
         }
         refreshTimeline();
     }
 
     private void updateBehindYOffset() {
-        if (selectedTaskIndices.isEmpty()) return;
         saveState();
         int value = (Integer) behindYOffsetSpinner.getValue();
-        for (int idx : selectedTaskIndices) {
-            tasks.get(idx).behindTextYOffset = value;
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindTextYOffset = value; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindTextYOffset = value;
+        }
+        refreshTimeline();
+    }
+
+    private void updateBehindTextWrap() {
+        saveState();
+        boolean wrap = behindWrapCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindTextWrap = wrap; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindTextWrap = wrap;
+        }
+        refreshTimeline();
+    }
+
+    private void updateBehindTextVisible() {
+        saveState();
+        boolean visible = behindVisibleCheckbox.isSelected();
+        if (!selectedTaskIndices.isEmpty()) {
+            for (int idx : selectedTaskIndices) { tasks.get(idx).behindTextVisible = visible; }
+        } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            milestones.get(selectedMilestoneIndex).behindTextVisible = visible;
         }
         refreshTimeline();
     }
@@ -1916,51 +2433,858 @@ public class Timeline2 extends JFrame {
     private void chooseMilestoneFillColor() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
         TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
-        Color newColor = JColorChooser.showDialog(this, "Choose Fill Color", milestone.fillColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Fill Color", milestone.fillColor, color -> {
+            milestone.fillColor = color;
+            milestoneFillColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
             milestone.fillColor = newColor;
             milestoneFillColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
     private void chooseMilestoneOutlineColor() {
         if (selectedMilestoneIndex < 0 || selectedMilestoneIndex >= milestones.size()) return;
         TimelineMilestone milestone = milestones.get(selectedMilestoneIndex);
-        Color newColor = JColorChooser.showDialog(this, "Choose Outline Color", milestone.outlineColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Outline Color", milestone.outlineColor, color -> {
+            milestone.outlineColor = color;
+            milestoneOutlineColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
-            saveState();
             milestone.outlineColor = newColor;
             milestoneOutlineColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
     private void chooseTimelineBackgroundColor() {
-        Color newColor = JColorChooser.showDialog(this, "Choose Background Color", timelineInteriorColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Background Color", timelineInteriorColor, color -> {
+            timelineInteriorColor = color;
+            timelineUseGradient = false; // Disable gradient when selecting solid color
+            timelineBgColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
             timelineInteriorColor = newColor;
+            timelineUseGradient = false; // Disable gradient when selecting solid color
             timelineBgColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
+        }
+    }
+
+    private void showGradientDialog() {
+        showGradientDialog("background");
+    }
+
+    private void showGradientDialog(String type) {
+        // Get current values based on type
+        ArrayList<float[]> currentStops;
+        Color currentColor1, currentColor2;
+        String currentDir;
+        double currentAngle;
+        boolean currentUseGradient;
+
+        if ("settings".equals(type)) {
+            currentStops = settingsGradientStops;
+            currentColor1 = settingsInteriorColor;
+            currentColor2 = settingsInteriorColor2;
+            currentDir = settingsGradientDir;
+            currentAngle = settingsGradientAngle;
+            currentUseGradient = settingsUseGradient;
+        } else if ("settingsHeader".equals(type)) {
+            currentStops = settingsHeaderGradientStops;
+            currentColor1 = settingsHeaderColor;
+            currentColor2 = settingsHeaderColor2;
+            currentDir = settingsHeaderGradientDir;
+            currentAngle = settingsHeaderGradientAngle;
+            currentUseGradient = settingsHeaderUseGradient;
+        } else if ("format".equals(type)) {
+            currentStops = formatGradientStops;
+            currentColor1 = formatInteriorColor;
+            currentColor2 = formatInteriorColor2;
+            currentDir = "Vertical";
+            currentAngle = formatGradientAngle;
+            currentUseGradient = formatUseGradient;
+        } else if ("formatHeader".equals(type)) {
+            currentStops = formatHeaderGradientStops;
+            currentColor1 = formatHeaderColor;
+            currentColor2 = formatHeaderColor2;
+            currentDir = "Horizontal";
+            currentAngle = formatHeaderGradientAngle;
+            currentUseGradient = formatHeaderUseGradient;
+        } else if ("formatTab".equals(type)) {
+            currentStops = formatTabGradientStops;
+            currentColor1 = formatTabColor;
+            currentColor2 = formatTabColor2;
+            currentDir = "Horizontal";
+            currentAngle = formatTabGradientAngle;
+            currentUseGradient = formatTabUseGradient;
+        } else if ("formatSelectedTab".equals(type)) {
+            currentStops = formatSelectedTabGradientStops;
+            currentColor1 = formatSelectedTabColor;
+            currentColor2 = formatSelectedTabColor2;
+            currentDir = "Horizontal";
+            currentAngle = formatSelectedTabGradientAngle;
+            currentUseGradient = formatSelectedTabUseGradient;
+        } else if ("formatTabContent".equals(type)) {
+            currentStops = formatTabContentGradientStops;
+            currentColor1 = formatTabContentColor;
+            currentColor2 = formatTabContentColor2;
+            currentDir = "Vertical";
+            currentAngle = formatTabContentGradientAngle;
+            currentUseGradient = formatTabContentUseGradient;
+        } else if ("layers".equals(type)) {
+            currentStops = layersGradientStops;
+            currentColor1 = layersInteriorColor;
+            currentColor2 = layersInteriorColor2;
+            currentDir = "Vertical";
+            currentAngle = layersGradientAngle;
+            currentUseGradient = layersUseGradient;
+        } else if ("layersHeader".equals(type)) {
+            currentStops = layersHeaderGradientStops;
+            currentColor1 = layersHeaderColor;
+            currentColor2 = layersHeaderColor2;
+            currentDir = "Horizontal";
+            currentAngle = layersHeaderGradientAngle;
+            currentUseGradient = layersHeaderUseGradient;
+        } else if ("layersListBg".equals(type)) {
+            currentStops = layersListBgGradientStops;
+            currentColor1 = layersListBgColor;
+            currentColor2 = layersListBgColor2;
+            currentDir = "Vertical";
+            currentAngle = layersListBgGradientAngle;
+            currentUseGradient = layersListBgUseGradient;
+        } else if ("layersTask".equals(type)) {
+            currentStops = layersTaskGradientStops;
+            currentColor1 = layersTaskColor;
+            currentColor2 = layersTaskColor2;
+            currentDir = "Horizontal";
+            currentAngle = layersTaskGradientAngle;
+            currentUseGradient = layersTaskUseGradient;
+        } else {
+            currentStops = timelineGradientStops;
+            currentColor1 = timelineInteriorColor;
+            currentColor2 = timelineInteriorColor2;
+            currentDir = timelineGradientDir;
+            currentAngle = timelineGradientAngle;
+            currentUseGradient = timelineUseGradient;
+        }
+
+        // Store original values for cancel
+        final ArrayList<float[]> origStops = new ArrayList<>();
+        for (float[] stop : currentStops) {
+            origStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+        }
+        final Color origColor1 = currentColor1;
+        final Color origColor2 = currentColor2;
+        final String origDir = currentDir;
+        final double origAngle = currentAngle;
+        final boolean origUseGradient = currentUseGradient;
+        final String finalType = type;
+        final double[] angleRef = {currentAngle}; // Mutable reference for angle
+
+        JDialog dialog = new JDialog(this, "Gradient Settings", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        // Gradient stops list - load from saved stops or create default
+        ArrayList<float[]> gradientStops = new ArrayList<>();
+        if (currentStops.size() >= 2) {
+            for (float[] stop : currentStops) {
+                gradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+            }
+        } else {
+            gradientStops.add(new float[]{0f, currentColor1.getRed()/255f, currentColor1.getGreen()/255f,
+                                           currentColor1.getBlue()/255f, currentColor1.getAlpha()/255f});
+            gradientStops.add(new float[]{1f, currentColor2.getRed()/255f, currentColor2.getGreen()/255f,
+                                           currentColor2.getBlue()/255f, currentColor2.getAlpha()/255f});
+        }
+
+        // "Gradient stops" label
+        JLabel stopsLabel = new JLabel("Gradient stops");
+        stopsLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        stopsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        mainPanel.add(stopsLabel);
+        mainPanel.add(Box.createVerticalStrut(3));
+
+        // Track selected stop for color button
+        final int[] selectedStopRef = {0};
+
+        // Gradient slider panel - PowerPoint style
+        JPanel sliderPanel = new JPanel() {
+            int selectedStop = 0;
+            int dragStop = -1;
+
+            {
+                setPreferredSize(new Dimension(280, 45));
+                setBackground(Color.WHITE);
+
+                addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mousePressed(java.awt.event.MouseEvent e) {
+                        int x = e.getX();
+                        int y = e.getY();
+                        int barX = 12;
+                        int barW = getWidth() - 24;
+
+                        // Check if clicking on stop marker (house shape at bottom)
+                        for (int i = 0; i < gradientStops.size(); i++) {
+                            float[] stop = gradientStops.get(i);
+                            int stopX = (int)(stop[0] * barW) + barX;
+                            if (Math.abs(x - stopX) < 8 && y >= 22) {
+                                selectedStop = i;
+                                selectedStopRef[0] = i;
+                                dragStop = i;
+                                repaint();
+                                getParent().repaint();
+                                return;
+                            }
+                        }
+
+                        // Add new stop if clicking on gradient bar
+                        if (y >= 5 && y <= 22) {
+                            float pos = (x - barX) / (float)barW;
+                            pos = Math.max(0.01f, Math.min(0.99f, pos));
+
+                            Color interpColor = interpolateGradientColor(gradientStops, pos);
+                            gradientStops.add(new float[]{pos, interpColor.getRed()/255f, interpColor.getGreen()/255f,
+                                                           interpColor.getBlue()/255f, interpColor.getAlpha()/255f});
+                            gradientStops.sort((a, b) -> Float.compare(a[0], b[0]));
+                            for (int i = 0; i < gradientStops.size(); i++) {
+                                if (Math.abs(gradientStops.get(i)[0] - pos) < 0.01f) {
+                                    selectedStop = i;
+                                    selectedStopRef[0] = i;
+                                    break;
+                                }
+                            }
+                            updateGradientFromStops(gradientStops, finalType);
+                            repaint();
+                            getParent().repaint();
+                        }
+                    }
+
+                    @Override
+                    public void mouseReleased(java.awt.event.MouseEvent e) {
+                        dragStop = -1;
+                    }
+                });
+
+                addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+                    @Override
+                    public void mouseDragged(java.awt.event.MouseEvent e) {
+                        if (dragStop >= 0 && dragStop < gradientStops.size()) {
+                            int barX = 12;
+                            int barW = getWidth() - 24;
+                            float pos = (e.getX() - barX) / (float)barW;
+                            // All stops can move within full range
+                            pos = Math.max(0f, Math.min(1f, pos));
+
+                            gradientStops.get(dragStop)[0] = pos;
+                            // Sort and find new index after drag
+                            gradientStops.sort((a, b) -> Float.compare(a[0], b[0]));
+                            for (int i = 0; i < gradientStops.size(); i++) {
+                                if (Math.abs(gradientStops.get(i)[0] - pos) < 0.001f) {
+                                    dragStop = i;
+                                    selectedStop = i;
+                                    selectedStopRef[0] = i;
+                                    break;
+                                }
+                            }
+                            updateGradientFromStops(gradientStops, finalType);
+                            repaint();
+                        }
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int barX = 12;
+                int barY = 5;
+                int barW = getWidth() - 24;
+                int barH = 18;
+
+                // Draw gradient bar with border
+                for (int x = 0; x < barW; x++) {
+                    float pos = x / (float) barW;
+                    Color c = interpolateGradientColor(gradientStops, pos);
+                    g2d.setColor(c);
+                    g2d.drawLine(x + barX, barY, x + barX, barY + barH);
+                }
+                g2d.setColor(new Color(160, 160, 160));
+                g2d.drawRect(barX, barY, barW, barH);
+
+                // Draw house-shaped stop markers (PowerPoint style)
+                for (int i = 0; i < gradientStops.size(); i++) {
+                    float[] stop = gradientStops.get(i);
+                    int stopX = (int)(stop[0] * barW) + barX;
+                    Color stopColor = new Color(stop[1], stop[2], stop[3], stop[4]);
+
+                    // House shape: pentagon pointing up
+                    int[] xPoints = {stopX - 6, stopX + 6, stopX + 6, stopX, stopX - 6};
+                    int[] yPoints = {barY + barH + 18, barY + barH + 18, barY + barH + 6, barY + barH + 1, barY + barH + 6};
+
+                    // Fill with stop color
+                    g2d.setColor(stopColor);
+                    g2d.fillPolygon(xPoints, yPoints, 5);
+
+                    // Border - blue if selected, gray otherwise
+                    if (i == selectedStop) {
+                        g2d.setColor(new Color(0, 120, 215));
+                        g2d.setStroke(new BasicStroke(2));
+                    } else {
+                        g2d.setColor(new Color(160, 160, 160));
+                        g2d.setStroke(new BasicStroke(1));
+                    }
+                    g2d.drawPolygon(xPoints, yPoints, 5);
+                }
+            }
+        };
+        sliderPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        mainPanel.add(sliderPanel);
+        mainPanel.add(Box.createVerticalStrut(8));
+
+        // Color row with button for selected stop
+        JPanel colorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        colorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        colorRow.setOpaque(false);
+
+        JLabel colorLabel = new JLabel("Color");
+        colorLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        colorRow.add(colorLabel);
+
+        JButton stopColorBtn = new JButton();
+        stopColorBtn.setPreferredSize(new Dimension(40, 22));
+        float[] firstStop = gradientStops.get(0);
+        stopColorBtn.setBackground(new Color(firstStop[1], firstStop[2], firstStop[3], firstStop[4]));
+        stopColorBtn.addActionListener(e -> {
+            int idx = selectedStopRef[0];
+            if (idx >= 0 && idx < gradientStops.size()) {
+                float[] stop = gradientStops.get(idx);
+                Color stopColor = new Color(stop[1], stop[2], stop[3], stop[4]);
+                Color c = showColorChooserWithAlpha("Choose Stop Color", stopColor, color -> {
+                    float[] s = gradientStops.get(selectedStopRef[0]);
+                    s[1] = color.getRed()/255f;
+                    s[2] = color.getGreen()/255f;
+                    s[3] = color.getBlue()/255f;
+                    s[4] = color.getAlpha()/255f;
+                    stopColorBtn.setBackground(color);
+                    updateGradientFromStops(gradientStops, finalType);
+                    sliderPanel.repaint();
+                });
+                if (c != null) {
+                    stop[1] = c.getRed()/255f;
+                    stop[2] = c.getGreen()/255f;
+                    stop[3] = c.getBlue()/255f;
+                    stop[4] = c.getAlpha()/255f;
+                    stopColorBtn.setBackground(c);
+                    updateGradientFromStops(gradientStops, finalType);
+                    sliderPanel.repaint();
+                }
+            }
+        });
+        colorRow.add(stopColorBtn);
+
+        // Delete button - can delete any stop as long as at least 2 remain
+        JButton deleteBtn = new JButton("X");
+        deleteBtn.setPreferredSize(new Dimension(28, 22));
+        deleteBtn.setFont(new Font("Arial", Font.BOLD, 10));
+        deleteBtn.setMargin(new Insets(0, 0, 0, 0));
+        deleteBtn.setToolTipText("Remove stop (minimum 2 required)");
+        deleteBtn.addActionListener(e -> {
+            int idx = selectedStopRef[0];
+            if (gradientStops.size() > 2 && idx >= 0 && idx < gradientStops.size()) {
+                gradientStops.remove(idx);
+                selectedStopRef[0] = Math.min(idx, gradientStops.size() - 1);
+                updateGradientFromStops(gradientStops, finalType);
+                sliderPanel.repaint();
+                // Update color button
+                float[] newStop = gradientStops.get(selectedStopRef[0]);
+                stopColorBtn.setBackground(new Color(newStop[1], newStop[2], newStop[3], newStop[4]));
+            }
+        });
+        colorRow.add(deleteBtn);
+
+        mainPanel.add(colorRow);
+        mainPanel.add(Box.createVerticalStrut(10));
+
+        // Angle row with wheel and spinner
+        JPanel angleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        angleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel angleLabel = new JLabel("Angle:");
+        angleRow.add(angleLabel);
+
+        // Angle spinner
+        SpinnerNumberModel angleModel = new SpinnerNumberModel(angleRef[0], 0.0, 360.0, 1.0);
+        JSpinner angleSpinner = new JSpinner(angleModel);
+        angleSpinner.setPreferredSize(new Dimension(70, 25));
+        JSpinner.NumberEditor editor = new JSpinner.NumberEditor(angleSpinner, "0.0");
+        angleSpinner.setEditor(editor);
+
+        // Angle wheel panel
+        JPanel angleWheel = new JPanel() {
+            private boolean dragging = false;
+            {
+                setPreferredSize(new Dimension(60, 60));
+                setBackground(Color.WHITE);
+                setBorder(BorderFactory.createLineBorder(new Color(160, 160, 160)));
+
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        dragging = true;
+                        updateAngleFromMouse(e.getX(), e.getY());
+                    }
+                    @Override
+                    public void mouseReleased(MouseEvent e) {
+                        dragging = false;
+                    }
+                });
+
+                addMouseMotionListener(new MouseMotionAdapter() {
+                    @Override
+                    public void mouseDragged(MouseEvent e) {
+                        if (dragging) {
+                            updateAngleFromMouse(e.getX(), e.getY());
+                        }
+                    }
+                });
+            }
+
+            private void updateAngleFromMouse(int x, int y) {
+                int cx = getWidth() / 2;
+                int cy = getHeight() / 2;
+                double dx = x - cx;
+                double dy = y - cy;
+                double angle = Math.toDegrees(Math.atan2(dy, dx));
+                if (angle < 0) angle += 360;
+                angleRef[0] = angle;
+                angleSpinner.setValue(angle);
+                applyAngle(angle, finalType);
+                repaint();
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int cx = getWidth() / 2;
+                int cy = getHeight() / 2;
+                int radius = Math.min(cx, cy) - 4;
+
+                // Draw outer circle
+                g2d.setColor(new Color(200, 200, 200));
+                g2d.drawOval(cx - radius, cy - radius, radius * 2, radius * 2);
+
+                // Draw gradient preview in circle
+                for (int a = 0; a < 360; a += 10) {
+                    double rad = Math.toRadians(a);
+                    int x1 = cx + (int)(Math.cos(rad) * (radius - 8));
+                    int y1 = cy + (int)(Math.sin(rad) * (radius - 8));
+                    int x2 = cx + (int)(Math.cos(rad) * radius);
+                    int y2 = cy + (int)(Math.sin(rad) * radius);
+                    g2d.setColor(new Color(220, 220, 220));
+                    g2d.drawLine(x1, y1, x2, y2);
+                }
+
+                // Draw angle indicator line
+                double rad = Math.toRadians(angleRef[0]);
+                int lineX = cx + (int)(Math.cos(rad) * radius);
+                int lineY = cy + (int)(Math.sin(rad) * radius);
+                g2d.setColor(new Color(0, 120, 215));
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawLine(cx, cy, lineX, lineY);
+
+                // Draw center dot
+                g2d.setColor(new Color(0, 120, 215));
+                g2d.fillOval(cx - 4, cy - 4, 8, 8);
+
+                // Draw arrow head
+                double arrowAngle1 = rad + Math.toRadians(150);
+                double arrowAngle2 = rad - Math.toRadians(150);
+                int arrowLen = 8;
+                int ax1 = lineX + (int)(Math.cos(arrowAngle1) * arrowLen);
+                int ay1 = lineY + (int)(Math.sin(arrowAngle1) * arrowLen);
+                int ax2 = lineX + (int)(Math.cos(arrowAngle2) * arrowLen);
+                int ay2 = lineY + (int)(Math.sin(arrowAngle2) * arrowLen);
+                g2d.drawLine(lineX, lineY, ax1, ay1);
+                g2d.drawLine(lineX, lineY, ax2, ay2);
+            }
+        };
+
+        angleSpinner.addChangeListener(e -> {
+            double angle = (Double) angleSpinner.getValue();
+            angleRef[0] = angle;
+            applyAngle(angle, finalType);
+            angleWheel.repaint();
+        });
+
+        angleRow.add(angleWheel);
+        angleRow.add(angleSpinner);
+        angleRow.add(new JLabel("°"));
+        mainPanel.add(angleRow);
+        mainPanel.add(Box.createVerticalStrut(15));
+
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton okBtn = new JButton("OK");
+        okBtn.addActionListener(e -> {
+            if ("settings".equals(finalType)) {
+                settingsUseGradient = true;
+            } else if ("settingsHeader".equals(finalType)) {
+                settingsHeaderUseGradient = true;
+            } else if ("format".equals(finalType)) {
+                formatUseGradient = true;
+            } else if ("formatHeader".equals(finalType)) {
+                formatHeaderUseGradient = true;
+            } else {
+                timelineUseGradient = true;
+                timelineBgColorBtn.setBackground(timelineInteriorColor);
+            }
+            timelineDisplayPanel.repaint();
+            if ("format".equals(finalType) || "formatHeader".equals(finalType)) {
+                applyFormatPanelColors();
+            }
+            dialog.dispose();
+        });
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.addActionListener(e -> {
+            // Restore original values
+            if ("settings".equals(finalType)) {
+                settingsGradientStops.clear();
+                for (float[] stop : origStops) {
+                    settingsGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                settingsInteriorColor = origColor1;
+                settingsInteriorColor2 = origColor2;
+                settingsGradientDir = origDir;
+                settingsGradientAngle = origAngle;
+                settingsUseGradient = origUseGradient;
+            } else if ("settingsHeader".equals(finalType)) {
+                settingsHeaderGradientStops.clear();
+                for (float[] stop : origStops) {
+                    settingsHeaderGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                settingsHeaderColor = origColor1;
+                settingsHeaderColor2 = origColor2;
+                settingsHeaderGradientDir = origDir;
+                settingsHeaderGradientAngle = origAngle;
+                settingsHeaderUseGradient = origUseGradient;
+            } else if ("format".equals(finalType)) {
+                formatGradientStops.clear();
+                for (float[] stop : origStops) {
+                    formatGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                formatInteriorColor = origColor1;
+                formatInteriorColor2 = origColor2;
+                formatGradientAngle = origAngle;
+                formatUseGradient = origUseGradient;
+            } else if ("formatHeader".equals(finalType)) {
+                formatHeaderGradientStops.clear();
+                for (float[] stop : origStops) {
+                    formatHeaderGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                formatHeaderColor = origColor1;
+                formatHeaderColor2 = origColor2;
+                formatHeaderGradientAngle = origAngle;
+                formatHeaderUseGradient = origUseGradient;
+            } else {
+                timelineGradientStops.clear();
+                for (float[] stop : origStops) {
+                    timelineGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                timelineInteriorColor = origColor1;
+                timelineInteriorColor2 = origColor2;
+                timelineGradientDir = origDir;
+                timelineGradientAngle = origAngle;
+                timelineUseGradient = origUseGradient;
+            }
+            timelineDisplayPanel.repaint();
+            if ("format".equals(finalType) || "formatHeader".equals(finalType)) {
+                applyFormatPanelColors();
+            }
+            dialog.dispose();
+        });
+        buttonPanel.add(okBtn);
+        buttonPanel.add(cancelBtn);
+
+        dialog.add(mainPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void applyAngle(double angle, String type) {
+        if ("settings".equals(type)) {
+            settingsGradientAngle = angle;
+            settingsUseGradient = true;
+        } else if ("settingsHeader".equals(type)) {
+            settingsHeaderGradientAngle = angle;
+            settingsHeaderUseGradient = true;
+        } else if ("format".equals(type)) {
+            formatGradientAngle = angle;
+            formatUseGradient = true;
+        } else if ("formatHeader".equals(type)) {
+            formatHeaderGradientAngle = angle;
+            formatHeaderUseGradient = true;
+        } else if ("formatTab".equals(type)) {
+            formatTabGradientAngle = angle;
+            formatTabUseGradient = true;
+        } else if ("formatSelectedTab".equals(type)) {
+            formatSelectedTabGradientAngle = angle;
+            formatSelectedTabUseGradient = true;
+        } else if ("formatTabContent".equals(type)) {
+            formatTabContentGradientAngle = angle;
+            formatTabContentUseGradient = true;
+        } else if ("layers".equals(type)) {
+            layersGradientAngle = angle;
+            layersUseGradient = true;
+        } else if ("layersHeader".equals(type)) {
+            layersHeaderGradientAngle = angle;
+            layersHeaderUseGradient = true;
+        } else if ("layersListBg".equals(type)) {
+            layersListBgGradientAngle = angle;
+            layersListBgUseGradient = true;
+        } else if ("layersTask".equals(type)) {
+            layersTaskGradientAngle = angle;
+            layersTaskUseGradient = true;
+        } else {
+            timelineGradientAngle = angle;
+            timelineUseGradient = true;
+        }
+        timelineDisplayPanel.repaint();
+        if ("format".equals(type) || "formatHeader".equals(type) || "formatTab".equals(type) || "formatSelectedTab".equals(type) || "formatTabContent".equals(type)) {
+            applyFormatPanelColors();
+        }
+        if ("layers".equals(type) || "layersHeader".equals(type) || "layersListBg".equals(type) || "layersTask".equals(type)) {
+            applyLayersPanelColors();
+        }
+    }
+
+    // Helper method to create LinearGradientPaint from angle
+    private java.awt.LinearGradientPaint createAngledGradient(int w, int h, double angleDegrees, float[] fractions, Color[] colors) {
+        double angleRad = Math.toRadians(angleDegrees);
+        double cos = Math.cos(angleRad);
+        double sin = Math.sin(angleRad);
+
+        // Calculate the diagonal length to ensure gradient covers entire area
+        double diagonal = Math.sqrt(w * w + h * h);
+
+        // Center of the area
+        double cx = w / 2.0;
+        double cy = h / 2.0;
+
+        // Calculate start and end points based on angle
+        float startX = (float)(cx - cos * diagonal / 2);
+        float startY = (float)(cy - sin * diagonal / 2);
+        float endX = (float)(cx + cos * diagonal / 2);
+        float endY = (float)(cy + sin * diagonal / 2);
+
+        return new java.awt.LinearGradientPaint(startX, startY, endX, endY, fractions, colors);
+    }
+
+    private Color interpolateGradientColor(ArrayList<float[]> stops, float pos) {
+        if (stops.isEmpty()) return Color.WHITE;
+        if (pos <= stops.get(0)[0]) {
+            float[] s = stops.get(0);
+            return new Color(s[1], s[2], s[3], s[4]);
+        }
+        if (pos >= stops.get(stops.size()-1)[0]) {
+            float[] s = stops.get(stops.size()-1);
+            return new Color(s[1], s[2], s[3], s[4]);
+        }
+
+        for (int i = 0; i < stops.size() - 1; i++) {
+            float[] s1 = stops.get(i);
+            float[] s2 = stops.get(i + 1);
+            if (pos >= s1[0] && pos <= s2[0]) {
+                float t = (pos - s1[0]) / (s2[0] - s1[0]);
+                float r = s1[1] + t * (s2[1] - s1[1]);
+                float g = s1[2] + t * (s2[2] - s1[2]);
+                float b = s1[3] + t * (s2[3] - s1[3]);
+                float a = s1[4] + t * (s2[4] - s1[4]);
+                return new Color(r, g, b, a);
+            }
+        }
+        return Color.WHITE;
+    }
+
+    private void updateGradientFromStops(ArrayList<float[]> stops, String type) {
+        if (stops.size() >= 2) {
+            float[] first = stops.get(0);
+            float[] last = stops.get(stops.size() - 1);
+            Color color1 = new Color(first[1], first[2], first[3], first[4]);
+            Color color2 = new Color(last[1], last[2], last[3], last[4]);
+
+            if ("settings".equals(type)) {
+                settingsGradientStops.clear();
+                for (float[] stop : stops) {
+                    settingsGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                settingsInteriorColor = color1;
+                settingsInteriorColor2 = color2;
+                settingsUseGradient = true;
+                if (settingsPanel != null) {
+                    settingsPanel.revalidate();
+                    settingsPanel.repaint();
+                }
+            } else if ("settingsHeader".equals(type)) {
+                settingsHeaderGradientStops.clear();
+                for (float[] stop : stops) {
+                    settingsHeaderGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                settingsHeaderColor = color1;
+                settingsHeaderColor2 = color2;
+                settingsHeaderUseGradient = true;
+                if (settingsPanel != null) {
+                    settingsPanel.revalidate();
+                    settingsPanel.repaint();
+                }
+            } else if ("format".equals(type)) {
+                formatGradientStops.clear();
+                for (float[] stop : stops) {
+                    formatGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                formatInteriorColor = color1;
+                formatInteriorColor2 = color2;
+                formatUseGradient = true;
+                applyFormatPanelColors();
+            } else if ("formatHeader".equals(type)) {
+                formatHeaderGradientStops.clear();
+                for (float[] stop : stops) {
+                    formatHeaderGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                formatHeaderColor = color1;
+                formatHeaderColor2 = color2;
+                formatHeaderUseGradient = true;
+                applyFormatPanelColors();
+            } else if ("formatTab".equals(type)) {
+                formatTabGradientStops.clear();
+                for (float[] stop : stops) {
+                    formatTabGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                formatTabColor = color1;
+                formatTabColor2 = color2;
+                formatTabUseGradient = true;
+                applyFormatPanelColors();
+            } else if ("formatSelectedTab".equals(type)) {
+                formatSelectedTabGradientStops.clear();
+                for (float[] stop : stops) {
+                    formatSelectedTabGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                formatSelectedTabColor = color1;
+                formatSelectedTabColor2 = color2;
+                formatSelectedTabUseGradient = true;
+                applyFormatPanelColors();
+            } else if ("formatTabContent".equals(type)) {
+                formatTabContentGradientStops.clear();
+                for (float[] stop : stops) {
+                    formatTabContentGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                formatTabContentColor = color1;
+                formatTabContentColor2 = color2;
+                formatTabContentUseGradient = true;
+                applyFormatPanelColors();
+            } else if ("layers".equals(type)) {
+                layersGradientStops.clear();
+                for (float[] stop : stops) {
+                    layersGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                layersInteriorColor = color1;
+                layersInteriorColor2 = color2;
+                layersUseGradient = true;
+                applyLayersPanelColors();
+            } else if ("layersHeader".equals(type)) {
+                layersHeaderGradientStops.clear();
+                for (float[] stop : stops) {
+                    layersHeaderGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                layersHeaderColor = color1;
+                layersHeaderColor2 = color2;
+                layersHeaderUseGradient = true;
+                applyLayersPanelColors();
+            } else if ("layersListBg".equals(type)) {
+                layersListBgGradientStops.clear();
+                for (float[] stop : stops) {
+                    layersListBgGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                layersListBgColor = color1;
+                layersListBgColor2 = color2;
+                layersListBgUseGradient = true;
+                applyLayersPanelColors();
+            } else if ("layersTask".equals(type)) {
+                layersTaskGradientStops.clear();
+                for (float[] stop : stops) {
+                    layersTaskGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                layersTaskColor = color1;
+                layersTaskColor2 = color2;
+                layersTaskUseGradient = true;
+                applyLayersPanelColors();
+            } else {
+                timelineGradientStops.clear();
+                for (float[] stop : stops) {
+                    timelineGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
+                }
+                timelineInteriorColor = color1;
+                timelineInteriorColor2 = color2;
+                timelineUseGradient = true;
+            }
+            timelineDisplayPanel.repaint();
         }
     }
 
     private void chooseTimelineAxisColor() {
-        Color newColor = JColorChooser.showDialog(this, "Choose Axis Color", timelineAxisColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Axis Color", timelineAxisColor, color -> {
+            timelineAxisColor = color;
+            timelineAxisColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
             timelineAxisColor = newColor;
             timelineAxisColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
     private void chooseAxisDateColor() {
-        Color newColor = JColorChooser.showDialog(this, "Choose Date Label Color", axisDateColor);
+        saveState();
+        Color newColor = showColorChooserWithAlpha("Choose Date Label Color", axisDateColor, color -> {
+            axisDateColor = color;
+            axisDateColorBtn.setBackground(color);
+            timelineDisplayPanel.repaint();
+        });
         if (newColor != null) {
             axisDateColor = newColor;
             axisDateColorBtn.setBackground(newColor);
             refreshTimeline();
+        } else {
+            undo();
         }
     }
 
@@ -1996,6 +3320,7 @@ public class Timeline2 extends JFrame {
         // Deselect milestone when task is selected
         if (index >= 0) {
             selectedMilestoneIndex = -1;
+            selectedMilestoneIndices.clear();
             row1CardLayout.show(row1Container, "task");
         }
 
@@ -2080,9 +3405,13 @@ public class Timeline2 extends JFrame {
             frontTextColorBtn.setBackground(task.frontTextColor != null ? task.frontTextColor : Color.BLACK);
             frontXOffsetSpinner.setValue(task.frontTextXOffset);
             frontYOffsetSpinner.setValue(task.frontTextYOffset);
+            frontWrapCheckbox.setSelected(task.frontTextWrap);
+            frontVisibleCheckbox.setSelected(task.frontTextVisible);
 
             centerXOffsetSpinner.setValue(task.centerTextXOffset);
             centerYOffsetSpinner.setValue(task.centerTextYOffset);
+            centerWrapCheckbox.setSelected(task.centerTextWrap);
+            centerVisibleCheckbox.setSelected(task.centerTextVisible);
 
             aboveTextField.setText(task.aboveText);
             aboveFontCombo.setSelectedItem(task.aboveFontFamily);
@@ -2092,6 +3421,8 @@ public class Timeline2 extends JFrame {
             aboveTextColorBtn.setBackground(task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK);
             aboveXOffsetSpinner.setValue(task.aboveTextXOffset);
             aboveYOffsetSpinner.setValue(task.aboveTextYOffset);
+            aboveWrapCheckbox.setSelected(task.aboveTextWrap);
+            aboveVisibleCheckbox.setSelected(task.aboveTextVisible);
 
             underneathTextField.setText(task.underneathText);
             underneathFontCombo.setSelectedItem(task.underneathFontFamily);
@@ -2101,6 +3432,8 @@ public class Timeline2 extends JFrame {
             underneathTextColorBtn.setBackground(task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK);
             underneathXOffsetSpinner.setValue(task.underneathTextXOffset);
             underneathYOffsetSpinner.setValue(task.underneathTextYOffset);
+            underneathWrapCheckbox.setSelected(task.underneathTextWrap);
+            underneathVisibleCheckbox.setSelected(task.underneathTextVisible);
 
             behindTextField.setText(task.behindText);
             behindFontCombo.setSelectedItem(task.behindFontFamily);
@@ -2110,6 +3443,8 @@ public class Timeline2 extends JFrame {
             behindTextColorBtn.setBackground(task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150));
             behindXOffsetSpinner.setValue(task.behindTextXOffset);
             behindYOffsetSpinner.setValue(task.behindTextYOffset);
+            behindWrapCheckbox.setSelected(task.behindTextWrap);
+            behindVisibleCheckbox.setSelected(task.behindTextVisible);
 
             // Notes
             note1Area.setText(task.note1);
@@ -2217,8 +3552,12 @@ public class Timeline2 extends JFrame {
         frontTextColorBtn.setEnabled(enabled);
         frontXOffsetSpinner.setEnabled(enabled);
         frontYOffsetSpinner.setEnabled(enabled);
+        frontWrapCheckbox.setEnabled(enabled);
+        frontVisibleCheckbox.setEnabled(enabled);
         centerXOffsetSpinner.setEnabled(enabled);
         centerYOffsetSpinner.setEnabled(enabled);
+        centerWrapCheckbox.setEnabled(enabled);
+        centerVisibleCheckbox.setEnabled(enabled);
         aboveTextField.setEnabled(enabled);
         aboveFontCombo.setEnabled(enabled);
         aboveFontSizeSpinner.setEnabled(enabled);
@@ -2227,6 +3566,8 @@ public class Timeline2 extends JFrame {
         aboveTextColorBtn.setEnabled(enabled);
         aboveXOffsetSpinner.setEnabled(enabled);
         aboveYOffsetSpinner.setEnabled(enabled);
+        aboveWrapCheckbox.setEnabled(enabled);
+        aboveVisibleCheckbox.setEnabled(enabled);
         underneathTextField.setEnabled(enabled);
         underneathFontCombo.setEnabled(enabled);
         underneathFontSizeSpinner.setEnabled(enabled);
@@ -2235,6 +3576,8 @@ public class Timeline2 extends JFrame {
         underneathTextColorBtn.setEnabled(enabled);
         underneathXOffsetSpinner.setEnabled(enabled);
         underneathYOffsetSpinner.setEnabled(enabled);
+        underneathWrapCheckbox.setEnabled(enabled);
+        underneathVisibleCheckbox.setEnabled(enabled);
         behindTextField.setEnabled(enabled);
         behindFontCombo.setEnabled(enabled);
         behindFontSizeSpinner.setEnabled(enabled);
@@ -2243,6 +3586,8 @@ public class Timeline2 extends JFrame {
         behindTextColorBtn.setEnabled(enabled);
         behindXOffsetSpinner.setEnabled(enabled);
         behindYOffsetSpinner.setEnabled(enabled);
+        behindWrapCheckbox.setEnabled(enabled);
+        behindVisibleCheckbox.setEnabled(enabled);
         // Notes
         note1Area.setEnabled(enabled);
         note2Area.setEnabled(enabled);
@@ -2335,6 +3680,64 @@ public class Timeline2 extends JFrame {
             milestoneBevelCheckbox.setSelected(milestone.bevelFill);
             milestoneBevelCheckbox.setEnabled(true);
             milestoneBevelSettingsBtn.setEnabled(true);
+
+            // Populate text format fields (same as tasks)
+            centerTextField.setText(milestone.centerText);
+            fontFamilyCombo.setSelectedItem(milestone.fontFamily);
+            fontSizeSpinner.setValue(milestone.fontSize);
+            boldBtn.setSelected(milestone.fontBold);
+            italicBtn.setSelected(milestone.fontItalic);
+            textColorBtn.setBackground(milestone.textColor != null ? milestone.textColor : Color.BLACK);
+            centerXOffsetSpinner.setValue(milestone.centerTextXOffset);
+            centerYOffsetSpinner.setValue(milestone.centerTextYOffset);
+            centerWrapCheckbox.setSelected(milestone.centerTextWrap);
+            centerVisibleCheckbox.setSelected(milestone.centerTextVisible);
+
+            frontTextField.setText(milestone.frontText);
+            frontFontCombo.setSelectedItem(milestone.frontFontFamily);
+            frontFontSizeSpinner.setValue(milestone.frontFontSize);
+            frontBoldBtn.setSelected(milestone.frontFontBold);
+            frontItalicBtn.setSelected(milestone.frontFontItalic);
+            frontTextColorBtn.setBackground(milestone.frontTextColor != null ? milestone.frontTextColor : Color.BLACK);
+            frontXOffsetSpinner.setValue(milestone.frontTextXOffset);
+            frontYOffsetSpinner.setValue(milestone.frontTextYOffset);
+            frontWrapCheckbox.setSelected(milestone.frontTextWrap);
+            frontVisibleCheckbox.setSelected(milestone.frontTextVisible);
+
+            aboveTextField.setText(milestone.aboveText);
+            aboveFontCombo.setSelectedItem(milestone.aboveFontFamily);
+            aboveFontSizeSpinner.setValue(milestone.aboveFontSize);
+            aboveBoldBtn.setSelected(milestone.aboveFontBold);
+            aboveItalicBtn.setSelected(milestone.aboveFontItalic);
+            aboveTextColorBtn.setBackground(milestone.aboveTextColor != null ? milestone.aboveTextColor : Color.BLACK);
+            aboveXOffsetSpinner.setValue(milestone.aboveTextXOffset);
+            aboveYOffsetSpinner.setValue(milestone.aboveTextYOffset);
+            aboveWrapCheckbox.setSelected(milestone.aboveTextWrap);
+            aboveVisibleCheckbox.setSelected(milestone.aboveTextVisible);
+
+            underneathTextField.setText(milestone.underneathText);
+            underneathFontCombo.setSelectedItem(milestone.underneathFontFamily);
+            underneathFontSizeSpinner.setValue(milestone.underneathFontSize);
+            underneathBoldBtn.setSelected(milestone.underneathFontBold);
+            underneathItalicBtn.setSelected(milestone.underneathFontItalic);
+            underneathTextColorBtn.setBackground(milestone.underneathTextColor != null ? milestone.underneathTextColor : Color.BLACK);
+            underneathXOffsetSpinner.setValue(milestone.underneathTextXOffset);
+            underneathYOffsetSpinner.setValue(milestone.underneathTextYOffset);
+            underneathWrapCheckbox.setSelected(milestone.underneathTextWrap);
+            underneathVisibleCheckbox.setSelected(milestone.underneathTextVisible);
+
+            behindTextField.setText(milestone.behindText);
+            behindFontCombo.setSelectedItem(milestone.behindFontFamily);
+            behindFontSizeSpinner.setValue(milestone.behindFontSize);
+            behindBoldBtn.setSelected(milestone.behindFontBold);
+            behindItalicBtn.setSelected(milestone.behindFontItalic);
+            behindTextColorBtn.setBackground(milestone.behindTextColor != null ? milestone.behindTextColor : new Color(150, 150, 150));
+            behindXOffsetSpinner.setValue(milestone.behindTextXOffset);
+            behindYOffsetSpinner.setValue(milestone.behindTextYOffset);
+            behindWrapCheckbox.setSelected(milestone.behindTextWrap);
+            behindVisibleCheckbox.setSelected(milestone.behindTextVisible);
+
+            setFormatFieldsEnabled(true);
         } else {
             // Show task row when no milestone is selected
             row1CardLayout.show(row1Container, "task");
@@ -2489,8 +3892,15 @@ public class Timeline2 extends JFrame {
         saveState();
         int taskIndex = tasks.size();
         String taskName = "Task " + (taskIndex + 1);
-        String startDate = LocalDate.now().format(DATE_FORMAT);
-        String endDate = LocalDate.now().plusWeeks(2).format(DATE_FORMAT);
+        // Start at the first month shown on the timeline axis
+        LocalDate timelineStart;
+        try {
+            timelineStart = LocalDate.parse(startDateField.getText().trim(), DATE_FORMAT);
+        } catch (Exception e) {
+            timelineStart = LocalDate.now();
+        }
+        String startDate = timelineStart.format(DATE_FORMAT);
+        String endDate = timelineStart.plusMonths(3).format(DATE_FORMAT);
 
         TimelineTask task = new TimelineTask(taskName, startDate, endDate);
         // Assign a default color at creation so it stays with the task when reordered
@@ -2537,7 +3947,14 @@ public class Timeline2 extends JFrame {
         saveState();
         int milestoneIndex = milestones.size();
         String name = "Milestone " + (milestoneIndex + 1);
-        String date = LocalDate.now().plusWeeks(1).format(DATE_FORMAT);
+        // Start at the first month shown on the timeline axis
+        LocalDate timelineStart;
+        try {
+            timelineStart = LocalDate.parse(startDateField.getText().trim(), DATE_FORMAT);
+        } catch (Exception e) {
+            timelineStart = LocalDate.now();
+        }
+        String date = timelineStart.format(DATE_FORMAT);
 
         TimelineMilestone milestone = new TimelineMilestone(name, date, shape);
         milestone.fillColor = TASK_COLORS[(milestoneIndex + 3) % TASK_COLORS.length];
@@ -2655,10 +4072,11 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
-    private JPanel createSettingsPanel() {
+    private JPanel createTimelineRangePanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(new Color(250, 250, 250));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
 
         // Timeline Range Section
         addSectionHeader(panel, "Timeline Range");
@@ -2676,7 +4094,7 @@ public class Timeline2 extends JFrame {
         JLabel startLabel = new JLabel("Start");
         startLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         startCol.add(startLabel);
-        startDateField = new JTextField(LocalDate.now().format(DATE_FORMAT), 8);
+        startDateField = new JTextField(LocalDate.now().withDayOfMonth(1).format(DATE_FORMAT), 8);
         startDateField.addActionListener(e -> refreshTimeline());
         startCol.add(startDateField);
         dateContainer.add(startCol);
@@ -2688,27 +4106,35 @@ public class Timeline2 extends JFrame {
         JLabel endLabel = new JLabel("End");
         endLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         endCol.add(endLabel);
-        endDateField = new JTextField(LocalDate.now().plusMonths(3).format(DATE_FORMAT), 8);
+        endDateField = new JTextField(LocalDate.now().plusYears(1).withDayOfMonth(1).plusMonths(1).minusDays(1).format(DATE_FORMAT), 8);
         endDateField.addActionListener(e -> refreshTimeline());
         endCol.add(endDateField);
         dateContainer.add(endCol);
 
         panel.add(dateContainer);
 
-        // Dual-handle range slider for date range
-        LocalDate sliderBaseDate = LocalDate.now().minusYears(2);
-        int totalDays = 365 * 4;  // 4 year span
-        int startDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now());
-        int endDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, LocalDate.now().plusMonths(3));
+        // Dual-handle range slider for date range - starts and ends on Jan 1st of years
+        int endYearOffset = LocalDate.now().getMonthValue() > 6 ? 3 : 2;  // 3 years ahead if in last half of year
+        int[] sliderYears = {LocalDate.now().getYear() - 2, LocalDate.now().getYear() + endYearOffset};  // [startYear, endYear]
 
-        RangeSlider rangeSlider = new RangeSlider(0, totalDays, startDayOffset, endDayOffset);
-        rangeSlider.setMaximumSize(new Dimension(210, 25));
+        // Helper to calculate slider base date and total days
+        java.util.function.Supplier<LocalDate> getSliderBaseDate = () -> LocalDate.of(sliderYears[0], 1, 1);
+        java.util.function.Supplier<Integer> getTotalDays = () -> (int) java.time.temporal.ChronoUnit.DAYS.between(
+            LocalDate.of(sliderYears[0], 1, 1), LocalDate.of(sliderYears[1], 1, 1));
+
+        int startDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), LocalDate.now().withDayOfMonth(1));
+        int endDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), LocalDate.now().plusYears(1).withDayOfMonth(1).plusMonths(1).minusDays(1));
+
+        RangeSlider rangeSlider = new RangeSlider(0, getTotalDays.get(), startDayOffset, endDayOffset);
+        rangeSlider.setMaximumSize(new Dimension(270, 25));
+        rangeSlider.setPreferredSize(new Dimension(270, 25));
+        rangeSlider.setBorder(BorderFactory.createEmptyBorder(0, 30, 0, 30));  // Center over spinners
         rangeSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // Connect range slider to date fields
         rangeSlider.addChangeListener(e -> {
-            LocalDate startDate = sliderBaseDate.plusDays(rangeSlider.getLowValue());
-            LocalDate endDate = sliderBaseDate.plusDays(rangeSlider.getHighValue());
+            LocalDate startDate = getSliderBaseDate.get().plusDays(rangeSlider.getLowValue());
+            LocalDate endDate = getSliderBaseDate.get().plusDays(rangeSlider.getHighValue());
             startDateField.setText(startDate.format(DATE_FORMAT));
             endDateField.setText(endDate.format(DATE_FORMAT));
             if (!rangeSlider.getValueIsAdjusting()) refreshTimeline();
@@ -2718,20 +4144,160 @@ public class Timeline2 extends JFrame {
         startDateField.addActionListener(e -> {
             try {
                 LocalDate date = LocalDate.parse(startDateField.getText().trim(), DATE_FORMAT);
-                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, date);
+                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), date);
                 rangeSlider.setLowValue(Math.max(0, Math.min(rangeSlider.getHighValue(), days)));
             } catch (Exception ex) {}
         });
         endDateField.addActionListener(e -> {
             try {
                 LocalDate date = LocalDate.parse(endDateField.getText().trim(), DATE_FORMAT);
-                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(sliderBaseDate, date);
-                rangeSlider.setHighValue(Math.max(rangeSlider.getLowValue(), Math.min(totalDays, days)));
+                int days = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), date);
+                rangeSlider.setHighValue(Math.max(rangeSlider.getLowValue(), Math.min(getTotalDays.get(), days)));
             } catch (Exception ex) {}
         });
 
         panel.add(rangeSlider);
-        panel.add(Box.createVerticalStrut(10));
+
+        // Year spinners below the slider - centered on slider ends
+        int spinnerWidth = 60;
+        int rowWidth = 270;  // Same as slider with padding
+
+        JPanel yearSpinnerRow = new JPanel(null);  // Absolute positioning
+        yearSpinnerRow.setOpaque(false);
+        yearSpinnerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        yearSpinnerRow.setPreferredSize(new Dimension(rowWidth, 25));
+        yearSpinnerRow.setMaximumSize(new Dimension(rowWidth, 25));
+
+        JSpinner startYearSpinner = new JSpinner(new SpinnerNumberModel(sliderYears[0], 1900, 2100, 1));
+        startYearSpinner.setEditor(new JSpinner.NumberEditor(startYearSpinner, "#"));
+        ((JSpinner.DefaultEditor) startYearSpinner.getEditor()).getTextField().setColumns(3);
+        startYearSpinner.setBounds(0, 0, spinnerWidth, 22);  // Centered on slider start (center at x=30)
+
+        JSpinner endYearSpinner = new JSpinner(new SpinnerNumberModel(sliderYears[1], 1900, 2100, 1));
+        endYearSpinner.setEditor(new JSpinner.NumberEditor(endYearSpinner, "#"));
+        ((JSpinner.DefaultEditor) endYearSpinner.getEditor()).getTextField().setColumns(3);
+        endYearSpinner.setBounds(rowWidth - spinnerWidth, 0, spinnerWidth, 22);  // Centered on slider end (center at x=240)
+
+        startYearSpinner.addChangeListener(e -> {
+            int newStart = (Integer) startYearSpinner.getValue();
+            if (newStart >= sliderYears[1]) {
+                startYearSpinner.setValue(sliderYears[0]);  // Revert to previous value
+                return;
+            }
+            sliderYears[0] = newStart;
+            rangeSlider.setMax(getTotalDays.get());
+            rangeSlider.repaint();
+        });
+
+        endYearSpinner.addChangeListener(e -> {
+            int newEnd = (Integer) endYearSpinner.getValue();
+            if (newEnd <= sliderYears[0]) {
+                endYearSpinner.setValue(sliderYears[1]);  // Revert to previous value
+                return;
+            }
+            sliderYears[1] = newEnd;
+            rangeSlider.setMax(getTotalDays.get());
+            rangeSlider.repaint();
+        });
+
+        yearSpinnerRow.add(startYearSpinner);
+        yearSpinnerRow.add(endYearSpinner);
+        panel.add(yearSpinnerRow);
+
+        // Button row for Set to tasks buttons
+        JPanel setToTasksBtnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        setToTasksBtnRow.setOpaque(false);
+        setToTasksBtnRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // "Set to tasks (loose)" button
+        JButton setToTasksBtn = new JButton("Fit (loose)");
+        setToTasksBtn.addActionListener(e -> {
+            LocalDate earliest = null;
+            LocalDate latest = null;
+
+            // Find earliest and latest dates from tasks
+            for (TimelineTask task : tasks) {
+                try {
+                    LocalDate start = LocalDate.parse(task.startDate, DATE_FORMAT);
+                    LocalDate end = LocalDate.parse(task.endDate, DATE_FORMAT);
+                    if (earliest == null || start.isBefore(earliest)) earliest = start;
+                    if (latest == null || end.isAfter(latest)) latest = end;
+                } catch (Exception ex) {}
+            }
+
+            // Find earliest and latest dates from milestones
+            for (TimelineMilestone milestone : milestones) {
+                try {
+                    LocalDate date = LocalDate.parse(milestone.date, DATE_FORMAT);
+                    if (earliest == null || date.isBefore(earliest)) earliest = date;
+                    if (latest == null || date.isAfter(latest)) latest = date;
+                } catch (Exception ex) {}
+            }
+
+            // Set range to first of the month of earliest and first of month after latest
+            if (earliest != null && latest != null) {
+                LocalDate newStart = earliest.withDayOfMonth(1);
+                LocalDate newEnd = latest.plusMonths(1).withDayOfMonth(1);
+                startDateField.setText(newStart.format(DATE_FORMAT));
+                endDateField.setText(newEnd.format(DATE_FORMAT));
+
+                int startDays = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), newStart);
+                int endDays = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), newEnd);
+                rangeSlider.setLowValue(Math.max(0, Math.min(getTotalDays.get(), startDays)));
+                rangeSlider.setHighValue(Math.max(0, Math.min(getTotalDays.get(), endDays)));
+                refreshTimeline();
+            }
+        });
+        setToTasksBtnRow.add(setToTasksBtn);
+
+        // "Set to tasks (tight)" button - exact dates
+        JButton setToTasksTightBtn = new JButton("Fit (tight)");
+        setToTasksTightBtn.addActionListener(e -> {
+            LocalDate earliest = null;
+            LocalDate latest = null;
+
+            // Find earliest and latest dates from tasks
+            for (TimelineTask task : tasks) {
+                try {
+                    LocalDate start = LocalDate.parse(task.startDate, DATE_FORMAT);
+                    LocalDate end = LocalDate.parse(task.endDate, DATE_FORMAT);
+                    if (earliest == null || start.isBefore(earliest)) earliest = start;
+                    if (latest == null || end.isAfter(latest)) latest = end;
+                } catch (Exception ex) {}
+            }
+
+            // Find earliest and latest dates from milestones
+            for (TimelineMilestone milestone : milestones) {
+                try {
+                    LocalDate date = LocalDate.parse(milestone.date, DATE_FORMAT);
+                    if (earliest == null || date.isBefore(earliest)) earliest = date;
+                    if (latest == null || date.isAfter(latest)) latest = date;
+                } catch (Exception ex) {}
+            }
+
+            // Set range to exact earliest and latest dates
+            if (earliest != null && latest != null) {
+                startDateField.setText(earliest.format(DATE_FORMAT));
+                endDateField.setText(latest.format(DATE_FORMAT));
+
+                int startDays = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), earliest);
+                int endDays = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), latest);
+                rangeSlider.setLowValue(Math.max(0, Math.min(getTotalDays.get(), startDays)));
+                rangeSlider.setHighValue(Math.max(0, Math.min(getTotalDays.get(), endDays)));
+                refreshTimeline();
+            }
+        });
+        setToTasksBtnRow.add(setToTasksTightBtn);
+
+        panel.add(setToTasksBtnRow);
+
+        return panel;
+    }
+
+    private JPanel createSettingsPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(250, 250, 250));
 
         // Timeline Appearance Section
         addSectionHeader(panel, "Appearance");
@@ -2745,12 +4311,53 @@ public class Timeline2 extends JFrame {
         bgLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         bgColorRow.add(bgLabel);
 
-        timelineBgColorBtn = new JButton();
+        timelineBgColorBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (timelineUseGradient && timelineGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[timelineGradientStops.size()];
+                    Color[] colors = new Color[timelineGradientStops.size()];
+                    for (int i = 0; i < timelineGradientStops.size(); i++) {
+                        float[] stop = timelineGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
         timelineBgColorBtn.setPreferredSize(new Dimension(30, 20));
         timelineBgColorBtn.setBackground(timelineInteriorColor);
         timelineBgColorBtn.setToolTipText("Click to change timeline background color");
         timelineBgColorBtn.addActionListener(e -> chooseTimelineBackgroundColor());
         bgColorRow.add(timelineBgColorBtn);
+
+        // Gradient dropdown arrow button with popup menu
+        JButton gradientArrowBtn = new JButton("\u25BC");
+        gradientArrowBtn.setPreferredSize(new Dimension(20, 20));
+        gradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        gradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        gradientArrowBtn.setToolTipText("Gradient options");
+
+        // Create popup menu
+        JPopupMenu gradientMenu = new JPopupMenu();
+
+        JMenuItem gradientMenuItem = new JMenuItem("Gradient...");
+        gradientMenuItem.addActionListener(e -> showGradientDialog());
+        gradientMenu.add(gradientMenuItem);
+
+        gradientArrowBtn.addActionListener(e -> {
+            gradientMenu.show(gradientArrowBtn, 0, gradientArrowBtn.getHeight());
+        });
+
+        bgColorRow.add(gradientArrowBtn);
 
         panel.add(bgColorRow);
         panel.add(Box.createVerticalStrut(2));
@@ -2794,6 +4401,102 @@ public class Timeline2 extends JFrame {
         axisThicknessRow.add(timelineAxisThicknessSpinner);
 
         panel.add(axisThicknessRow);
+        panel.add(Box.createVerticalStrut(2));
+
+        // Extend ticks checkbox row
+        JPanel extendTicksRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        extendTicksRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        extendTicksRow.setOpaque(false);
+        extendTicksRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        extendTicksCheckBox = new JCheckBox("Extend Ticks");
+        extendTicksCheckBox.setFont(new Font("Arial", Font.PLAIN, 11));
+        extendTicksCheckBox.setOpaque(false);
+        extendTicksCheckBox.setSelected(extendTicks);
+        extendTicksCheckBox.addActionListener(e -> {
+            extendTicks = extendTicksCheckBox.isSelected();
+            extendTicksOptionsPanel.setVisible(extendTicks);
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        extendTicksRow.add(extendTicksCheckBox);
+
+        panel.add(extendTicksRow);
+
+        // Extend ticks options panel (shown when checkbox is selected)
+        extendTicksOptionsPanel = new JPanel();
+        extendTicksOptionsPanel.setLayout(new BoxLayout(extendTicksOptionsPanel, BoxLayout.Y_AXIS));
+        extendTicksOptionsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        extendTicksOptionsPanel.setOpaque(false);
+        extendTicksOptionsPanel.setVisible(extendTicks);
+
+        // Extend ticks color row
+        JPanel extendTicksColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        extendTicksColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        extendTicksColorRow.setOpaque(false);
+        extendTicksColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        JLabel extendTicksColorLabel = new JLabel("    Color:");
+        extendTicksColorLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        extendTicksColorRow.add(extendTicksColorLabel);
+
+        extendTicksColorBtn = new JButton();
+        extendTicksColorBtn.setPreferredSize(new Dimension(30, 20));
+        extendTicksColorBtn.setBackground(extendTicksColor);
+        extendTicksColorBtn.setToolTipText("Click to change extended tick color");
+        extendTicksColorBtn.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(this, "Choose Extended Tick Color", extendTicksColor);
+            if (newColor != null) {
+                extendTicksColor = newColor;
+                extendTicksColorBtn.setBackground(extendTicksColor);
+                if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+            }
+        });
+        extendTicksColorRow.add(extendTicksColorBtn);
+
+        extendTicksOptionsPanel.add(extendTicksColorRow);
+
+        // Extend ticks thickness row
+        JPanel extendTicksThicknessRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        extendTicksThicknessRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        extendTicksThicknessRow.setOpaque(false);
+        extendTicksThicknessRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        JLabel extendTicksThicknessLabel = new JLabel("    Thickness:");
+        extendTicksThicknessLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        extendTicksThicknessRow.add(extendTicksThicknessLabel);
+
+        extendTicksThicknessSpinner = new JSpinner(new SpinnerNumberModel(extendTicksThickness, 1, 5, 1));
+        extendTicksThicknessSpinner.setPreferredSize(new Dimension(50, 20));
+        extendTicksThicknessSpinner.addChangeListener(e -> {
+            extendTicksThickness = (Integer) extendTicksThicknessSpinner.getValue();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        extendTicksThicknessRow.add(extendTicksThicknessSpinner);
+
+        extendTicksOptionsPanel.add(extendTicksThicknessRow);
+
+        // Extend ticks line type row
+        JPanel extendTicksLineTypeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        extendTicksLineTypeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        extendTicksLineTypeRow.setOpaque(false);
+        extendTicksLineTypeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        JLabel extendTicksLineTypeLabel = new JLabel("    Line Type:");
+        extendTicksLineTypeLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        extendTicksLineTypeRow.add(extendTicksLineTypeLabel);
+
+        extendTicksLineTypeCombo = new JComboBox<>(LINE_TYPES);
+        extendTicksLineTypeCombo.setPreferredSize(new Dimension(90, 20));
+        extendTicksLineTypeCombo.setSelectedItem(extendTicksLineType);
+        extendTicksLineTypeCombo.addActionListener(e -> {
+            extendTicksLineType = (String) extendTicksLineTypeCombo.getSelectedItem();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        extendTicksLineTypeRow.add(extendTicksLineTypeCombo);
+
+        extendTicksOptionsPanel.add(extendTicksLineTypeRow);
+
+        panel.add(extendTicksOptionsPanel);
         panel.add(Box.createVerticalStrut(8));
 
         // Date Labels section header
@@ -3059,6 +4762,834 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void showSkinsDialog() {
+        JDialog dialog = new JDialog(this, "Skins", true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setSize(500, 400);
+        dialog.setLocationRelativeTo(this);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+
+        // Settings Tab - use GridBagLayout for proper alignment
+        JPanel settingsTab = new JPanel(new GridBagLayout());
+        settingsTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+
+        // === HEADING ROW ===
+        gbc.gridx = 0; gbc.gridy = 0;
+        settingsTab.add(new JLabel("Heading:"), gbc);
+
+        // Heading color button with gradient support
+        JButton headingBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (settingsHeaderUseGradient && settingsHeaderGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[settingsHeaderGradientStops.size()];
+                    Color[] colors = new Color[settingsHeaderGradientStops.size()];
+                    for (int i = 0; i < settingsHeaderGradientStops.size(); i++) {
+                        float[] stop = settingsHeaderGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        headingBtn.setPreferredSize(new Dimension(60, 25));
+        headingBtn.setBackground(settingsHeaderColor);
+        final JButton finalHeadingBtn = headingBtn;
+        headingBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Heading Color", settingsHeaderColor, color -> {
+                settingsHeaderColor = color;
+                settingsHeaderUseGradient = false;
+                finalHeadingBtn.setBackground(color);
+                finalHeadingBtn.repaint();
+            });
+            if (newColor != null) {
+                settingsHeaderColor = newColor;
+                settingsHeaderUseGradient = false;
+                finalHeadingBtn.setBackground(newColor);
+                finalHeadingBtn.repaint();
+            }
+        });
+        gbc.gridx = 1; gbc.gridy = 0;
+        settingsTab.add(headingBtn, gbc);
+
+        // Heading gradient arrow button
+        JButton headingGradientArrowBtn = new JButton("\u25BC");
+        headingGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        headingGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        headingGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        headingGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu headingGradientMenu = new JPopupMenu();
+        JMenuItem headingGradientMenuItem = new JMenuItem("Gradient...");
+        headingGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("settingsHeader");
+            finalHeadingBtn.repaint();
+        });
+        headingGradientMenu.add(headingGradientMenuItem);
+        headingGradientArrowBtn.addActionListener(ev -> {
+            headingGradientMenu.show(headingGradientArrowBtn, 0, headingGradientArrowBtn.getHeight());
+        });
+        gbc.gridx = 2; gbc.gridy = 0;
+        settingsTab.add(headingGradientArrowBtn, gbc);
+
+        // === INTERIOR ROW ===
+        gbc.gridx = 0; gbc.gridy = 1;
+        settingsTab.add(new JLabel("Interior:"), gbc);
+
+        // Interior color button with gradient support
+        JButton interiorBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (settingsUseGradient && settingsGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[settingsGradientStops.size()];
+                    Color[] colors = new Color[settingsGradientStops.size()];
+                    for (int i = 0; i < settingsGradientStops.size(); i++) {
+                        float[] stop = settingsGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        interiorBtn.setPreferredSize(new Dimension(60, 25));
+        interiorBtn.setBackground(settingsInteriorColor);
+        final JButton finalInteriorBtn = interiorBtn;
+        interiorBtn.addActionListener(e -> {
+            // Use showColorChooserWithAlpha for live preview
+            Color newColor = showColorChooserWithAlpha("Choose Interior Color", settingsInteriorColor, color -> {
+                settingsInteriorColor = color;
+                settingsUseGradient = false;
+                finalInteriorBtn.setBackground(color);
+                finalInteriorBtn.repaint();
+                if (settingsPanel != null) {
+                    settingsPanel.setBackground(color);
+                    settingsPanel.repaint();
+                }
+            });
+            if (newColor != null) {
+                settingsInteriorColor = newColor;
+                settingsUseGradient = false;
+                finalInteriorBtn.setBackground(newColor);
+                finalInteriorBtn.repaint();
+                if (settingsPanel != null) {
+                    settingsPanel.setBackground(newColor);
+                    settingsPanel.repaint();
+                }
+            }
+        });
+        gbc.gridx = 1; gbc.gridy = 1;
+        settingsTab.add(interiorBtn, gbc);
+
+        // Gradient arrow button
+        JButton gradientArrowBtn = new JButton("\u25BC");
+        gradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        gradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        gradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        gradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu gradientMenu = new JPopupMenu();
+        JMenuItem gradientMenuItem = new JMenuItem("Gradient...");
+        gradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("settings");
+            finalInteriorBtn.repaint();
+        });
+        gradientMenu.add(gradientMenuItem);
+        gradientArrowBtn.addActionListener(ev -> {
+            gradientMenu.show(gradientArrowBtn, 0, gradientArrowBtn.getHeight());
+        });
+        gbc.gridx = 2; gbc.gridy = 1;
+        settingsTab.add(gradientArrowBtn, gbc);
+
+        // Add filler to push content to top
+        gbc.gridx = 0; gbc.gridy = 2;
+        gbc.gridwidth = 3;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        settingsTab.add(new JPanel(), gbc);
+
+        tabbedPane.addTab("Settings", settingsTab);
+
+        // === FORMAT TAB ===
+        JPanel formatTab = new JPanel(new GridBagLayout());
+        formatTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints fgbc = new GridBagConstraints();
+        fgbc.insets = new Insets(8, 8, 8, 8);
+        fgbc.anchor = GridBagConstraints.WEST;
+        fgbc.fill = GridBagConstraints.NONE;
+
+        // === FORMAT HEADING ROW ===
+        fgbc.gridx = 0; fgbc.gridy = 0;
+        formatTab.add(new JLabel("Heading:"), fgbc);
+
+        // Format Heading color button with gradient support
+        JButton formatHeadingBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (formatHeaderUseGradient && formatHeaderGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[formatHeaderGradientStops.size()];
+                    Color[] colors = new Color[formatHeaderGradientStops.size()];
+                    for (int i = 0; i < formatHeaderGradientStops.size(); i++) {
+                        float[] stop = formatHeaderGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        formatHeadingBtn.setPreferredSize(new Dimension(60, 25));
+        formatHeadingBtn.setBackground(formatHeaderColor);
+        final JButton finalFormatHeadingBtn = formatHeadingBtn;
+        formatHeadingBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Format Heading Color", formatHeaderColor, color -> {
+                formatHeaderColor = color;
+                formatHeaderUseGradient = false;
+                finalFormatHeadingBtn.setBackground(color);
+                finalFormatHeadingBtn.repaint();
+                applyFormatPanelColors();
+            });
+            if (newColor != null) {
+                formatHeaderColor = newColor;
+                formatHeaderUseGradient = false;
+                finalFormatHeadingBtn.setBackground(newColor);
+                finalFormatHeadingBtn.repaint();
+                applyFormatPanelColors();
+            }
+        });
+        fgbc.gridx = 1; fgbc.gridy = 0;
+        formatTab.add(formatHeadingBtn, fgbc);
+
+        // Format Heading gradient arrow button
+        JButton formatHeadingGradientArrowBtn = new JButton("\u25BC");
+        formatHeadingGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        formatHeadingGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        formatHeadingGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        formatHeadingGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu formatHeadingGradientMenu = new JPopupMenu();
+        JMenuItem formatHeadingGradientMenuItem = new JMenuItem("Gradient...");
+        formatHeadingGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("formatHeader");
+            finalFormatHeadingBtn.repaint();
+        });
+        formatHeadingGradientMenu.add(formatHeadingGradientMenuItem);
+        formatHeadingGradientArrowBtn.addActionListener(ev -> {
+            formatHeadingGradientMenu.show(formatHeadingGradientArrowBtn, 0, formatHeadingGradientArrowBtn.getHeight());
+        });
+        fgbc.gridx = 2; fgbc.gridy = 0;
+        formatTab.add(formatHeadingGradientArrowBtn, fgbc);
+
+        // === FORMAT INTERIOR ROW ===
+        fgbc.gridx = 0; fgbc.gridy = 1;
+        formatTab.add(new JLabel("Interior:"), fgbc);
+
+        // Format Interior color button with gradient support
+        JButton formatInteriorBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (formatUseGradient && formatGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[formatGradientStops.size()];
+                    Color[] colors = new Color[formatGradientStops.size()];
+                    for (int i = 0; i < formatGradientStops.size(); i++) {
+                        float[] stop = formatGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        formatInteriorBtn.setPreferredSize(new Dimension(60, 25));
+        formatInteriorBtn.setBackground(formatInteriorColor);
+        final JButton finalFormatInteriorBtn = formatInteriorBtn;
+        formatInteriorBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Format Interior Color", formatInteriorColor, color -> {
+                formatInteriorColor = color;
+                formatUseGradient = false;
+                finalFormatInteriorBtn.setBackground(color);
+                finalFormatInteriorBtn.repaint();
+                applyFormatPanelColors();
+            });
+            if (newColor != null) {
+                formatInteriorColor = newColor;
+                formatUseGradient = false;
+                finalFormatInteriorBtn.setBackground(newColor);
+                finalFormatInteriorBtn.repaint();
+                applyFormatPanelColors();
+            }
+        });
+        fgbc.gridx = 1; fgbc.gridy = 1;
+        formatTab.add(formatInteriorBtn, fgbc);
+
+        // Format Interior gradient arrow button
+        JButton formatInteriorGradientArrowBtn = new JButton("\u25BC");
+        formatInteriorGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        formatInteriorGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        formatInteriorGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        formatInteriorGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu formatInteriorGradientMenu = new JPopupMenu();
+        JMenuItem formatInteriorGradientMenuItem = new JMenuItem("Gradient...");
+        formatInteriorGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("format");
+            finalFormatInteriorBtn.repaint();
+        });
+        formatInteriorGradientMenu.add(formatInteriorGradientMenuItem);
+        formatInteriorGradientArrowBtn.addActionListener(ev -> {
+            formatInteriorGradientMenu.show(formatInteriorGradientArrowBtn, 0, formatInteriorGradientArrowBtn.getHeight());
+        });
+        fgbc.gridx = 2; fgbc.gridy = 1;
+        formatTab.add(formatInteriorGradientArrowBtn, fgbc);
+
+        // === FORMAT SELECTED TAB ROW ===
+        fgbc.gridx = 0; fgbc.gridy = 2;
+        formatTab.add(new JLabel("Selected Tab:"), fgbc);
+
+        // Format Selected Tab color button with gradient support
+        JButton formatSelectedTabBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (formatSelectedTabUseGradient && formatSelectedTabGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[formatSelectedTabGradientStops.size()];
+                    Color[] colors = new Color[formatSelectedTabGradientStops.size()];
+                    for (int i = 0; i < formatSelectedTabGradientStops.size(); i++) {
+                        float[] stop = formatSelectedTabGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        formatSelectedTabBtn.setPreferredSize(new Dimension(60, 25));
+        formatSelectedTabBtn.setBackground(formatSelectedTabColor);
+        final JButton finalFormatSelectedTabBtn = formatSelectedTabBtn;
+        formatSelectedTabBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Selected Tab Color", formatSelectedTabColor, color -> {
+                formatSelectedTabColor = color;
+                formatSelectedTabUseGradient = false;
+                finalFormatSelectedTabBtn.setBackground(color);
+                finalFormatSelectedTabBtn.repaint();
+                applyFormatPanelColors();
+            });
+            if (newColor != null) {
+                formatSelectedTabColor = newColor;
+                formatSelectedTabUseGradient = false;
+                finalFormatSelectedTabBtn.setBackground(newColor);
+                finalFormatSelectedTabBtn.repaint();
+                applyFormatPanelColors();
+            }
+        });
+        fgbc.gridx = 1; fgbc.gridy = 2;
+        formatTab.add(formatSelectedTabBtn, fgbc);
+
+        // Format Selected Tab gradient arrow button
+        JButton formatSelectedTabGradientArrowBtn = new JButton("\u25BC");
+        formatSelectedTabGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        formatSelectedTabGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        formatSelectedTabGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        formatSelectedTabGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu formatSelectedTabGradientMenu = new JPopupMenu();
+        JMenuItem formatSelectedTabGradientMenuItem = new JMenuItem("Gradient...");
+        formatSelectedTabGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("formatSelectedTab");
+            finalFormatSelectedTabBtn.repaint();
+        });
+        formatSelectedTabGradientMenu.add(formatSelectedTabGradientMenuItem);
+        formatSelectedTabGradientArrowBtn.addActionListener(ev -> {
+            formatSelectedTabGradientMenu.show(formatSelectedTabGradientArrowBtn, 0, formatSelectedTabGradientArrowBtn.getHeight());
+        });
+        fgbc.gridx = 2; fgbc.gridy = 2;
+        formatTab.add(formatSelectedTabGradientArrowBtn, fgbc);
+
+        // === FORMAT DESELECTED TAB ROW ===
+        fgbc.gridx = 0; fgbc.gridy = 3;
+        formatTab.add(new JLabel("Deselected Tab:"), fgbc);
+
+        // Format Deselected Tab color button with gradient support
+        JButton formatTabsBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (formatTabUseGradient && formatTabGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[formatTabGradientStops.size()];
+                    Color[] colors = new Color[formatTabGradientStops.size()];
+                    for (int i = 0; i < formatTabGradientStops.size(); i++) {
+                        float[] stop = formatTabGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        formatTabsBtn.setPreferredSize(new Dimension(60, 25));
+        formatTabsBtn.setBackground(formatTabColor);
+        final JButton finalFormatTabsBtn = formatTabsBtn;
+        formatTabsBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Deselected Tab Color", formatTabColor, color -> {
+                formatTabColor = color;
+                formatTabUseGradient = false;
+                finalFormatTabsBtn.setBackground(color);
+                finalFormatTabsBtn.repaint();
+                applyFormatPanelColors();
+            });
+            if (newColor != null) {
+                formatTabColor = newColor;
+                formatTabUseGradient = false;
+                finalFormatTabsBtn.setBackground(newColor);
+                finalFormatTabsBtn.repaint();
+                applyFormatPanelColors();
+            }
+        });
+        fgbc.gridx = 1; fgbc.gridy = 3;
+        formatTab.add(formatTabsBtn, fgbc);
+
+        // Format Deselected Tab gradient arrow button
+        JButton formatTabsGradientArrowBtn = new JButton("\u25BC");
+        formatTabsGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        formatTabsGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        formatTabsGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        formatTabsGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu formatTabsGradientMenu = new JPopupMenu();
+        JMenuItem formatTabsGradientMenuItem = new JMenuItem("Gradient...");
+        formatTabsGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("formatTab");
+            finalFormatTabsBtn.repaint();
+        });
+        formatTabsGradientMenu.add(formatTabsGradientMenuItem);
+        formatTabsGradientArrowBtn.addActionListener(ev -> {
+            formatTabsGradientMenu.show(formatTabsGradientArrowBtn, 0, formatTabsGradientArrowBtn.getHeight());
+        });
+        fgbc.gridx = 2; fgbc.gridy = 3;
+        formatTab.add(formatTabsGradientArrowBtn, fgbc);
+
+        // === FORMAT TAB CONTENT ROW ===
+        fgbc.gridx = 0; fgbc.gridy = 4;
+        fgbc.gridwidth = 1;
+        fgbc.weighty = 0;
+        fgbc.fill = GridBagConstraints.NONE;
+        formatTab.add(new JLabel("Tab Content:"), fgbc);
+
+        // Format Tab Content color button with gradient support
+        JButton formatTabContentBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (formatTabContentUseGradient && formatTabContentGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[formatTabContentGradientStops.size()];
+                    Color[] colors = new Color[formatTabContentGradientStops.size()];
+                    for (int i = 0; i < formatTabContentGradientStops.size(); i++) {
+                        float[] stop = formatTabContentGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        formatTabContentBtn.setPreferredSize(new Dimension(60, 25));
+        formatTabContentBtn.setBackground(formatTabContentColor);
+        final JButton finalFormatTabContentBtn = formatTabContentBtn;
+        formatTabContentBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Tab Content Color", formatTabContentColor, color -> {
+                formatTabContentColor = color;
+                formatTabContentUseGradient = false;
+                finalFormatTabContentBtn.setBackground(color);
+                finalFormatTabContentBtn.repaint();
+                applyFormatPanelColors();
+            });
+            if (newColor != null) {
+                formatTabContentColor = newColor;
+                formatTabContentUseGradient = false;
+                finalFormatTabContentBtn.setBackground(newColor);
+                finalFormatTabContentBtn.repaint();
+                applyFormatPanelColors();
+            }
+        });
+        fgbc.gridx = 1; fgbc.gridy = 4;
+        formatTab.add(formatTabContentBtn, fgbc);
+
+        // Format Tab Content gradient arrow button
+        JButton formatTabContentGradientArrowBtn = new JButton("\u25BC");
+        formatTabContentGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        formatTabContentGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        formatTabContentGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        formatTabContentGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu formatTabContentGradientMenu = new JPopupMenu();
+        JMenuItem formatTabContentGradientMenuItem = new JMenuItem("Gradient...");
+        formatTabContentGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("formatTabContent");
+            finalFormatTabContentBtn.repaint();
+        });
+        formatTabContentGradientMenu.add(formatTabContentGradientMenuItem);
+        formatTabContentGradientArrowBtn.addActionListener(ev -> {
+            formatTabContentGradientMenu.show(formatTabContentGradientArrowBtn, 0, formatTabContentGradientArrowBtn.getHeight());
+        });
+        fgbc.gridx = 2; fgbc.gridy = 4;
+        formatTab.add(formatTabContentGradientArrowBtn, fgbc);
+
+        // Add filler to push content to top
+        fgbc.gridx = 0; fgbc.gridy = 5;
+        fgbc.gridwidth = 3;
+        fgbc.weighty = 1.0;
+        fgbc.fill = GridBagConstraints.BOTH;
+        formatTab.add(new JPanel(), fgbc);
+
+        tabbedPane.addTab("Format", formatTab);
+
+        // Layers Tab with gradient support
+        JPanel skinsLayersTab = new JPanel(new GridBagLayout());
+        skinsLayersTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints slgbc = new GridBagConstraints();
+        slgbc.insets = new Insets(8, 8, 8, 8);
+        slgbc.anchor = GridBagConstraints.WEST;
+        slgbc.fill = GridBagConstraints.NONE;
+
+        // === LAYERS HEADER ROW ===
+        slgbc.gridx = 0; slgbc.gridy = 0;
+        skinsLayersTab.add(new JLabel("Header:"), slgbc);
+
+        JButton skinsLayersHeaderBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (layersHeaderUseGradient && layersHeaderGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[layersHeaderGradientStops.size()];
+                    Color[] colors = new Color[layersHeaderGradientStops.size()];
+                    for (int i = 0; i < layersHeaderGradientStops.size(); i++) {
+                        float[] stop = layersHeaderGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        skinsLayersHeaderBtn.setPreferredSize(new Dimension(60, 25));
+        skinsLayersHeaderBtn.setBackground(layersHeaderColor);
+        final JButton finalSkinsLayersHeaderBtn = skinsLayersHeaderBtn;
+        skinsLayersHeaderBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Layers Header Color", layersHeaderColor, color -> {
+                layersHeaderColor = color;
+                layersHeaderUseGradient = false;
+                finalSkinsLayersHeaderBtn.setBackground(color);
+                finalSkinsLayersHeaderBtn.repaint();
+                applyLayersPanelColors();
+            });
+            if (newColor != null) {
+                layersHeaderColor = newColor;
+                layersHeaderUseGradient = false;
+                finalSkinsLayersHeaderBtn.setBackground(newColor);
+                finalSkinsLayersHeaderBtn.repaint();
+                applyLayersPanelColors();
+            }
+        });
+        slgbc.gridx = 1; slgbc.gridy = 0;
+        skinsLayersTab.add(skinsLayersHeaderBtn, slgbc);
+
+        JButton skinsLayersHeaderGradientBtn = new JButton("\u25BC");
+        skinsLayersHeaderGradientBtn.setPreferredSize(new Dimension(20, 25));
+        skinsLayersHeaderGradientBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        skinsLayersHeaderGradientBtn.setMargin(new Insets(0, 0, 0, 0));
+        skinsLayersHeaderGradientBtn.setToolTipText("Gradient options");
+        JPopupMenu skinsLayersHeaderGradientMenu = new JPopupMenu();
+        JMenuItem skinsLayersHeaderGradientMenuItem = new JMenuItem("Gradient...");
+        skinsLayersHeaderGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("layersHeader");
+            finalSkinsLayersHeaderBtn.repaint();
+        });
+        skinsLayersHeaderGradientMenu.add(skinsLayersHeaderGradientMenuItem);
+        skinsLayersHeaderGradientBtn.addActionListener(ev -> {
+            skinsLayersHeaderGradientMenu.show(skinsLayersHeaderGradientBtn, 0, skinsLayersHeaderGradientBtn.getHeight());
+        });
+        slgbc.gridx = 2; slgbc.gridy = 0;
+        skinsLayersTab.add(skinsLayersHeaderGradientBtn, slgbc);
+
+        // === LAYERS INTERIOR ROW ===
+        slgbc.gridx = 0; slgbc.gridy = 1;
+        skinsLayersTab.add(new JLabel("Interior:"), slgbc);
+
+        JButton skinsLayersInteriorBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (layersUseGradient && layersGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[layersGradientStops.size()];
+                    Color[] colors = new Color[layersGradientStops.size()];
+                    for (int i = 0; i < layersGradientStops.size(); i++) {
+                        float[] stop = layersGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        skinsLayersInteriorBtn.setPreferredSize(new Dimension(60, 25));
+        skinsLayersInteriorBtn.setBackground(layersInteriorColor);
+        final JButton finalSkinsLayersInteriorBtn = skinsLayersInteriorBtn;
+        skinsLayersInteriorBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Layers Interior Color", layersInteriorColor, color -> {
+                layersInteriorColor = color;
+                layersUseGradient = false;
+                finalSkinsLayersInteriorBtn.setBackground(color);
+                finalSkinsLayersInteriorBtn.repaint();
+                applyLayersPanelColors();
+            });
+            if (newColor != null) {
+                layersInteriorColor = newColor;
+                layersUseGradient = false;
+                finalSkinsLayersInteriorBtn.setBackground(newColor);
+                finalSkinsLayersInteriorBtn.repaint();
+                applyLayersPanelColors();
+            }
+        });
+        slgbc.gridx = 1; slgbc.gridy = 1;
+        skinsLayersTab.add(skinsLayersInteriorBtn, slgbc);
+
+        JButton skinsLayersInteriorGradientBtn = new JButton("\u25BC");
+        skinsLayersInteriorGradientBtn.setPreferredSize(new Dimension(20, 25));
+        skinsLayersInteriorGradientBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        skinsLayersInteriorGradientBtn.setMargin(new Insets(0, 0, 0, 0));
+        skinsLayersInteriorGradientBtn.setToolTipText("Gradient options");
+        JPopupMenu skinsLayersInteriorGradientMenu = new JPopupMenu();
+        JMenuItem skinsLayersInteriorGradientMenuItem = new JMenuItem("Gradient...");
+        skinsLayersInteriorGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("layers");
+            finalSkinsLayersInteriorBtn.repaint();
+        });
+        skinsLayersInteriorGradientMenu.add(skinsLayersInteriorGradientMenuItem);
+        skinsLayersInteriorGradientBtn.addActionListener(ev -> {
+            skinsLayersInteriorGradientMenu.show(skinsLayersInteriorGradientBtn, 0, skinsLayersInteriorGradientBtn.getHeight());
+        });
+        slgbc.gridx = 2; slgbc.gridy = 1;
+        skinsLayersTab.add(skinsLayersInteriorGradientBtn, slgbc);
+
+        // === LAYERS BACKGROUND ROW ===
+        slgbc.gridx = 0; slgbc.gridy = 2;
+        skinsLayersTab.add(new JLabel("Background:"), slgbc);
+
+        JButton skinsLayersListBgBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (layersListBgUseGradient && layersListBgGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[layersListBgGradientStops.size()];
+                    Color[] colors = new Color[layersListBgGradientStops.size()];
+                    for (int i = 0; i < layersListBgGradientStops.size(); i++) {
+                        float[] stop = layersListBgGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        skinsLayersListBgBtn.setPreferredSize(new Dimension(60, 25));
+        skinsLayersListBgBtn.setBackground(layersListBgColor);
+        final JButton finalSkinsLayersListBgBtn = skinsLayersListBgBtn;
+        skinsLayersListBgBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Layers Background Color", layersListBgColor, color -> {
+                layersListBgColor = color;
+                layersListBgUseGradient = false;
+                finalSkinsLayersListBgBtn.setBackground(color);
+                finalSkinsLayersListBgBtn.repaint();
+                applyLayersPanelColors();
+            });
+            if (newColor != null) {
+                layersListBgColor = newColor;
+                layersListBgUseGradient = false;
+                finalSkinsLayersListBgBtn.setBackground(newColor);
+                finalSkinsLayersListBgBtn.repaint();
+                applyLayersPanelColors();
+            }
+        });
+        slgbc.gridx = 1; slgbc.gridy = 2;
+        skinsLayersTab.add(skinsLayersListBgBtn, slgbc);
+
+        JButton skinsLayersListBgGradientBtn = new JButton("\u25BC");
+        skinsLayersListBgGradientBtn.setPreferredSize(new Dimension(20, 25));
+        skinsLayersListBgGradientBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        skinsLayersListBgGradientBtn.setMargin(new Insets(0, 0, 0, 0));
+        skinsLayersListBgGradientBtn.setToolTipText("Gradient options");
+        JPopupMenu skinsLayersListBgGradientMenu = new JPopupMenu();
+        JMenuItem skinsLayersListBgGradientMenuItem = new JMenuItem("Gradient...");
+        skinsLayersListBgGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("layersListBg");
+            finalSkinsLayersListBgBtn.repaint();
+        });
+        skinsLayersListBgGradientMenu.add(skinsLayersListBgGradientMenuItem);
+        skinsLayersListBgGradientBtn.addActionListener(ev -> {
+            skinsLayersListBgGradientMenu.show(skinsLayersListBgGradientBtn, 0, skinsLayersListBgGradientBtn.getHeight());
+        });
+        slgbc.gridx = 2; slgbc.gridy = 2;
+        skinsLayersTab.add(skinsLayersListBgGradientBtn, slgbc);
+
+        // === LAYERS TASK ROW ===
+        slgbc.gridx = 0; slgbc.gridy = 3;
+        slgbc.gridwidth = 1;
+        slgbc.weighty = 0;
+        slgbc.fill = GridBagConstraints.NONE;
+        skinsLayersTab.add(new JLabel("Task:"), slgbc);
+
+        JButton skinsLayersTaskBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (layersTaskUseGradient && layersTaskGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[layersTaskGradientStops.size()];
+                    Color[] colors = new Color[layersTaskGradientStops.size()];
+                    for (int i = 0; i < layersTaskGradientStops.size(); i++) {
+                        float[] stop = layersTaskGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        skinsLayersTaskBtn.setPreferredSize(new Dimension(60, 25));
+        skinsLayersTaskBtn.setBackground(layersTaskColor);
+        final JButton finalSkinsLayersTaskBtn = skinsLayersTaskBtn;
+        skinsLayersTaskBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Task Item Color", layersTaskColor, color -> {
+                layersTaskColor = color;
+                layersTaskUseGradient = false;
+                finalSkinsLayersTaskBtn.setBackground(color);
+                finalSkinsLayersTaskBtn.repaint();
+                applyLayersPanelColors();
+            });
+            if (newColor != null) {
+                layersTaskColor = newColor;
+                layersTaskUseGradient = false;
+                finalSkinsLayersTaskBtn.setBackground(newColor);
+                finalSkinsLayersTaskBtn.repaint();
+                applyLayersPanelColors();
+            }
+        });
+        slgbc.gridx = 1; slgbc.gridy = 3;
+        skinsLayersTab.add(skinsLayersTaskBtn, slgbc);
+
+        JButton skinsLayersTaskGradientBtn = new JButton("\u25BC");
+        skinsLayersTaskGradientBtn.setPreferredSize(new Dimension(20, 25));
+        skinsLayersTaskGradientBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        skinsLayersTaskGradientBtn.setMargin(new Insets(0, 0, 0, 0));
+        skinsLayersTaskGradientBtn.setToolTipText("Gradient options");
+        JPopupMenu skinsLayersTaskGradientMenu = new JPopupMenu();
+        JMenuItem skinsLayersTaskGradientMenuItem = new JMenuItem("Gradient...");
+        skinsLayersTaskGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("layersTask");
+            finalSkinsLayersTaskBtn.repaint();
+        });
+        skinsLayersTaskGradientMenu.add(skinsLayersTaskGradientMenuItem);
+        skinsLayersTaskGradientBtn.addActionListener(ev -> {
+            skinsLayersTaskGradientMenu.show(skinsLayersTaskGradientBtn, 0, skinsLayersTaskGradientBtn.getHeight());
+        });
+        slgbc.gridx = 2; slgbc.gridy = 3;
+        skinsLayersTab.add(skinsLayersTaskGradientBtn, slgbc);
+
+        // Add filler to push content to top
+        slgbc.gridx = 0; slgbc.gridy = 4;
+        slgbc.gridwidth = 3;
+        slgbc.weighty = 1.0;
+        slgbc.fill = GridBagConstraints.BOTH;
+        skinsLayersTab.add(new JPanel(), slgbc);
+
+        tabbedPane.addTab("Layers", skinsLayersTab);
+
+        dialog.add(tabbedPane, BorderLayout.CENTER);
+
+        // OK/Cancel buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton okBtn = new JButton("OK");
+        okBtn.addActionListener(e -> {
+            if (settingsPanel != null) settingsPanel.repaint();
+            dialog.dispose();
+        });
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.addActionListener(e -> dialog.dispose());
+        buttonPanel.add(okBtn);
+        buttonPanel.add(cancelBtn);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+    }
+
     private void showPreferencesDialog() {
         JDialog dialog = new JDialog(this, "Preferences", true);
         dialog.setLayout(new BorderLayout(10, 10));
@@ -3067,40 +5598,63 @@ public class Timeline2 extends JFrame {
 
         JTabbedPane tabbedPane = new JTabbedPane();
 
-        // General Tab - overview table
-        JPanel generalTab = new JPanel(new GridLayout(5, 5, 5, 5));
-        generalTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        generalTab.add(new JLabel(""));
-        generalTab.add(createCenteredLabel("Interior"));
-        generalTab.add(createCenteredLabel("Outline"));
-        generalTab.add(createCenteredLabel("Header"));
-        generalTab.add(createCenteredLabel("Head Text"));
-        generalTab.add(new JLabel("Settings"));
-        generalTab.add(createColorBtn(dialog, settingsInteriorColor, c -> settingsInteriorColor = c));
-        generalTab.add(createColorBtn(dialog, settingsOutlineColor, c -> settingsOutlineColor = c));
-        generalTab.add(createColorBtn(dialog, settingsHeaderColor, c -> settingsHeaderColor = c));
-        generalTab.add(createColorBtn(dialog, settingsHeaderTextColor, c -> settingsHeaderTextColor = c));
-        generalTab.add(new JLabel("Timeline"));
-        generalTab.add(createColorBtn(dialog, timelineInteriorColor, c -> timelineInteriorColor = c));
-        generalTab.add(createColorBtn(dialog, timelineOutlineColor, c -> timelineOutlineColor = c));
-        generalTab.add(new JLabel(""));
-        generalTab.add(new JLabel(""));
-        generalTab.add(new JLabel("Layers"));
-        generalTab.add(createColorBtn(dialog, layersInteriorColor, c -> layersInteriorColor = c));
-        generalTab.add(createColorBtn(dialog, layersOutlineColor, c -> layersOutlineColor = c));
-        generalTab.add(createColorBtn(dialog, layersHeaderColor, c -> layersHeaderColor = c));
-        generalTab.add(createColorBtn(dialog, layersHeaderTextColor, c -> layersHeaderTextColor = c));
-        generalTab.add(new JLabel("Format"));
-        generalTab.add(createColorBtn(dialog, formatInteriorColor, c -> formatInteriorColor = c));
-        generalTab.add(createColorBtn(dialog, formatOutlineColor, c -> formatOutlineColor = c));
-        generalTab.add(createColorBtn(dialog, formatHeaderColor, c -> formatHeaderColor = c));
-        generalTab.add(new JLabel(""));
-        tabbedPane.addTab("General", generalTab);
-
         // Settings Tab
         JPanel settingsTab = new JPanel(new GridLayout(8, 2, 10, 8));
         settingsTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        addColorRow(settingsTab, dialog, "Interior:", settingsInteriorColor, c -> settingsInteriorColor = c);
+
+        // Interior with gradient arrow
+        settingsTab.add(new JLabel("Interior:"));
+        JPanel settingsInteriorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        JButton settingsInteriorBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (settingsUseGradient && settingsGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[settingsGradientStops.size()];
+                    Color[] colors = new Color[settingsGradientStops.size()];
+                    for (int i = 0; i < settingsGradientStops.size(); i++) {
+                        float[] stop = settingsGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        settingsInteriorBtn.setPreferredSize(new Dimension(60, 25));
+        settingsInteriorBtn.setBackground(settingsInteriorColor);
+        final JButton finalSettingsInteriorBtn = settingsInteriorBtn;
+        settingsInteriorBtn.addActionListener(e -> {
+            Color c = JColorChooser.showDialog(dialog, "Choose Interior Color", settingsInteriorColor);
+            if (c != null) {
+                settingsInteriorColor = c;
+                settingsUseGradient = false;
+                finalSettingsInteriorBtn.setBackground(c);
+                finalSettingsInteriorBtn.repaint();
+            }
+        });
+        settingsInteriorPanel.add(settingsInteriorBtn);
+
+        JButton settingsGradientArrowBtn = new JButton("\u25BC");
+        settingsGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        settingsGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        settingsGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        settingsGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu settingsGradientMenu = new JPopupMenu();
+        JMenuItem settingsGradientMenuItem = new JMenuItem("Gradient...");
+        settingsGradientMenuItem.addActionListener(ev -> showGradientDialog("settings"));
+        settingsGradientMenu.add(settingsGradientMenuItem);
+        settingsGradientArrowBtn.addActionListener(ev -> {
+            settingsGradientMenu.show(settingsGradientArrowBtn, 0, settingsGradientArrowBtn.getHeight());
+        });
+        settingsInteriorPanel.add(settingsGradientArrowBtn);
+        settingsTab.add(settingsInteriorPanel);
         addColorRow(settingsTab, dialog, "Outline:", settingsOutlineColor, c -> settingsOutlineColor = c);
         addColorRow(settingsTab, dialog, "Header Background:", settingsHeaderColor, c -> settingsHeaderColor = c);
         addColorRow(settingsTab, dialog, "Header Text:", settingsHeaderTextColor, c -> settingsHeaderTextColor = c);
@@ -3121,17 +5675,219 @@ public class Timeline2 extends JFrame {
         addColorRow(timelineTab, dialog, "Event Markers:", timelineEventColor, c -> timelineEventColor = c);
         tabbedPane.addTab("Timeline", timelineTab);
 
-        // Layers Tab
-        JPanel layersTab = new JPanel(new GridLayout(8, 2, 10, 8));
+        // Layers Tab with gradient support
+        JPanel layersTab = new JPanel(new GridBagLayout());
         layersTab.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        addColorRow(layersTab, dialog, "Interior:", layersInteriorColor, c -> layersInteriorColor = c);
-        addColorRow(layersTab, dialog, "Outline:", layersOutlineColor, c -> layersOutlineColor = c);
-        addColorRow(layersTab, dialog, "Header Background:", layersHeaderColor, c -> layersHeaderColor = c);
-        addColorRow(layersTab, dialog, "Header Text:", layersHeaderTextColor, c -> layersHeaderTextColor = c);
-        addColorRow(layersTab, dialog, "List Background:", layersListBgColor, c -> layersListBgColor = c);
-        addColorRow(layersTab, dialog, "Item Text:", layersItemTextColor, c -> layersItemTextColor = c);
-        addColorRow(layersTab, dialog, "Selected Background:", layersSelectedBgColor, c -> layersSelectedBgColor = c);
-        addColorRow(layersTab, dialog, "Drag Handle:", layersDragHandleColor, c -> layersDragHandleColor = c);
+        GridBagConstraints lgbc = new GridBagConstraints();
+        lgbc.insets = new Insets(4, 4, 4, 4);
+        lgbc.anchor = GridBagConstraints.WEST;
+        lgbc.fill = GridBagConstraints.NONE;
+
+        // === LAYERS HEADER ROW ===
+        lgbc.gridx = 0; lgbc.gridy = 0;
+        layersTab.add(new JLabel("Header:"), lgbc);
+
+        JButton layersHeaderBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (layersHeaderUseGradient && layersHeaderGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[layersHeaderGradientStops.size()];
+                    Color[] colors = new Color[layersHeaderGradientStops.size()];
+                    for (int i = 0; i < layersHeaderGradientStops.size(); i++) {
+                        float[] stop = layersHeaderGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        layersHeaderBtn.setPreferredSize(new Dimension(60, 25));
+        layersHeaderBtn.setBackground(layersHeaderColor);
+        final JButton finalLayersHeaderBtn = layersHeaderBtn;
+        layersHeaderBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Layers Header Color", layersHeaderColor, color -> {
+                layersHeaderColor = color;
+                layersHeaderUseGradient = false;
+                finalLayersHeaderBtn.setBackground(color);
+                finalLayersHeaderBtn.repaint();
+                applyLayersPanelColors();
+            });
+            if (newColor != null) {
+                layersHeaderColor = newColor;
+                layersHeaderUseGradient = false;
+                finalLayersHeaderBtn.setBackground(newColor);
+                finalLayersHeaderBtn.repaint();
+                applyLayersPanelColors();
+            }
+        });
+        lgbc.gridx = 1; lgbc.gridy = 0;
+        layersTab.add(layersHeaderBtn, lgbc);
+
+        JButton layersHeaderGradientArrowBtn = new JButton("\u25BC");
+        layersHeaderGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        layersHeaderGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        layersHeaderGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        layersHeaderGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu layersHeaderGradientMenu = new JPopupMenu();
+        JMenuItem layersHeaderGradientMenuItem = new JMenuItem("Gradient...");
+        layersHeaderGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("layersHeader");
+            finalLayersHeaderBtn.repaint();
+        });
+        layersHeaderGradientMenu.add(layersHeaderGradientMenuItem);
+        layersHeaderGradientArrowBtn.addActionListener(ev -> {
+            layersHeaderGradientMenu.show(layersHeaderGradientArrowBtn, 0, layersHeaderGradientArrowBtn.getHeight());
+        });
+        lgbc.gridx = 2; lgbc.gridy = 0;
+        layersTab.add(layersHeaderGradientArrowBtn, lgbc);
+
+        // === LAYERS INTERIOR ROW ===
+        lgbc.gridx = 0; lgbc.gridy = 1;
+        layersTab.add(new JLabel("Interior:"), lgbc);
+
+        JButton layersInteriorBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (layersUseGradient && layersGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[layersGradientStops.size()];
+                    Color[] colors = new Color[layersGradientStops.size()];
+                    for (int i = 0; i < layersGradientStops.size(); i++) {
+                        float[] stop = layersGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        layersInteriorBtn.setPreferredSize(new Dimension(60, 25));
+        layersInteriorBtn.setBackground(layersInteriorColor);
+        final JButton finalLayersInteriorBtn = layersInteriorBtn;
+        layersInteriorBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Layers Interior Color", layersInteriorColor, color -> {
+                layersInteriorColor = color;
+                layersUseGradient = false;
+                finalLayersInteriorBtn.setBackground(color);
+                finalLayersInteriorBtn.repaint();
+                applyLayersPanelColors();
+            });
+            if (newColor != null) {
+                layersInteriorColor = newColor;
+                layersUseGradient = false;
+                finalLayersInteriorBtn.setBackground(newColor);
+                finalLayersInteriorBtn.repaint();
+                applyLayersPanelColors();
+            }
+        });
+        lgbc.gridx = 1; lgbc.gridy = 1;
+        layersTab.add(layersInteriorBtn, lgbc);
+
+        JButton layersInteriorGradientArrowBtn = new JButton("\u25BC");
+        layersInteriorGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        layersInteriorGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        layersInteriorGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        layersInteriorGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu layersInteriorGradientMenu = new JPopupMenu();
+        JMenuItem layersInteriorGradientMenuItem = new JMenuItem("Gradient...");
+        layersInteriorGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("layers");
+            finalLayersInteriorBtn.repaint();
+        });
+        layersInteriorGradientMenu.add(layersInteriorGradientMenuItem);
+        layersInteriorGradientArrowBtn.addActionListener(ev -> {
+            layersInteriorGradientMenu.show(layersInteriorGradientArrowBtn, 0, layersInteriorGradientArrowBtn.getHeight());
+        });
+        lgbc.gridx = 2; lgbc.gridy = 1;
+        layersTab.add(layersInteriorGradientArrowBtn, lgbc);
+
+        // === LAYERS BACKGROUND (List) ROW ===
+        lgbc.gridx = 0; lgbc.gridy = 2;
+        layersTab.add(new JLabel("Background:"), lgbc);
+
+        JButton layersListBgBtn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (layersListBgUseGradient && layersListBgGradientStops.size() >= 2) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    int w = getWidth();
+                    int h = getHeight();
+                    float[] fractions = new float[layersListBgGradientStops.size()];
+                    Color[] colors = new Color[layersListBgGradientStops.size()];
+                    for (int i = 0; i < layersListBgGradientStops.size(); i++) {
+                        float[] stop = layersListBgGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                    }
+                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    super.paintComponent(g);
+                }
+            }
+        };
+        layersListBgBtn.setPreferredSize(new Dimension(60, 25));
+        layersListBgBtn.setBackground(layersListBgColor);
+        final JButton finalLayersListBgBtn = layersListBgBtn;
+        layersListBgBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Layers Background Color", layersListBgColor, color -> {
+                layersListBgColor = color;
+                layersListBgUseGradient = false;
+                finalLayersListBgBtn.setBackground(color);
+                finalLayersListBgBtn.repaint();
+                applyLayersPanelColors();
+            });
+            if (newColor != null) {
+                layersListBgColor = newColor;
+                layersListBgUseGradient = false;
+                finalLayersListBgBtn.setBackground(newColor);
+                finalLayersListBgBtn.repaint();
+                applyLayersPanelColors();
+            }
+        });
+        lgbc.gridx = 1; lgbc.gridy = 2;
+        layersTab.add(layersListBgBtn, lgbc);
+
+        JButton layersListBgGradientArrowBtn = new JButton("\u25BC");
+        layersListBgGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
+        layersListBgGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        layersListBgGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
+        layersListBgGradientArrowBtn.setToolTipText("Gradient options");
+        JPopupMenu layersListBgGradientMenu = new JPopupMenu();
+        JMenuItem layersListBgGradientMenuItem = new JMenuItem("Gradient...");
+        layersListBgGradientMenuItem.addActionListener(ev -> {
+            showGradientDialog("layersListBg");
+            finalLayersListBgBtn.repaint();
+        });
+        layersListBgGradientMenu.add(layersListBgGradientMenuItem);
+        layersListBgGradientArrowBtn.addActionListener(ev -> {
+            layersListBgGradientMenu.show(layersListBgGradientArrowBtn, 0, layersListBgGradientArrowBtn.getHeight());
+        });
+        lgbc.gridx = 2; lgbc.gridy = 2;
+        layersTab.add(layersListBgGradientArrowBtn, lgbc);
+
+        // Add filler to push content to top
+        lgbc.gridx = 0; lgbc.gridy = 3;
+        lgbc.gridwidth = 3;
+        lgbc.weighty = 1.0;
+        lgbc.fill = GridBagConstraints.BOTH;
+        layersTab.add(new JPanel(), lgbc);
+
         tabbedPane.addTab("Layers", layersTab);
 
         // Format Tab
@@ -3214,13 +5970,18 @@ public class Timeline2 extends JFrame {
 
         // Buttons panel
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton applyBtn = new JButton("Apply");
-        applyBtn.addActionListener(e -> {
+        JButton okBtn = new JButton("OK");
+        okBtn.addActionListener(e -> {
             applyPanelColors();
             dialog.dispose();
         });
+        JButton applyBtn = new JButton("Apply");
+        applyBtn.addActionListener(e -> {
+            applyPanelColors();
+        });
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.addActionListener(e -> dialog.dispose());
+        buttonsPanel.add(okBtn);
         buttonsPanel.add(applyBtn);
         buttonsPanel.add(cancelBtn);
         dialog.add(buttonsPanel, BorderLayout.SOUTH);
@@ -3243,10 +6004,15 @@ public class Timeline2 extends JFrame {
         JButton btn = new JButton();
         btn.setBackground(initialColor);
         btn.addActionListener(e -> {
-            Color c = JColorChooser.showDialog(dialog, "Choose Color", btn.getBackground());
+            Color c = showColorChooserWithAlpha("Choose Color", btn.getBackground(), color -> {
+                setter.accept(color);
+                btn.setBackground(color);
+                applyPanelColors();
+            });
             if (c != null) {
                 setter.accept(c);
                 btn.setBackground(c);
+                applyPanelColors();
             }
         });
         return btn;
@@ -3334,12 +6100,14 @@ public class Timeline2 extends JFrame {
 
     private void applyPanelColors() {
         // Apply settings panel colors
-        if (leftPanel != null) {
-            leftPanel.applyColors(settingsInteriorColor, settingsOutlineColor, settingsHeaderColor, settingsHeaderTextColor);
+        if (settingsPanel != null) {
+            settingsPanel.setBackground(settingsInteriorColor);
+            settingsPanel.repaint();
         }
         // Apply timeline panel colors
         if (timelineDisplayPanel != null) {
             timelineDisplayPanel.setBackground(timelineInteriorColor);
+            timelineDisplayPanel.repaint();
         }
         // Apply layers panel colors
         if (rightPanel != null) {
@@ -3349,7 +6117,9 @@ public class Timeline2 extends JFrame {
         if (formatPanel != null) {
             formatPanel.setBackground(formatInteriorColor);
             applyColorToChildren(formatPanel, formatInteriorColor);
+            formatPanel.repaint();
         }
+        revalidate();
         repaint();
     }
 
@@ -3365,8 +6135,228 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void applyFormatPanelColors() {
+        if (formatPanel != null) {
+            formatPanel.setBackground(formatInteriorColor);
+            applyColorToChildren(formatPanel, formatInteriorColor);
+            // Update format header bar background color
+            if (formatHeaderBar != null) {
+                formatHeaderBar.setBackground(formatHeaderColor);
+                formatHeaderBar.repaint();
+            }
+            // Update format tabbed pane tab colors with custom gradient UI
+            if (formatTabbedPane != null) {
+                // Reinstall custom UI to pick up new colors
+                formatTabbedPane.setUI(new GradientTabbedPaneUI());
+                formatTabbedPane.setBackground(formatTabColor);
+                // Update individual tab content panels
+                for (int i = 0; i < formatTabbedPane.getTabCount(); i++) {
+                    Component comp = formatTabbedPane.getComponentAt(i);
+                    if (comp instanceof JPanel) {
+                        ((JPanel) comp).setOpaque(false); // Let custom UI paint background
+                    }
+                }
+                formatTabbedPane.repaint();
+            }
+            formatPanel.revalidate();
+            formatPanel.repaint();
+        }
+    }
+
+    private void applyLayersPanelColors() {
+        if (rightPanel != null) {
+            rightPanel.applyColors(layersInteriorColor, layersOutlineColor, layersHeaderColor, layersHeaderTextColor);
+            rightPanel.repaint();
+        }
+        if (layersPanel != null) {
+            layersPanel.setListBackground(layersListBgColor);
+            layersPanel.refreshList();
+            layersPanel.repaint();
+        }
+    }
+
+    private void setFormatChildrenOpaque(JPanel panel, boolean opaque) {
+        if (panel != formatHeaderBar) { // Don't affect the header bar
+            panel.setOpaque(opaque);
+        }
+        for (Component c : panel.getComponents()) {
+            if (c instanceof JPanel) {
+                setFormatChildrenOpaque((JPanel) c, opaque);
+            }
+        }
+    }
+
     private void showWarning(String message) {
         JOptionPane.showMessageDialog(this, message, "Warning", JOptionPane.WARNING_MESSAGE);
+    }
+
+    // Export timeline as image file
+    private void exportGraphic() {
+        // Create resolution options dialog
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        int currentWidth = timelineDisplayPanel.getWidth();
+        int currentHeight = timelineDisplayPanel.getHeight();
+        double aspectRatio = (double) currentHeight / currentWidth;
+
+        // Preset dropdown
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Preset:"), gbc);
+
+        String[] presetOptions = {"Low (1000px)", "Medium (2000px)", "High (4000px)", "Very High (6000px)", "Ultra (8000px)"};
+        int[] presetWidths = {1000, 2000, 4000, 6000, 8000};
+        JComboBox<String> presetCombo = new JComboBox<>(presetOptions);
+        presetCombo.setSelectedIndex(2); // Default to High
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        panel.add(presetCombo, gbc);
+
+        // Width input field
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1;
+        panel.add(new JLabel("Width (px):"), gbc);
+
+        JTextField widthField = new JTextField(String.valueOf(presetWidths[2]), 8);
+        gbc.gridx = 1;
+        panel.add(widthField, gbc);
+
+        // Height input field
+        gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Height (px):"), gbc);
+
+        int initialHeight = (int) (presetWidths[2] * aspectRatio);
+        JTextField heightField = new JTextField(String.valueOf(initialHeight), 8);
+        gbc.gridx = 1;
+        panel.add(heightField, gbc);
+
+        // Lock proportions checkbox
+        JCheckBox lockProportionsCheckbox = new JCheckBox("Lock proportions", true);
+        gbc.gridx = 1; gbc.gridy = 3; gbc.gridwidth = 2;
+        panel.add(lockProportionsCheckbox, gbc);
+
+        // Format options
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 1;
+        panel.add(new JLabel("Format:"), gbc);
+
+        String[] formatOptions = {"PNG (Lossless)", "JPEG (Smaller file)"};
+        JComboBox<String> formatCombo = new JComboBox<>(formatOptions);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        panel.add(formatCombo, gbc);
+
+        // Flag to prevent recursive updates
+        final boolean[] updating = {false};
+
+        // Width field listener - update height if locked
+        widthField.addCaretListener(e -> {
+            if (updating[0] || !lockProportionsCheckbox.isSelected()) return;
+            try {
+                int w = Integer.parseInt(widthField.getText().trim());
+                if (w > 0) {
+                    updating[0] = true;
+                    int h = (int) (w * aspectRatio);
+                    heightField.setText(String.valueOf(h));
+                    updating[0] = false;
+                }
+            } catch (NumberFormatException ex) {}
+        });
+
+        // Height field listener - update width if locked
+        heightField.addCaretListener(e -> {
+            if (updating[0] || !lockProportionsCheckbox.isSelected()) return;
+            try {
+                int h = Integer.parseInt(heightField.getText().trim());
+                if (h > 0) {
+                    updating[0] = true;
+                    int w = (int) (h / aspectRatio);
+                    widthField.setText(String.valueOf(w));
+                    updating[0] = false;
+                }
+            } catch (NumberFormatException ex) {}
+        });
+
+        // Preset dropdown populates width/height fields
+        presetCombo.addActionListener(e -> {
+            updating[0] = true;
+            int selectedWidth = presetWidths[presetCombo.getSelectedIndex()];
+            int selectedHeight = (int) (selectedWidth * aspectRatio);
+            widthField.setText(String.valueOf(selectedWidth));
+            heightField.setText(String.valueOf(selectedHeight));
+            updating[0] = false;
+        });
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Export Graphic Options",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) return;
+
+        // Parse width and height from fields
+        int outputWidth, outputHeight;
+        try {
+            outputWidth = Integer.parseInt(widthField.getText().trim());
+            outputHeight = Integer.parseInt(heightField.getText().trim());
+            if (outputWidth < 100) outputWidth = 100;
+            if (outputHeight < 100) outputHeight = 100;
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid width or height value.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        double scaleX = (double) outputWidth / currentWidth;
+        double scaleY = (double) outputHeight / currentHeight;
+        String format = formatCombo.getSelectedIndex() == 0 ? "png" : "jpg";
+        String formatDesc = formatCombo.getSelectedIndex() == 0 ? "PNG Image (*.png)" : "JPEG Image (*.jpg)";
+
+        // File chooser
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Timeline Image");
+        fileChooser.setFileFilter(new FileNameExtensionFilter(formatDesc, format));
+        fileChooser.setSelectedFile(new File("timeline_export." + format));
+
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            if (!file.getName().toLowerCase().endsWith("." + format)) {
+                file = new File(file.getAbsolutePath() + "." + format);
+            }
+
+            try {
+                // Create scaled image
+                BufferedImage image = new BufferedImage(outputWidth, outputHeight,
+                        format.equals("png") ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
+                Graphics2D g2d = image.createGraphics();
+
+                // Set rendering hints for quality
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+
+                // Scale the graphics context
+                g2d.scale(scaleX, scaleY);
+
+                // Fill background for JPEG (no transparency)
+                if (format.equals("jpg")) {
+                    g2d.setColor(Color.WHITE);
+                    g2d.fillRect(0, 0, currentWidth, currentHeight);
+                }
+
+                // Paint the timeline panel
+                timelineDisplayPanel.paint(g2d);
+                g2d.dispose();
+
+                // Write to file
+                ImageIO.write(image, format.toUpperCase(), file);
+
+                JOptionPane.showMessageDialog(this,
+                        "Exported timeline graphic to:\n" + file.getAbsolutePath() +
+                        "\nSize: " + outputWidth + " x " + outputHeight + " pixels",
+                        "Export Successful", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "Error exporting graphic: " + ex.getMessage(),
+                        "Export Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     // Export timeline data to Excel .xlsx file with multiple sheets
@@ -3562,12 +6552,14 @@ public class Timeline2 extends JFrame {
 
         // Header row
         String[] headers = {"Type", "Name", "Layer Index", "Fill Color", "Outline Color", "Outline Thickness", "Height", "Y Position",
-                "Font Size", "Font Bold", "Font Italic", "Text Color",
-                "Front Text", "Front Font Size", "Front Bold", "Front Italic", "Front Text Color",
-                "Above Text", "Above Font Size", "Above Bold", "Above Italic", "Above Text Color",
-                "Underneath Text", "Underneath Font Size", "Underneath Bold", "Underneath Italic", "Underneath Text Color",
-                "Behind Text", "Behind Font Size", "Behind Bold", "Behind Italic", "Behind Text Color",
-                "Shape", "Width", "Label Text"};
+                "Font Size", "Font Bold", "Font Italic", "Text Color", "Center Text Wrap", "Center Text Visible",
+                "Front Text", "Front Font Size", "Front Bold", "Front Italic", "Front Text Color", "Front Text Wrap", "Front Text Visible",
+                "Above Text", "Above Font Size", "Above Bold", "Above Italic", "Above Text Color", "Above Text Wrap", "Above Text Visible",
+                "Underneath Text", "Underneath Font Size", "Underneath Bold", "Underneath Italic", "Underneath Text Color", "Underneath Text Wrap", "Underneath Text Visible",
+                "Behind Text", "Behind Font Size", "Behind Bold", "Behind Italic", "Behind Text Color", "Behind Text Wrap", "Behind Text Visible",
+                "Shape", "Width", "Label Text", "Label Text Visible",
+                "Bevel Fill", "Bevel Depth", "Bevel Light Angle", "Bevel Highlight Opacity", "Bevel Shadow Opacity",
+                "Bevel Style", "Top Bevel", "Bottom Bevel"};
         sb.append("    <row r=\"1\">\n");
         for (int i = 0; i < headers.length; i++) {
             sb.append("      <c r=\"").append(getExcelColumn(i)).append("1\" t=\"inlineStr\" s=\"1\"><is><t>").append(headers[i]).append("</t></is></c>\n");
@@ -3583,15 +6575,19 @@ public class Timeline2 extends JFrame {
                 colorToHex(task.fillColor), colorToHex(task.outlineColor), String.valueOf(task.outlineThickness),
                 String.valueOf(task.height), String.valueOf(task.yPosition), String.valueOf(task.fontSize),
                 String.valueOf(task.fontBold), String.valueOf(task.fontItalic), colorToHex(task.textColor),
+                String.valueOf(task.centerTextWrap), String.valueOf(task.centerTextVisible),
                 escapeXml(task.frontText), String.valueOf(task.frontFontSize), String.valueOf(task.frontFontBold),
-                String.valueOf(task.frontFontItalic), colorToHex(task.frontTextColor),
+                String.valueOf(task.frontFontItalic), colorToHex(task.frontTextColor), String.valueOf(task.frontTextWrap), String.valueOf(task.frontTextVisible),
                 escapeXml(task.aboveText), String.valueOf(task.aboveFontSize), String.valueOf(task.aboveFontBold),
-                String.valueOf(task.aboveFontItalic), colorToHex(task.aboveTextColor),
+                String.valueOf(task.aboveFontItalic), colorToHex(task.aboveTextColor), String.valueOf(task.aboveTextWrap), String.valueOf(task.aboveTextVisible),
                 escapeXml(task.underneathText), String.valueOf(task.underneathFontSize), String.valueOf(task.underneathFontBold),
-                String.valueOf(task.underneathFontItalic), colorToHex(task.underneathTextColor),
+                String.valueOf(task.underneathFontItalic), colorToHex(task.underneathTextColor), String.valueOf(task.underneathTextWrap), String.valueOf(task.underneathTextVisible),
                 escapeXml(task.behindText), String.valueOf(task.behindFontSize), String.valueOf(task.behindFontBold),
-                String.valueOf(task.behindFontItalic), colorToHex(task.behindTextColor),
-                "", "", "" // Shape, Width, Label Text (not applicable for tasks)
+                String.valueOf(task.behindFontItalic), colorToHex(task.behindTextColor), String.valueOf(task.behindTextWrap), String.valueOf(task.behindTextVisible),
+                "", "", "", "", // Shape, Width, Label Text, Label Text Visible (not applicable for tasks)
+                String.valueOf(task.bevelFill), String.valueOf(task.bevelDepth), String.valueOf(task.bevelLightAngle),
+                String.valueOf(task.bevelHighlightOpacity), String.valueOf(task.bevelShadowOpacity),
+                escapeXml(task.bevelStyle), escapeXml(task.topBevel), escapeXml(task.bottomBevel)
             };
             sb.append("    <row r=\"").append(row).append("\">\n");
             for (int i = 0; i < values.length; i++) {
@@ -3608,11 +6604,19 @@ public class Timeline2 extends JFrame {
                 colorToHex(m.fillColor), colorToHex(m.outlineColor), String.valueOf(m.outlineThickness),
                 String.valueOf(m.height), String.valueOf(m.yPosition), String.valueOf(m.fontSize),
                 String.valueOf(m.fontBold), String.valueOf(m.fontItalic), colorToHex(m.textColor),
-                "", "", "", "", "", // Front text fields (not applicable)
-                "", "", "", "", "", // Above text fields (not applicable)
-                "", "", "", "", "", // Underneath text fields (not applicable)
-                "", "", "", "", "", // Behind text fields (not applicable)
-                escapeXml(m.shape), String.valueOf(m.width), escapeXml(m.labelText)
+                String.valueOf(m.centerTextWrap), String.valueOf(m.centerTextVisible),
+                escapeXml(m.frontText), String.valueOf(m.frontFontSize), String.valueOf(m.frontFontBold),
+                String.valueOf(m.frontFontItalic), colorToHex(m.frontTextColor), String.valueOf(m.frontTextWrap), String.valueOf(m.frontTextVisible),
+                escapeXml(m.aboveText), String.valueOf(m.aboveFontSize), String.valueOf(m.aboveFontBold),
+                String.valueOf(m.aboveFontItalic), colorToHex(m.aboveTextColor), String.valueOf(m.aboveTextWrap), String.valueOf(m.aboveTextVisible),
+                escapeXml(m.underneathText), String.valueOf(m.underneathFontSize), String.valueOf(m.underneathFontBold),
+                String.valueOf(m.underneathFontItalic), colorToHex(m.underneathTextColor), String.valueOf(m.underneathTextWrap), String.valueOf(m.underneathTextVisible),
+                escapeXml(m.behindText), String.valueOf(m.behindFontSize), String.valueOf(m.behindFontBold),
+                String.valueOf(m.behindFontItalic), colorToHex(m.behindTextColor), String.valueOf(m.behindTextWrap), String.valueOf(m.behindTextVisible),
+                escapeXml(m.shape), String.valueOf(m.width), escapeXml(m.centerText), String.valueOf(m.centerTextVisible),
+                String.valueOf(m.bevelFill), String.valueOf(m.bevelDepth), String.valueOf(m.bevelLightAngle),
+                String.valueOf(m.bevelHighlightOpacity), String.valueOf(m.bevelShadowOpacity),
+                escapeXml(m.bevelStyle), escapeXml(m.topBevel), escapeXml(m.bottomBevel)
             };
             sb.append("    <row r=\"").append(row).append("\">\n");
             for (int i = 0; i < values.length; i++) {
@@ -3675,7 +6679,21 @@ public class Timeline2 extends JFrame {
         row = addSettingRow(sb, row, "Format Header Color", colorToHex(formatHeaderColor));
         row = addSettingRow(sb, row, "Format Label Color", colorToHex(formatLabelColor));
         row = addSettingRow(sb, row, "Format Separator Color", colorToHex(formatSeparatorColor));
-        addSettingRow(sb, row, "Format Resize Handle Color", colorToHex(formatResizeHandleColor));
+        row = addSettingRow(sb, row, "Format Resize Handle Color", colorToHex(formatResizeHandleColor));
+        // Extend ticks settings
+        row = addSettingRow(sb, row, "Extend Ticks Enabled", String.valueOf(extendTicks));
+        row = addSettingRow(sb, row, "Extend Ticks Color", colorToHex(extendTicksColor));
+        row = addSettingRow(sb, row, "Extend Ticks Thickness", String.valueOf(extendTicksThickness));
+        row = addSettingRow(sb, row, "Extend Ticks Line Type", extendTicksLineType);
+        // Timeline axis settings
+        row = addSettingRow(sb, row, "Timeline Axis Color", colorToHex(timelineAxisColor));
+        row = addSettingRow(sb, row, "Timeline Axis Thickness", String.valueOf(timelineAxisThickness));
+        // Timeline axis date label settings
+        row = addSettingRow(sb, row, "Axis Date Color", colorToHex(axisDateColor));
+        row = addSettingRow(sb, row, "Axis Date Font Family", axisDateFontFamily);
+        row = addSettingRow(sb, row, "Axis Date Font Size", String.valueOf(axisDateFontSize));
+        row = addSettingRow(sb, row, "Axis Date Bold", String.valueOf(axisDateBold));
+        row = addSettingRow(sb, row, "Axis Date Italic", String.valueOf(axisDateItalic));
 
         sb.append("  </sheetData>\n");
         sb.append("</worksheet>");
@@ -3830,6 +6848,7 @@ public class Timeline2 extends JFrame {
             layerOrder.clear();
             selectedTaskIndices.clear();
             selectedMilestoneIndex = -1;
+            selectedMilestoneIndices.clear();
         }
 
         int tasksImported = 0, milestonesImported = 0;
@@ -3864,11 +6883,15 @@ public class Timeline2 extends JFrame {
 
                 if ("Task".equalsIgnoreCase(type)) {
                     TimelineTask task = new TimelineTask(name, startDate, endDate);
-                    task.centerText = centerText.isEmpty() ? name : centerText;
+                    task.centerText = centerText; // Use exact value from import (constructor already defaults to name)
                     task.fillColor = TASK_COLORS[tasks.size() % TASK_COLORS.length];
 
                     // Apply format data if available
                     if (fmt != null && fmt.length > 10) {
+                        // Determine if new format (with wrap columns) or old format
+                        // New format has 40 columns, old format has 35
+                        boolean newFormat = fmt.length > 37;
+
                         task.fillColor = hexToColor(fmt[3]) != null ? hexToColor(fmt[3]) : task.fillColor;
                         task.outlineColor = hexToColor(fmt[4]);
                         task.outlineThickness = parseIntSafe(fmt[5], 2);
@@ -3878,33 +6901,139 @@ public class Timeline2 extends JFrame {
                         task.fontBold = "true".equalsIgnoreCase(fmt[9]);
                         task.fontItalic = "true".equalsIgnoreCase(fmt[10]);
                         task.textColor = hexToColor(fmt[11]) != null ? hexToColor(fmt[11]) : Color.BLACK;
-                        if (fmt.length > 16) {
-                            task.frontText = fmt[12];
-                            task.frontFontSize = parseIntSafe(fmt[13], 10);
-                            task.frontFontBold = "true".equalsIgnoreCase(fmt[14]);
-                            task.frontFontItalic = "true".equalsIgnoreCase(fmt[15]);
-                            task.frontTextColor = hexToColor(fmt[16]) != null ? hexToColor(fmt[16]) : Color.BLACK;
-                        }
-                        if (fmt.length > 21) {
-                            task.aboveText = fmt[17];
-                            task.aboveFontSize = parseIntSafe(fmt[18], 10);
-                            task.aboveFontBold = "true".equalsIgnoreCase(fmt[19]);
-                            task.aboveFontItalic = "true".equalsIgnoreCase(fmt[20]);
-                            task.aboveTextColor = hexToColor(fmt[21]) != null ? hexToColor(fmt[21]) : Color.BLACK;
-                        }
-                        if (fmt.length > 26) {
-                            task.underneathText = fmt[22];
-                            task.underneathFontSize = parseIntSafe(fmt[23], 10);
-                            task.underneathFontBold = "true".equalsIgnoreCase(fmt[24]);
-                            task.underneathFontItalic = "true".equalsIgnoreCase(fmt[25]);
-                            task.underneathTextColor = hexToColor(fmt[26]) != null ? hexToColor(fmt[26]) : Color.BLACK;
-                        }
-                        if (fmt.length > 31) {
-                            task.behindText = fmt[27];
-                            task.behindFontSize = parseIntSafe(fmt[28], 10);
-                            task.behindFontBold = "true".equalsIgnoreCase(fmt[29]);
-                            task.behindFontItalic = "true".equalsIgnoreCase(fmt[30]);
-                            task.behindTextColor = hexToColor(fmt[31]) != null ? hexToColor(fmt[31]) : new Color(150, 150, 150);
+
+                        if (newFormat) {
+                            // Check for newest format with visible columns (54 columns)
+                            boolean hasVisibleColumns = fmt.length > 50;
+
+                            if (hasVisibleColumns) {
+                                // Newest format with visible columns
+                                if (fmt.length > 12) task.centerTextWrap = "true".equalsIgnoreCase(fmt[12]);
+                                if (fmt.length > 13) task.centerTextVisible = "true".equalsIgnoreCase(fmt[13]);
+                                if (fmt.length > 20) {
+                                    task.frontText = fmt[14];
+                                    task.frontFontSize = parseIntSafe(fmt[15], 10);
+                                    task.frontFontBold = "true".equalsIgnoreCase(fmt[16]);
+                                    task.frontFontItalic = "true".equalsIgnoreCase(fmt[17]);
+                                    task.frontTextColor = hexToColor(fmt[18]) != null ? hexToColor(fmt[18]) : Color.BLACK;
+                                    task.frontTextWrap = "true".equalsIgnoreCase(fmt[19]);
+                                    task.frontTextVisible = "true".equalsIgnoreCase(fmt[20]);
+                                }
+                                if (fmt.length > 27) {
+                                    task.aboveText = fmt[21];
+                                    task.aboveFontSize = parseIntSafe(fmt[22], 10);
+                                    task.aboveFontBold = "true".equalsIgnoreCase(fmt[23]);
+                                    task.aboveFontItalic = "true".equalsIgnoreCase(fmt[24]);
+                                    task.aboveTextColor = hexToColor(fmt[25]) != null ? hexToColor(fmt[25]) : Color.BLACK;
+                                    task.aboveTextWrap = "true".equalsIgnoreCase(fmt[26]);
+                                    task.aboveTextVisible = "true".equalsIgnoreCase(fmt[27]);
+                                }
+                                if (fmt.length > 34) {
+                                    task.underneathText = fmt[28];
+                                    task.underneathFontSize = parseIntSafe(fmt[29], 10);
+                                    task.underneathFontBold = "true".equalsIgnoreCase(fmt[30]);
+                                    task.underneathFontItalic = "true".equalsIgnoreCase(fmt[31]);
+                                    task.underneathTextColor = hexToColor(fmt[32]) != null ? hexToColor(fmt[32]) : Color.BLACK;
+                                    task.underneathTextWrap = "true".equalsIgnoreCase(fmt[33]);
+                                    task.underneathTextVisible = "true".equalsIgnoreCase(fmt[34]);
+                                }
+                                if (fmt.length > 41) {
+                                    task.behindText = fmt[35];
+                                    task.behindFontSize = parseIntSafe(fmt[36], 10);
+                                    task.behindFontBold = "true".equalsIgnoreCase(fmt[37]);
+                                    task.behindFontItalic = "true".equalsIgnoreCase(fmt[38]);
+                                    task.behindTextColor = hexToColor(fmt[39]) != null ? hexToColor(fmt[39]) : new Color(150, 150, 150);
+                                    task.behindTextWrap = "true".equalsIgnoreCase(fmt[40]);
+                                    task.behindTextVisible = "true".equalsIgnoreCase(fmt[41]);
+                                }
+                                // Bevel settings (indices 46-53)
+                                if (fmt.length > 53) {
+                                    task.bevelFill = "true".equalsIgnoreCase(fmt[46]);
+                                    task.bevelDepth = parseIntSafe(fmt[47], 60);
+                                    task.bevelLightAngle = parseIntSafe(fmt[48], 135);
+                                    task.bevelHighlightOpacity = parseIntSafe(fmt[49], 80);
+                                    task.bevelShadowOpacity = parseIntSafe(fmt[50], 60);
+                                    task.bevelStyle = fmt[51].isEmpty() ? "Inner Bevel" : fmt[51];
+                                    task.topBevel = fmt[52].isEmpty() ? "Circle" : fmt[52];
+                                    task.bottomBevel = fmt[53].isEmpty() ? "None" : fmt[53];
+                                }
+                            } else {
+                                // Previous format with wrap but no visible columns
+                                if (fmt.length > 12) task.centerTextWrap = "true".equalsIgnoreCase(fmt[12]);
+                                if (fmt.length > 18) {
+                                    task.frontText = fmt[13];
+                                    task.frontFontSize = parseIntSafe(fmt[14], 10);
+                                    task.frontFontBold = "true".equalsIgnoreCase(fmt[15]);
+                                    task.frontFontItalic = "true".equalsIgnoreCase(fmt[16]);
+                                    task.frontTextColor = hexToColor(fmt[17]) != null ? hexToColor(fmt[17]) : Color.BLACK;
+                                    task.frontTextWrap = "true".equalsIgnoreCase(fmt[18]);
+                                }
+                                if (fmt.length > 24) {
+                                    task.aboveText = fmt[19];
+                                    task.aboveFontSize = parseIntSafe(fmt[20], 10);
+                                    task.aboveFontBold = "true".equalsIgnoreCase(fmt[21]);
+                                    task.aboveFontItalic = "true".equalsIgnoreCase(fmt[22]);
+                                    task.aboveTextColor = hexToColor(fmt[23]) != null ? hexToColor(fmt[23]) : Color.BLACK;
+                                    task.aboveTextWrap = "true".equalsIgnoreCase(fmt[24]);
+                                }
+                                if (fmt.length > 30) {
+                                    task.underneathText = fmt[25];
+                                    task.underneathFontSize = parseIntSafe(fmt[26], 10);
+                                    task.underneathFontBold = "true".equalsIgnoreCase(fmt[27]);
+                                    task.underneathFontItalic = "true".equalsIgnoreCase(fmt[28]);
+                                    task.underneathTextColor = hexToColor(fmt[29]) != null ? hexToColor(fmt[29]) : Color.BLACK;
+                                    task.underneathTextWrap = "true".equalsIgnoreCase(fmt[30]);
+                                }
+                                if (fmt.length > 36) {
+                                    task.behindText = fmt[31];
+                                    task.behindFontSize = parseIntSafe(fmt[32], 10);
+                                    task.behindFontBold = "true".equalsIgnoreCase(fmt[33]);
+                                    task.behindFontItalic = "true".equalsIgnoreCase(fmt[34]);
+                                    task.behindTextColor = hexToColor(fmt[35]) != null ? hexToColor(fmt[35]) : new Color(150, 150, 150);
+                                    task.behindTextWrap = "true".equalsIgnoreCase(fmt[36]);
+                                }
+                                // Bevel settings (indices 40-47)
+                                if (fmt.length > 47) {
+                                    task.bevelFill = "true".equalsIgnoreCase(fmt[40]);
+                                    task.bevelDepth = parseIntSafe(fmt[41], 60);
+                                    task.bevelLightAngle = parseIntSafe(fmt[42], 135);
+                                    task.bevelHighlightOpacity = parseIntSafe(fmt[43], 80);
+                                    task.bevelShadowOpacity = parseIntSafe(fmt[44], 60);
+                                    task.bevelStyle = fmt[45].isEmpty() ? "Inner Bevel" : fmt[45];
+                                    task.topBevel = fmt[46].isEmpty() ? "Circle" : fmt[46];
+                                    task.bottomBevel = fmt[47].isEmpty() ? "None" : fmt[47];
+                                }
+                            }
+                        } else {
+                            // Old format without wrap columns
+                            if (fmt.length > 16) {
+                                task.frontText = fmt[12];
+                                task.frontFontSize = parseIntSafe(fmt[13], 10);
+                                task.frontFontBold = "true".equalsIgnoreCase(fmt[14]);
+                                task.frontFontItalic = "true".equalsIgnoreCase(fmt[15]);
+                                task.frontTextColor = hexToColor(fmt[16]) != null ? hexToColor(fmt[16]) : Color.BLACK;
+                            }
+                            if (fmt.length > 21) {
+                                task.aboveText = fmt[17];
+                                task.aboveFontSize = parseIntSafe(fmt[18], 10);
+                                task.aboveFontBold = "true".equalsIgnoreCase(fmt[19]);
+                                task.aboveFontItalic = "true".equalsIgnoreCase(fmt[20]);
+                                task.aboveTextColor = hexToColor(fmt[21]) != null ? hexToColor(fmt[21]) : Color.BLACK;
+                            }
+                            if (fmt.length > 26) {
+                                task.underneathText = fmt[22];
+                                task.underneathFontSize = parseIntSafe(fmt[23], 10);
+                                task.underneathFontBold = "true".equalsIgnoreCase(fmt[24]);
+                                task.underneathFontItalic = "true".equalsIgnoreCase(fmt[25]);
+                                task.underneathTextColor = hexToColor(fmt[26]) != null ? hexToColor(fmt[26]) : Color.BLACK;
+                            }
+                            if (fmt.length > 31) {
+                                task.behindText = fmt[27];
+                                task.behindFontSize = parseIntSafe(fmt[28], 10);
+                                task.behindFontBold = "true".equalsIgnoreCase(fmt[29]);
+                                task.behindFontItalic = "true".equalsIgnoreCase(fmt[30]);
+                                task.behindTextColor = hexToColor(fmt[31]) != null ? hexToColor(fmt[31]) : new Color(150, 150, 150);
+                            }
                         }
                     }
 
@@ -3912,8 +7041,17 @@ public class Timeline2 extends JFrame {
                     layerOrder.add(task);
                     tasksImported++;
                 } else if ("Milestone".equalsIgnoreCase(type)) {
+                    // Determine format version
+                    boolean newFormat = fmt != null && fmt.length > 37;
+                    boolean hasVisibleColumns = fmt != null && fmt.length > 50;
+
                     String shape = "diamond";
-                    if (fmt != null && fmt.length > 32) {
+                    if (hasVisibleColumns && fmt.length > 42) {
+                        shape = fmt[42].isEmpty() ? "diamond" : fmt[42];
+                    } else if (newFormat && fmt.length > 37) {
+                        shape = fmt[37].isEmpty() ? "diamond" : fmt[37];
+                    } else if (fmt != null && fmt.length > 32) {
+                        // Old format: shape at index 32
                         shape = fmt[32].isEmpty() ? "diamond" : fmt[32];
                     }
                     TimelineMilestone m = new TimelineMilestone(name, startDate, shape);
@@ -3929,8 +7067,89 @@ public class Timeline2 extends JFrame {
                         m.fontBold = "true".equalsIgnoreCase(fmt[9]);
                         m.fontItalic = "true".equalsIgnoreCase(fmt[10]);
                         m.textColor = hexToColor(fmt[11]) != null ? hexToColor(fmt[11]) : Color.BLACK;
-                        if (fmt.length > 33) m.width = parseIntSafe(fmt[33], 20);
-                        if (fmt.length > 34) m.labelText = fmt[34];
+
+                        if (hasVisibleColumns) {
+                            // Newest format with visible columns
+                            // Center text properties (indices 12-13)
+                            if (fmt.length > 13) {
+                                m.centerTextWrap = "true".equalsIgnoreCase(fmt[12]);
+                                m.centerTextVisible = "true".equalsIgnoreCase(fmt[13]);
+                            }
+                            // Front text properties (indices 14-20)
+                            if (fmt.length > 20) {
+                                m.frontText = fmt[14];
+                                m.frontFontSize = parseIntSafe(fmt[15], 10);
+                                m.frontFontBold = "true".equalsIgnoreCase(fmt[16]);
+                                m.frontFontItalic = "true".equalsIgnoreCase(fmt[17]);
+                                m.frontTextColor = hexToColor(fmt[18]) != null ? hexToColor(fmt[18]) : Color.BLACK;
+                                m.frontTextWrap = "true".equalsIgnoreCase(fmt[19]);
+                                m.frontTextVisible = "true".equalsIgnoreCase(fmt[20]);
+                            }
+                            // Above text properties (indices 21-27)
+                            if (fmt.length > 27) {
+                                m.aboveText = fmt[21];
+                                m.aboveFontSize = parseIntSafe(fmt[22], 10);
+                                m.aboveFontBold = "true".equalsIgnoreCase(fmt[23]);
+                                m.aboveFontItalic = "true".equalsIgnoreCase(fmt[24]);
+                                m.aboveTextColor = hexToColor(fmt[25]) != null ? hexToColor(fmt[25]) : Color.BLACK;
+                                m.aboveTextWrap = "true".equalsIgnoreCase(fmt[26]);
+                                m.aboveTextVisible = "true".equalsIgnoreCase(fmt[27]);
+                            }
+                            // Underneath text properties (indices 28-34)
+                            if (fmt.length > 34) {
+                                m.underneathText = fmt[28];
+                                m.underneathFontSize = parseIntSafe(fmt[29], 10);
+                                m.underneathFontBold = "true".equalsIgnoreCase(fmt[30]);
+                                m.underneathFontItalic = "true".equalsIgnoreCase(fmt[31]);
+                                m.underneathTextColor = hexToColor(fmt[32]) != null ? hexToColor(fmt[32]) : Color.BLACK;
+                                m.underneathTextWrap = "true".equalsIgnoreCase(fmt[33]);
+                                m.underneathTextVisible = "true".equalsIgnoreCase(fmt[34]);
+                            }
+                            // Behind text properties (indices 35-41)
+                            if (fmt.length > 41) {
+                                m.behindText = fmt[35];
+                                m.behindFontSize = parseIntSafe(fmt[36], 10);
+                                m.behindFontBold = "true".equalsIgnoreCase(fmt[37]);
+                                m.behindFontItalic = "true".equalsIgnoreCase(fmt[38]);
+                                m.behindTextColor = hexToColor(fmt[39]) != null ? hexToColor(fmt[39]) : new Color(150, 150, 150);
+                                m.behindTextWrap = "true".equalsIgnoreCase(fmt[40]);
+                                m.behindTextVisible = "true".equalsIgnoreCase(fmt[41]);
+                            }
+                            // Shape, width, centerText (indices 42-45)
+                            if (fmt.length > 43) m.width = parseIntSafe(fmt[43], 20);
+                            if (fmt.length > 44) m.centerText = fmt[44];
+                            if (fmt.length > 45) m.centerTextVisible = "true".equalsIgnoreCase(fmt[45]);
+                            // Bevel settings (indices 46-53)
+                            if (fmt.length > 53) {
+                                m.bevelFill = "true".equalsIgnoreCase(fmt[46]);
+                                m.bevelDepth = parseIntSafe(fmt[47], 60);
+                                m.bevelLightAngle = parseIntSafe(fmt[48], 135);
+                                m.bevelHighlightOpacity = parseIntSafe(fmt[49], 80);
+                                m.bevelShadowOpacity = parseIntSafe(fmt[50], 60);
+                                m.bevelStyle = fmt[51].isEmpty() ? "Inner Bevel" : fmt[51];
+                                m.topBevel = fmt[52].isEmpty() ? "Circle" : fmt[52];
+                                m.bottomBevel = fmt[53].isEmpty() ? "None" : fmt[53];
+                            }
+                        } else if (newFormat) {
+                            // Previous format: width at 38, labelText at 39
+                            if (fmt.length > 38) m.width = parseIntSafe(fmt[38], 20);
+                            if (fmt.length > 39) m.labelText = fmt[39];
+                            // Bevel settings (indices 40-47)
+                            if (fmt.length > 47) {
+                                m.bevelFill = "true".equalsIgnoreCase(fmt[40]);
+                                m.bevelDepth = parseIntSafe(fmt[41], 60);
+                                m.bevelLightAngle = parseIntSafe(fmt[42], 135);
+                                m.bevelHighlightOpacity = parseIntSafe(fmt[43], 80);
+                                m.bevelShadowOpacity = parseIntSafe(fmt[44], 60);
+                                m.bevelStyle = fmt[45].isEmpty() ? "Inner Bevel" : fmt[45];
+                                m.topBevel = fmt[46].isEmpty() ? "Circle" : fmt[46];
+                                m.bottomBevel = fmt[47].isEmpty() ? "None" : fmt[47];
+                            }
+                        } else {
+                            // Old format: width at 33, labelText at 34
+                            if (fmt.length > 33) m.width = parseIntSafe(fmt[33], 20);
+                            if (fmt.length > 34) m.labelText = fmt[34];
+                        }
                     }
 
                     milestones.add(m);
@@ -4012,6 +7231,53 @@ public class Timeline2 extends JFrame {
             case "Format Label Color": formatLabelColor = hexToColor(value) != null ? hexToColor(value) : formatLabelColor; break;
             case "Format Separator Color": formatSeparatorColor = hexToColor(value) != null ? hexToColor(value) : formatSeparatorColor; break;
             case "Format Resize Handle Color": formatResizeHandleColor = hexToColor(value) != null ? hexToColor(value) : formatResizeHandleColor; break;
+            case "Extend Ticks Enabled":
+                extendTicks = Boolean.parseBoolean(value);
+                if (extendTicksCheckBox != null) extendTicksCheckBox.setSelected(extendTicks);
+                if (extendTicksOptionsPanel != null) extendTicksOptionsPanel.setVisible(extendTicks);
+                break;
+            case "Extend Ticks Color":
+                extendTicksColor = hexToColor(value) != null ? hexToColor(value) : extendTicksColor;
+                if (extendTicksColorBtn != null) extendTicksColorBtn.setBackground(extendTicksColor);
+                break;
+            case "Extend Ticks Thickness":
+                try { extendTicksThickness = Integer.parseInt(value); } catch (NumberFormatException e) {}
+                if (extendTicksThicknessSpinner != null) extendTicksThicknessSpinner.setValue(extendTicksThickness);
+                break;
+            case "Extend Ticks Line Type":
+                extendTicksLineType = value;
+                if (extendTicksLineTypeCombo != null) extendTicksLineTypeCombo.setSelectedItem(extendTicksLineType);
+                break;
+            // Timeline axis settings
+            case "Timeline Axis Color":
+                timelineAxisColor = hexToColor(value) != null ? hexToColor(value) : timelineAxisColor;
+                if (timelineAxisColorBtn != null) timelineAxisColorBtn.setBackground(timelineAxisColor);
+                break;
+            case "Timeline Axis Thickness":
+                try { timelineAxisThickness = Integer.parseInt(value); } catch (NumberFormatException e) {}
+                if (timelineAxisThicknessSpinner != null) timelineAxisThicknessSpinner.setValue(timelineAxisThickness);
+                break;
+            // Timeline axis date label settings
+            case "Axis Date Color":
+                axisDateColor = hexToColor(value) != null ? hexToColor(value) : axisDateColor;
+                if (axisDateColorBtn != null) axisDateColorBtn.setBackground(axisDateColor);
+                break;
+            case "Axis Date Font Family":
+                axisDateFontFamily = value;
+                if (axisDateFontCombo != null) axisDateFontCombo.setSelectedItem(axisDateFontFamily);
+                break;
+            case "Axis Date Font Size":
+                try { axisDateFontSize = Integer.parseInt(value); } catch (NumberFormatException e) {}
+                if (axisDateFontSizeSpinner != null) axisDateFontSizeSpinner.setValue(axisDateFontSize);
+                break;
+            case "Axis Date Bold":
+                axisDateBold = Boolean.parseBoolean(value);
+                if (axisDateBoldBtn != null) axisDateBoldBtn.setSelected(axisDateBold);
+                break;
+            case "Axis Date Italic":
+                axisDateItalic = Boolean.parseBoolean(value);
+                if (axisDateItalicBtn != null) axisDateItalicBtn.setSelected(axisDateItalic);
+                break;
         }
     }
 
@@ -4158,6 +7424,13 @@ public class Timeline2 extends JFrame {
             }
         }
 
+        public void setMax(int newMax) {
+            this.max = newMax;
+            if (highValue > max) highValue = max;
+            if (lowValue > max) lowValue = max;
+            repaint();
+        }
+
         public void addChangeListener(javax.swing.event.ChangeListener l) {
             changeListeners.add(l);
         }
@@ -4217,7 +7490,7 @@ public class Timeline2 extends JFrame {
         private boolean collapsed = false;
         private boolean isLeft;
         private String title;
-        private Dimension expandedSize = new Dimension(230, 600);
+        private Dimension expandedSize = new Dimension(290, 600);
 
         CollapsiblePanel(String title, JPanel content, boolean isLeft) {
             this.title = title;
@@ -4227,8 +7500,45 @@ public class Timeline2 extends JFrame {
             setLayout(new BorderLayout());
             setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
 
-            // Header
-            header = new JPanel(new BorderLayout(5, 0));
+            // Header with gradient support
+            header = new JPanel(new BorderLayout(5, 0)) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    boolean useGradient = false;
+                    ArrayList<float[]> stops = null;
+                    double angle = 0;
+
+                    if (isLeft && settingsHeaderUseGradient && settingsHeaderGradientStops.size() >= 2) {
+                        useGradient = true;
+                        stops = settingsHeaderGradientStops;
+                        angle = settingsHeaderGradientAngle;
+                    } else if (!isLeft && layersHeaderUseGradient && layersHeaderGradientStops.size() >= 2) {
+                        useGradient = true;
+                        stops = layersHeaderGradientStops;
+                        angle = layersHeaderGradientAngle;
+                    }
+
+                    if (useGradient && stops != null) {
+                        Graphics2D g2d = (Graphics2D) g;
+                        int w = getWidth();
+                        int h = getHeight();
+
+                        float[] fractions = new float[stops.size()];
+                        Color[] colors = new Color[stops.size()];
+                        for (int i = 0; i < stops.size(); i++) {
+                            float[] stop = stops.get(i);
+                            fractions[i] = stop[0];
+                            colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                        }
+
+                        java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, angle, fractions, colors);
+                        g2d.setPaint(lgp);
+                        g2d.fillRect(0, 0, w, h);
+                    } else {
+                        super.paintComponent(g);
+                    }
+                }
+            };
             header.setBackground(new Color(70, 130, 180));
             header.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 5));
 
@@ -4303,6 +7613,7 @@ public class Timeline2 extends JFrame {
                     applyInteriorColor((JPanel) c, interior);
                 }
             }
+            repaint();
         }
 
         private void applyInteriorColor(JPanel panel, Color color) {
@@ -4310,6 +7621,66 @@ public class Timeline2 extends JFrame {
             for (Component c : panel.getComponents()) {
                 if (c instanceof JPanel) {
                     applyInteriorColor((JPanel) c, color);
+                }
+            }
+        }
+
+        private void setChildrenOpaque(JPanel panel, boolean opaque) {
+            panel.setOpaque(opaque);
+            for (Component c : panel.getComponents()) {
+                if (c instanceof JPanel) {
+                    setChildrenOpaque((JPanel) c, opaque);
+                }
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            boolean useGradient = false;
+            ArrayList<float[]> stops = null;
+            double angle = 0;
+
+            if (isLeft && settingsUseGradient && settingsGradientStops.size() >= 2) {
+                useGradient = true;
+                stops = settingsGradientStops;
+                angle = settingsGradientAngle;
+            } else if (!isLeft && layersUseGradient && layersGradientStops.size() >= 2) {
+                useGradient = true;
+                stops = layersGradientStops;
+                angle = layersGradientAngle;
+            }
+
+            if (useGradient && stops != null) {
+                // Make children non-opaque so gradient shows through
+                for (Component c : getComponents()) {
+                    if (c instanceof JPanel && c != header) {
+                        setChildrenOpaque((JPanel) c, false);
+                    }
+                }
+
+                Graphics2D g2d = (Graphics2D) g;
+                int w = getWidth();
+                int h = getHeight();
+
+                // Build arrays for LinearGradientPaint
+                float[] fractions = new float[stops.size()];
+                Color[] colors = new Color[stops.size()];
+                for (int i = 0; i < stops.size(); i++) {
+                    float[] stop = stops.get(i);
+                    fractions[i] = stop[0];
+                    colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                }
+
+                java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, angle, fractions, colors);
+                g2d.setPaint(lgp);
+                g2d.fillRect(0, 0, w, h);
+            } else {
+                super.paintComponent(g);
+                // Restore children to opaque if not using gradient
+                for (Component c : getComponents()) {
+                    if (c instanceof JPanel && c != header) {
+                        setChildrenOpaque((JPanel) c, true);
+                    }
                 }
             }
         }
@@ -4333,17 +7704,41 @@ public class Timeline2 extends JFrame {
             setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
             setPreferredSize(new Dimension(180, 400));
 
-            // List with custom painting for floating item
+            // List with custom painting for floating item and gradient background
             listModel = new DefaultListModel<>();
             layersList = new JList<String>(listModel) {
                 @Override
                 protected void paintComponent(Graphics g) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                    int w = getWidth();
+                    int h = getHeight();
+
+                    // Paint background (gradient or solid)
+                    if (layersListBgUseGradient && layersListBgGradientStops.size() >= 2) {
+                        // Build arrays for LinearGradientPaint
+                        float[] fractions = new float[layersListBgGradientStops.size()];
+                        Color[] colors = new Color[layersListBgGradientStops.size()];
+                        for (int i = 0; i < layersListBgGradientStops.size(); i++) {
+                            float[] stop = layersListBgGradientStops.get(i);
+                            fractions[i] = stop[0];
+                            colors[i] = new Color((int)stop[1], (int)stop[2], (int)stop[3], (int)stop[4]);
+                        }
+
+                        java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, layersListBgGradientAngle, fractions, colors);
+                        g2d.setPaint(lgp);
+                        g2d.fillRect(0, 0, w, h);
+                    } else {
+                        // Paint solid background
+                        g2d.setColor(getBackground());
+                        g2d.fillRect(0, 0, w, h);
+                    }
+
+                    // Let JList paint the cells
                     super.paintComponent(g);
                     // Draw floating item on top (30% transparent = 70% opaque = alpha 178)
                     if (isDragging && draggedItemName != null) {
-                        Graphics2D g2d = (Graphics2D) g;
-                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
                         int cellHeight = getFixedCellHeight();
                         int width = getWidth() - 10;
                         int alpha = 178; // 70% opaque (30% transparent)
@@ -4389,6 +7784,8 @@ public class Timeline2 extends JFrame {
 
             scrollPane = new JScrollPane(layersList);
             scrollPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            scrollPane.setOpaque(false);
+            scrollPane.getViewport().setOpaque(false);
             add(scrollPane, BorderLayout.CENTER);
 
             // Buttons panel
@@ -4516,9 +7913,15 @@ public class Timeline2 extends JFrame {
             listModel.clear();
             for (Object item : layerOrder) {
                 if (item instanceof TimelineTask) {
-                    listModel.addElement(((TimelineTask) item).name);
+                    TimelineTask task = (TimelineTask) item;
+                    // Show center text if it exists, otherwise show task name
+                    String displayName = (task.centerText != null && !task.centerText.isEmpty()) ? task.centerText : task.name;
+                    listModel.addElement(displayName);
                 } else if (item instanceof TimelineMilestone) {
-                    listModel.addElement("\u25C6 " + ((TimelineMilestone) item).name); // Diamond prefix for milestones
+                    TimelineMilestone m = (TimelineMilestone) item;
+                    // Show label text if it exists, otherwise show milestone name
+                    String displayName = (m.labelText != null && !m.labelText.isEmpty()) ? m.labelText : m.name;
+                    listModel.addElement("\u25C6 " + displayName); // Diamond prefix for milestones
                 }
             }
             if (selectedIndex >= 0 && selectedIndex < listModel.size()) {
@@ -4571,8 +7974,28 @@ public class Timeline2 extends JFrame {
 
         void applyColors(Color interior, Color outline, Color headerBg, Color headerText) {
             setBackground(interior);
+        }
+
+        void setListBackground(Color color) {
             if (layersList != null) {
-                layersList.setBackground(interior);
+                layersList.setBackground(color);
+                // Always set list opaque to false so our custom paintComponent can draw
+                layersList.setOpaque(false);
+                layersList.revalidate();
+                layersList.repaint();
+            }
+            if (scrollPane != null) {
+                scrollPane.getViewport().setBackground(color);
+                scrollPane.getViewport().setOpaque(false);
+                scrollPane.setOpaque(false);
+                scrollPane.revalidate();
+                scrollPane.repaint();
+            }
+        }
+
+        void refreshList() {
+            if (layersList != null) {
+                layersList.repaint();
             }
         }
 
@@ -4581,6 +8004,7 @@ public class Timeline2 extends JFrame {
             private JLabel nameLabel;
             private JPanel colorIndicator;
             private JLabel dragHandleLabel;
+            private boolean useGradient = false;
 
             LayerCellRenderer() {
                 setLayout(new BorderLayout(5, 0));
@@ -4606,6 +8030,34 @@ public class Timeline2 extends JFrame {
             }
 
             @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int w = getWidth();
+                int h = getHeight();
+
+                if (useGradient && layersTaskUseGradient && layersTaskGradientStops.size() >= 2) {
+                    // Build arrays for LinearGradientPaint
+                    float[] fractions = new float[layersTaskGradientStops.size()];
+                    Color[] colors = new Color[layersTaskGradientStops.size()];
+                    for (int i = 0; i < layersTaskGradientStops.size(); i++) {
+                        float[] stop = layersTaskGradientStops.get(i);
+                        fractions[i] = stop[0];
+                        colors[i] = new Color((int)stop[1], (int)stop[2], (int)stop[3], (int)stop[4]);
+                    }
+
+                    java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, layersTaskGradientAngle, fractions, colors);
+                    g2d.setPaint(lgp);
+                    g2d.fillRect(0, 0, w, h);
+                } else {
+                    // Paint solid background
+                    g2d.setColor(getBackground());
+                    g2d.fillRect(0, 0, w, h);
+                }
+            }
+
+            @Override
             public Component getListCellRendererComponent(JList<? extends String> list, String value,
                     int index, boolean isSelected, boolean cellHasFocus) {
 
@@ -4627,10 +8079,11 @@ public class Timeline2 extends JFrame {
 
                 // When dragging, show drop indicator line
                 if (isDragging && dragOriginalIndex >= 0) {
-                    // Keep all items in normal white state
-                    setBackground(Color.WHITE);
-                    nameLabel.setForeground(Color.BLACK);
-                    dragHandleLabel.setForeground(new Color(150, 150, 150));
+                    // Keep all items in task color state
+                    useGradient = true; // Use gradient for task items while dragging
+                    setBackground(layersTaskColor);
+                    nameLabel.setForeground(layersItemTextColor);
+                    dragHandleLabel.setForeground(layersDragHandleColor);
 
                     // Show drop indicator line at target position
                     if (index == dropTargetIndex && dropTargetIndex != dragOriginalIndex) {
@@ -4642,15 +8095,17 @@ public class Timeline2 extends JFrame {
                         setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
                     }
                 } else {
-                    // Normal (not dragging) - grey highlight for selection
+                    // Normal (not dragging) - highlight for selection
                     if (isSelected) {
-                        setBackground(new Color(200, 200, 200));
-                        nameLabel.setForeground(Color.BLACK);
-                        dragHandleLabel.setForeground(new Color(100, 100, 100));
+                        useGradient = false; // Selected items use solid color
+                        setBackground(layersSelectedBgColor);
+                        nameLabel.setForeground(layersItemTextColor);
+                        dragHandleLabel.setForeground(layersDragHandleColor);
                     } else {
-                        setBackground(Color.WHITE);
-                        nameLabel.setForeground(Color.BLACK);
-                        dragHandleLabel.setForeground(new Color(150, 150, 150));
+                        useGradient = true; // Use gradient for non-selected task items
+                        setBackground(layersTaskColor);
+                        nameLabel.setForeground(layersItemTextColor);
+                        dragHandleLabel.setForeground(layersDragHandleColor);
                     }
                     setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
                 }
@@ -4820,6 +8275,8 @@ public class Timeline2 extends JFrame {
         Color textColor = Color.BLACK;    // default black
         int centerTextXOffset = 0; // X offset from default position
         int centerTextYOffset = 0; // Y offset from default position
+        boolean centerTextWrap = false; // wrap center text
+        boolean centerTextVisible = true; // center text visible
         // Front text properties (text in front of task bar)
         String frontText = "";
         String frontFontFamily = "SansSerif";
@@ -4829,6 +8286,8 @@ public class Timeline2 extends JFrame {
         Color frontTextColor = Color.BLACK;
         int frontTextXOffset = 0;
         int frontTextYOffset = 0;
+        boolean frontTextWrap = false; // wrap front text
+        boolean frontTextVisible = true; // front text visible
         // Above text properties (text above task bar)
         String aboveText = "";
         String aboveFontFamily = "SansSerif";
@@ -4838,6 +8297,8 @@ public class Timeline2 extends JFrame {
         Color aboveTextColor = Color.BLACK;
         int aboveTextXOffset = 0;
         int aboveTextYOffset = 0;
+        boolean aboveTextWrap = false; // wrap above text
+        boolean aboveTextVisible = true; // above text visible
         // Underneath text properties (text below task bar)
         String underneathText = "";
         String underneathFontFamily = "SansSerif";
@@ -4847,6 +8308,8 @@ public class Timeline2 extends JFrame {
         Color underneathTextColor = Color.BLACK;
         int underneathTextXOffset = 0;
         int underneathTextYOffset = 0;
+        boolean underneathTextWrap = false; // wrap underneath text
+        boolean underneathTextVisible = true; // underneath text visible
         // Behind text properties (text behind task bar)
         String behindText = "";
         String behindFontFamily = "SansSerif";
@@ -4856,6 +8319,8 @@ public class Timeline2 extends JFrame {
         Color behindTextColor = new Color(150, 150, 150);
         int behindTextXOffset = 0;
         int behindTextYOffset = 0;
+        boolean behindTextWrap = false; // wrap behind text
+        boolean behindTextVisible = true; // behind text visible
         // Notes
         String note1 = "";
         String note2 = "";
@@ -4888,17 +8353,70 @@ public class Timeline2 extends JFrame {
         String bevelStyle = "Inner Bevel";  // "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"
         String topBevel = "Circle";    // PowerPoint-style top bevel shape
         String bottomBevel = "None";   // PowerPoint-style bottom bevel shape
-        // Text properties
-        String labelText = "";
+        // Center text properties (text below milestone - same as labelText)
+        String centerText = "";
         String fontFamily = "SansSerif";
         int fontSize = 10;
         boolean fontBold = false;
         boolean fontItalic = false;
         Color textColor = Color.BLACK;
+        int centerTextXOffset = 0;
+        int centerTextYOffset = 0;
+        boolean centerTextWrap = false;
+        boolean centerTextVisible = true;
+        // Front text properties (text in front of milestone)
+        String frontText = "";
+        String frontFontFamily = "SansSerif";
+        int frontFontSize = 10;
+        boolean frontFontBold = false;
+        boolean frontFontItalic = false;
+        Color frontTextColor = Color.BLACK;
+        int frontTextXOffset = 0;
+        int frontTextYOffset = 0;
+        boolean frontTextWrap = false;
+        boolean frontTextVisible = true;
+        // Above text properties (text above milestone)
+        String aboveText = "";
+        String aboveFontFamily = "SansSerif";
+        int aboveFontSize = 10;
+        boolean aboveFontBold = false;
+        boolean aboveFontItalic = false;
+        Color aboveTextColor = Color.BLACK;
+        int aboveTextXOffset = 0;
+        int aboveTextYOffset = 0;
+        boolean aboveTextWrap = false;
+        boolean aboveTextVisible = true;
+        // Underneath text properties (text below milestone, further down)
+        String underneathText = "";
+        String underneathFontFamily = "SansSerif";
+        int underneathFontSize = 10;
+        boolean underneathFontBold = false;
+        boolean underneathFontItalic = false;
+        Color underneathTextColor = Color.BLACK;
+        int underneathTextXOffset = 0;
+        int underneathTextYOffset = 0;
+        boolean underneathTextWrap = false;
+        boolean underneathTextVisible = true;
+        // Behind text properties (text behind/after milestone)
+        String behindText = "";
+        String behindFontFamily = "SansSerif";
+        int behindFontSize = 10;
+        boolean behindFontBold = false;
+        boolean behindFontItalic = false;
+        Color behindTextColor = new Color(150, 150, 150);
+        int behindTextXOffset = 0;
+        int behindTextYOffset = 0;
+        boolean behindTextWrap = false;
+        boolean behindTextVisible = true;
+        // Legacy support
+        String labelText = "";
+        boolean labelTextWrap = false;
+        boolean labelTextVisible = true;
 
         TimelineMilestone(String name, String date, String shape) {
             this.name = name;
-            this.labelText = name;
+            this.centerText = name;
+            this.labelText = name; // legacy support
             this.date = date;
             this.shape = shape;
         }
@@ -4954,6 +8472,13 @@ public class Timeline2 extends JFrame {
         // Flag to save state once when drag starts
         private boolean dragStateSaved = false;
 
+        // Selection box (rubber band selection)
+        private boolean isSelectionBoxDragging = false;
+        private int selectionBoxStartX = -1;
+        private int selectionBoxStartY = -1;
+        private int selectionBoxEndX = -1;
+        private int selectionBoxEndY = -1;
+
         TimelineDisplayPanel() {
             setBackground(Color.WHITE);
             setupMouseListeners();
@@ -4988,6 +8513,13 @@ public class Timeline2 extends JFrame {
                         if (!selectedTaskIndices.isEmpty()) {
                             duplicateSelectedTasks();
                         }
+                        e.consume();
+                        return;
+                    }
+
+                    // Select all (Ctrl+A)
+                    if (keyCode == java.awt.event.KeyEvent.VK_A && (modifiers & java.awt.event.InputEvent.CTRL_DOWN_MASK) != 0) {
+                        selectAllItems();
                         e.consume();
                         return;
                     }
@@ -5084,6 +8616,7 @@ public class Timeline2 extends JFrame {
             // Clear all selections
             selectedTaskIndices.clear();
             selectedMilestoneIndex = -1;
+            selectedMilestoneIndices.clear();
 
             // Select next item
             if (nextIndex < tasks.size()) {
@@ -5097,8 +8630,27 @@ public class Timeline2 extends JFrame {
             repaint();
         }
 
+        private void selectAllItems() {
+            // Select all tasks
+            selectedTaskIndices.clear();
+            for (int i = 0; i < tasks.size(); i++) {
+                selectedTaskIndices.add(i);
+            }
+
+            // Select all milestones
+            selectedMilestoneIndices.clear();
+            for (int i = 0; i < milestones.size(); i++) {
+                selectedMilestoneIndices.add(i);
+            }
+            selectedMilestoneIndex = milestones.isEmpty() ? -1 : 0;
+
+            updateFormatPanelForSelection();
+            layersPanel.refreshLayers();
+            repaint();
+        }
+
         private void deleteSelectedItem() {
-            if (selectedTaskIndices.isEmpty() && selectedMilestoneIndex < 0) return;
+            if (selectedTaskIndices.isEmpty() && selectedMilestoneIndex < 0 && selectedMilestoneIndices.isEmpty()) return;
 
             saveState();
 
@@ -5116,8 +8668,21 @@ public class Timeline2 extends JFrame {
                 selectedTaskIndices.clear();
             }
 
-            // Delete selected milestone
-            if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+            // Delete selected milestones (multi-select)
+            if (!selectedMilestoneIndices.isEmpty()) {
+                java.util.List<Integer> sortedMilestoneIndices = new java.util.ArrayList<>(selectedMilestoneIndices);
+                java.util.Collections.sort(sortedMilestoneIndices, java.util.Collections.reverseOrder());
+                for (int idx : sortedMilestoneIndices) {
+                    if (idx >= 0 && idx < milestones.size()) {
+                        TimelineMilestone ms = milestones.get(idx);
+                        layerOrder.remove(ms);
+                        milestones.remove(idx);
+                    }
+                }
+                selectedMilestoneIndices.clear();
+                selectedMilestoneIndex = -1;
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                // Single milestone selection fallback
                 TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
                 layerOrder.remove(ms);
                 milestones.remove(selectedMilestoneIndex);
@@ -5283,6 +8848,15 @@ public class Timeline2 extends JFrame {
                         setCursor(Cursor.getDefaultCursor());
                         refreshTimeline();
                     }
+                    if (isSelectionBoxDragging) {
+                        finishSelectionBox(e.isControlDown());
+                        isSelectionBoxDragging = false;
+                        selectionBoxStartX = -1;
+                        selectionBoxStartY = -1;
+                        selectionBoxEndX = -1;
+                        selectionBoxEndY = -1;
+                        repaint();
+                    }
                     dragStateSaved = false; // Reset for next drag
                 }
                 public void mouseDragged(MouseEvent e) {
@@ -5309,6 +8883,11 @@ public class Timeline2 extends JFrame {
                     }
                     if (isMilestoneResizing) {
                         handleMilestoneResize(e.getX(), e.getY());
+                    }
+                    if (isSelectionBoxDragging) {
+                        selectionBoxEndX = e.getX();
+                        selectionBoxEndY = e.getY();
+                        repaint();
                     }
                 }
                 public void mouseMoved(MouseEvent e) {
@@ -5453,6 +9032,94 @@ public class Timeline2 extends JFrame {
                     } catch (Exception ex) {}
                 }
             }
+
+            // No task or milestone was clicked - start selection box
+            if (!ctrlDown) {
+                // Clear selection when starting a new selection box (unless Ctrl is held)
+                selectedTaskIndices.clear();
+                selectedMilestoneIndices.clear();
+                selectTask(-1);
+            }
+            isSelectionBoxDragging = true;
+            selectionBoxStartX = x;
+            selectionBoxStartY = y;
+            selectionBoxEndX = x;
+            selectionBoxEndY = y;
+            repaint();
+        }
+
+        private void finishSelectionBox(boolean ctrlDown) {
+            if (startDate == null || endDate == null) return;
+
+            int timelineX = MARGIN_LEFT;
+            int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+            long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+            if (totalDays <= 0) return;
+
+            int timelineY = getLowestItemBottom() + 30;
+
+            // Normalize selection box coordinates
+            int boxLeft = Math.min(selectionBoxStartX, selectionBoxEndX);
+            int boxRight = Math.max(selectionBoxStartX, selectionBoxEndX);
+            int boxTop = Math.min(selectionBoxStartY, selectionBoxEndY);
+            int boxBottom = Math.max(selectionBoxStartY, selectionBoxEndY);
+
+            // If box is too small, don't select anything
+            if (boxRight - boxLeft < 5 && boxBottom - boxTop < 5) return;
+
+            // Check all items for intersection with selection box
+            for (int layerIdx = 0; layerIdx < layerOrder.size(); layerIdx++) {
+                Object item = layerOrder.get(layerIdx);
+
+                if (item instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) item;
+                    int taskIdx = tasks.indexOf(task);
+                    int taskY = getTaskYForLayer(layerIdx);
+                    int taskHeight = task.height;
+
+                    try {
+                        LocalDate taskStart = LocalDate.parse(task.startDate, DATE_FORMAT);
+                        LocalDate taskEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+
+                        int x1 = getXForDate(taskStart, timelineX, timelineWidth, totalDays);
+                        int x2 = getXForDate(taskEnd, timelineX, timelineWidth, totalDays);
+                        int barWidth = Math.max(x2 - x1, 10);
+
+                        // Check if task intersects with selection box
+                        if (x1 + barWidth >= boxLeft && x1 <= boxRight &&
+                            taskY + taskHeight >= boxTop && taskY <= boxBottom) {
+                            if (!selectedTaskIndices.contains(taskIdx)) {
+                                selectedTaskIndices.add(taskIdx);
+                            }
+                        }
+                    } catch (Exception ex) {}
+
+                } else if (item instanceof TimelineMilestone) {
+                    TimelineMilestone milestone = (TimelineMilestone) item;
+                    int milestoneIdx = milestones.indexOf(milestone);
+
+                    try {
+                        LocalDate milestoneDate = LocalDate.parse(milestone.date, DATE_FORMAT);
+                        if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) continue;
+
+                        int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
+                        int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                        int halfW = milestone.width / 2;
+                        int halfH = milestone.height / 2;
+
+                        // Check if milestone intersects with selection box
+                        if (mx + halfW >= boxLeft && mx - halfW <= boxRight &&
+                            my + halfH >= boxTop && my - halfH <= boxBottom) {
+                            if (!selectedMilestoneIndices.contains(milestoneIdx)) {
+                                selectedMilestoneIndices.add(milestoneIdx);
+                            }
+                        }
+                    } catch (Exception ex) {}
+                }
+            }
+
+            // Update format panel for selection
+            updateFormatPanelForSelection();
         }
 
         private int getResizeHandle(int x, int y, int boxX, int boxY, int boxW, int boxH, int handleSize) {
@@ -5752,8 +9419,33 @@ public class Timeline2 extends JFrame {
             Graphics2D g2d = (Graphics2D) g;
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // Explicitly fill background with timelineInteriorColor
-            g2d.setColor(timelineInteriorColor);
+            // Fill background with gradient or solid color
+            if (timelineUseGradient && timelineGradientStops.size() >= 2) {
+                int w = getWidth();
+                int h = getHeight();
+
+                // Build arrays for LinearGradientPaint
+                float[] fractions = new float[timelineGradientStops.size()];
+                Color[] colors = new Color[timelineGradientStops.size()];
+                for (int i = 0; i < timelineGradientStops.size(); i++) {
+                    float[] stop = timelineGradientStops.get(i);
+                    fractions[i] = stop[0];
+                    colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                }
+
+                java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, timelineGradientAngle, fractions, colors);
+                g2d.setPaint(lgp);
+            } else if (timelineUseGradient) {
+                // Fallback to 2-color gradient using angle
+                int w = getWidth();
+                int h = getHeight();
+                float[] fractions = {0f, 1f};
+                Color[] colors = {timelineInteriorColor, timelineInteriorColor2};
+                java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, timelineGradientAngle, fractions, colors);
+                g2d.setPaint(lgp);
+            } else {
+                g2d.setColor(timelineInteriorColor);
+            }
             g2d.fillRect(0, 0, getWidth(), getHeight());
 
             if (startDate == null || endDate == null) return;
@@ -5766,10 +9458,28 @@ public class Timeline2 extends JFrame {
             long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
             if (totalDays <= 0) totalDays = 1;
 
-            // Title
-            g2d.setFont(new Font("Arial", Font.BOLD, 18));
-            g2d.setColor(new Color(50, 50, 50));
-            g2d.drawString("Timeline: " + startDate.format(DATE_FORMAT) + " to " + endDate.format(DATE_FORMAT), MARGIN_LEFT, 25);
+            // Draw "today" arrow at top
+            LocalDate today = LocalDate.now();
+            if (!today.isBefore(startDate) && !today.isAfter(endDate)) {
+                long todayOffset = ChronoUnit.DAYS.between(startDate, today);
+                int todayX = timelineX + (int) (todayOffset * timelineWidth / totalDays);
+                g2d.setColor(new Color(220, 50, 50));  // Red color
+                // Draw "Today" text above arrow
+                g2d.setFont(new Font("Arial", Font.PLAIN, 10));
+                FontMetrics fm = g2d.getFontMetrics();
+                String todayText = "Today";
+                int textWidth = fm.stringWidth(todayText);
+                g2d.drawString(todayText, todayX - textWidth / 2, 33);
+                // Draw down arrow
+                int arrowY = 35;
+                int arrowSize = 8;
+                int[] xPoints = {todayX - arrowSize, todayX + arrowSize, todayX};
+                int[] yPoints = {arrowY, arrowY, arrowY + arrowSize + 4};
+                g2d.fillPolygon(xPoints, yPoints, 3);
+            }
+
+            // Draw extended ticks behind tasks and milestones
+            drawExtendedTicks(g2d, timelineX, timelineWidth, timelineY, totalDays);
 
             // Draw items from layerOrder in reverse order so top layers appear in front
             for (int i = layerOrder.size() - 1; i >= 0; i--) {
@@ -5796,6 +9506,23 @@ public class Timeline2 extends JFrame {
 
             // Events
             drawEvents(g2d, timelineX, timelineWidth, timelineY, totalDays);
+
+            // Draw selection box if dragging
+            if (isSelectionBoxDragging && selectionBoxStartX >= 0) {
+                int boxLeft = Math.min(selectionBoxStartX, selectionBoxEndX);
+                int boxTop = Math.min(selectionBoxStartY, selectionBoxEndY);
+                int boxWidth = Math.abs(selectionBoxEndX - selectionBoxStartX);
+                int boxHeight = Math.abs(selectionBoxEndY - selectionBoxStartY);
+
+                // Draw semi-transparent fill
+                g2d.setColor(new Color(100, 149, 237, 50)); // Cornflower blue with transparency
+                g2d.fillRect(boxLeft, boxTop, boxWidth, boxHeight);
+
+                // Draw border
+                g2d.setColor(new Color(100, 149, 237)); // Cornflower blue
+                g2d.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{5.0f, 3.0f}, 0.0f));
+                g2d.drawRect(boxLeft, boxTop, boxWidth, boxHeight);
+            }
         }
 
         private void drawTaskBar(Graphics2D g2d, TimelineTask task, int index, int y,
@@ -5831,31 +9558,38 @@ public class Timeline2 extends JFrame {
                 }
 
                 // Draw behind text (behind the task bar)
-                if (task.behindText != null && !task.behindText.isEmpty()) {
+                if (task.behindTextVisible && task.behindText != null && !task.behindText.isEmpty()) {
                     int behindFontStyle = Font.PLAIN;
                     if (task.behindFontBold) behindFontStyle |= Font.BOLD;
                     if (task.behindFontItalic) behindFontStyle |= Font.ITALIC;
                     g2d.setFont(new Font(task.behindFontFamily, behindFontStyle, task.behindFontSize));
                     g2d.setColor(task.behindTextColor != null ? task.behindTextColor : new Color(150, 150, 150));
                     FontMetrics behindFm = g2d.getFontMetrics();
-                    int behindTextWidth = behindFm.stringWidth(task.behindText);
-                    // Draw behind text to the right of the task bar with small gap
-                    g2d.drawString(task.behindText, x1 + barWidth + 5 + task.behindTextXOffset,
-                                   y + (taskHeight + behindFm.getAscent() - behindFm.getDescent()) / 2 + task.behindTextYOffset);
+                    if (task.behindTextWrap) {
+                        drawWrappedText(g2d, task.behindText, x1 + barWidth + 5, y + taskHeight / 2, barWidth, task.behindTextXOffset, task.behindTextYOffset, false);
+                    } else {
+                        g2d.drawString(task.behindText, x1 + barWidth + 5 + task.behindTextXOffset,
+                                       y + (taskHeight + behindFm.getAscent() - behindFm.getDescent()) / 2 + task.behindTextYOffset);
+                    }
                 }
 
                 // Draw front text (in front of task bar)
-                if (task.frontText != null && !task.frontText.isEmpty()) {
+                if (task.frontTextVisible && task.frontText != null && !task.frontText.isEmpty()) {
                     int frontFontStyle = Font.PLAIN;
                     if (task.frontFontBold) frontFontStyle |= Font.BOLD;
                     if (task.frontFontItalic) frontFontStyle |= Font.ITALIC;
                     g2d.setFont(new Font(task.frontFontFamily, frontFontStyle, task.frontFontSize));
                     g2d.setColor(task.frontTextColor != null ? task.frontTextColor : Color.BLACK);
                     FontMetrics frontFm = g2d.getFontMetrics();
-                    int frontTextWidth = frontFm.stringWidth(task.frontText);
-                    // Draw front text to the left of the task bar with small gap
-                    g2d.drawString(task.frontText, x1 - frontTextWidth - 5 + task.frontTextXOffset,
-                                   y + (taskHeight + frontFm.getAscent() - frontFm.getDescent()) / 2 + task.frontTextYOffset);
+                    if (task.frontTextWrap) {
+                        // For wrapped front text, draw right-aligned to x1 - 5
+                        int wrapWidth = barWidth;
+                        drawWrappedText(g2d, task.frontText, x1 - wrapWidth - 5, y + taskHeight / 2, wrapWidth, task.frontTextXOffset, task.frontTextYOffset, false);
+                    } else {
+                        int frontTextWidth = frontFm.stringWidth(task.frontText);
+                        g2d.drawString(task.frontText, x1 - frontTextWidth - 5 + task.frontTextXOffset,
+                                       y + (taskHeight + frontFm.getAscent() - frontFm.getDescent()) / 2 + task.frontTextYOffset);
+                    }
                 }
 
                 if (task.bevelFill) {
@@ -5968,49 +9702,65 @@ public class Timeline2 extends JFrame {
 
                 // Text - use custom formatting with centerText
                 Color textColor = task.textColor != null ? task.textColor : Color.BLACK;
-                g2d.setColor(textColor);
-                int fontStyle = Font.PLAIN;
-                if (task.fontBold) fontStyle |= Font.BOLD;
-                if (task.fontItalic) fontStyle |= Font.ITALIC;
-                g2d.setFont(new Font(task.fontFamily, fontStyle, task.fontSize));
-                FontMetrics fm = g2d.getFontMetrics();
-                String displayText = task.centerText != null && !task.centerText.isEmpty() ? task.centerText : task.name;
-                int textWidth = fm.stringWidth(displayText);
-                while (textWidth > barWidth - 10 && displayText.length() > 3) {
-                    displayText = displayText.substring(0, displayText.length() - 4) + "...";
-                    textWidth = fm.stringWidth(displayText);
-                }
-                if (textWidth <= barWidth - 6) {
-                    g2d.drawString(displayText, x1 + (barWidth - textWidth) / 2 + task.centerTextXOffset,
-                                   y + (taskHeight + fm.getAscent() - fm.getDescent()) / 2 + task.centerTextYOffset);
+                // Draw center text
+                if (task.centerTextVisible && task.centerText != null && !task.centerText.isEmpty()) {
+                    g2d.setColor(textColor);
+                    int fontStyle = Font.PLAIN;
+                    if (task.fontBold) fontStyle |= Font.BOLD;
+                    if (task.fontItalic) fontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font(task.fontFamily, fontStyle, task.fontSize));
+                    FontMetrics fm = g2d.getFontMetrics();
+                    String displayText = task.centerText;
+
+                    if (task.centerTextWrap) {
+                        // Draw wrapped text centered in the task bar
+                        drawWrappedText(g2d, displayText, x1, y + taskHeight / 2, barWidth - 6, task.centerTextXOffset, task.centerTextYOffset, true);
+                    } else {
+                        // Original non-wrapped behavior
+                        int textWidth = fm.stringWidth(displayText);
+                        while (textWidth > barWidth - 10 && displayText.length() > 3) {
+                            displayText = displayText.substring(0, displayText.length() - 4) + "...";
+                            textWidth = fm.stringWidth(displayText);
+                        }
+                        if (textWidth <= barWidth - 6) {
+                            g2d.drawString(displayText, x1 + (barWidth - textWidth) / 2 + task.centerTextXOffset,
+                                           y + (taskHeight + fm.getAscent() - fm.getDescent()) / 2 + task.centerTextYOffset);
+                        }
+                    }
                 }
 
                 // Draw above text (above the task bar)
-                if (task.aboveText != null && !task.aboveText.isEmpty()) {
+                if (task.aboveTextVisible && task.aboveText != null && !task.aboveText.isEmpty()) {
                     int aboveFontStyle = Font.PLAIN;
                     if (task.aboveFontBold) aboveFontStyle |= Font.BOLD;
                     if (task.aboveFontItalic) aboveFontStyle |= Font.ITALIC;
                     g2d.setFont(new Font(task.aboveFontFamily, aboveFontStyle, task.aboveFontSize));
                     g2d.setColor(task.aboveTextColor != null ? task.aboveTextColor : Color.BLACK);
                     FontMetrics aboveFm = g2d.getFontMetrics();
-                    int aboveTextWidth = aboveFm.stringWidth(task.aboveText);
-                    // Draw above text centered above the task bar
-                    g2d.drawString(task.aboveText, x1 + (barWidth - aboveTextWidth) / 2 + task.aboveTextXOffset,
-                                   y - 3 + task.aboveTextYOffset);
+                    if (task.aboveTextWrap) {
+                        drawWrappedText(g2d, task.aboveText, x1, y - aboveFm.getHeight() / 2 - 3, barWidth, task.aboveTextXOffset, task.aboveTextYOffset, true);
+                    } else {
+                        int aboveTextWidth = aboveFm.stringWidth(task.aboveText);
+                        g2d.drawString(task.aboveText, x1 + (barWidth - aboveTextWidth) / 2 + task.aboveTextXOffset,
+                                       y - 3 + task.aboveTextYOffset);
+                    }
                 }
 
                 // Draw underneath text (below the task bar)
-                if (task.underneathText != null && !task.underneathText.isEmpty()) {
+                if (task.underneathTextVisible && task.underneathText != null && !task.underneathText.isEmpty()) {
                     int underneathFontStyle = Font.PLAIN;
                     if (task.underneathFontBold) underneathFontStyle |= Font.BOLD;
                     if (task.underneathFontItalic) underneathFontStyle |= Font.ITALIC;
                     g2d.setFont(new Font(task.underneathFontFamily, underneathFontStyle, task.underneathFontSize));
                     g2d.setColor(task.underneathTextColor != null ? task.underneathTextColor : Color.BLACK);
                     FontMetrics underneathFm = g2d.getFontMetrics();
-                    int underneathTextWidth = underneathFm.stringWidth(task.underneathText);
-                    // Draw underneath text centered below the task bar
-                    g2d.drawString(task.underneathText, x1 + (barWidth - underneathTextWidth) / 2 + task.underneathTextXOffset,
-                                   y + taskHeight + underneathFm.getAscent() + 2 + task.underneathTextYOffset);
+                    if (task.underneathTextWrap) {
+                        drawWrappedText(g2d, task.underneathText, x1, y + taskHeight + underneathFm.getHeight() / 2 + 2, barWidth, task.underneathTextXOffset, task.underneathTextYOffset, true);
+                    } else {
+                        int underneathTextWidth = underneathFm.stringWidth(task.underneathText);
+                        g2d.drawString(task.underneathText, x1 + (barWidth - underneathTextWidth) / 2 + task.underneathTextXOffset,
+                                       y + taskHeight + underneathFm.getAscent() + 2 + task.underneathTextYOffset);
+                    }
                 }
 
                 // Draw drag handles - only when selected, positioned outside the outline
@@ -6062,7 +9812,7 @@ public class Timeline2 extends JFrame {
 
                 int x = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
                 int y = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
-                boolean isSelected = (index == selectedMilestoneIndex);
+                boolean isSelected = (index == selectedMilestoneIndex) || selectedMilestoneIndices.contains(index);
 
                 // Selection highlight (rounded box around shape, like tasks)
                 if (isSelected) {
@@ -6138,16 +9888,89 @@ public class Timeline2 extends JFrame {
                     drawMilestoneShapeOnPanel(g2d, milestone.shape, x, y, milestone.width, milestone.height, false);
                 }
 
-                // Draw label text below milestone
-                if (milestone.labelText != null && !milestone.labelText.isEmpty()) {
+                // Draw behind text (to the right of milestone)
+                if (milestone.behindTextVisible && milestone.behindText != null && !milestone.behindText.isEmpty()) {
+                    int behindFontStyle = Font.PLAIN;
+                    if (milestone.behindFontBold) behindFontStyle |= Font.BOLD;
+                    if (milestone.behindFontItalic) behindFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font(milestone.behindFontFamily, behindFontStyle, milestone.behindFontSize));
+                    g2d.setColor(milestone.behindTextColor != null ? milestone.behindTextColor : new Color(150, 150, 150));
+                    FontMetrics behindFm = g2d.getFontMetrics();
+                    if (milestone.behindTextWrap) {
+                        drawWrappedText(g2d, milestone.behindText, x + milestone.width / 2 + 5, y, milestone.width, milestone.behindTextXOffset, milestone.behindTextYOffset, false);
+                    } else {
+                        g2d.drawString(milestone.behindText, x + milestone.width / 2 + 5 + milestone.behindTextXOffset,
+                                       y + (behindFm.getAscent() - behindFm.getDescent()) / 2 + milestone.behindTextYOffset);
+                    }
+                }
+
+                // Draw front text (to the left of milestone)
+                if (milestone.frontTextVisible && milestone.frontText != null && !milestone.frontText.isEmpty()) {
+                    int frontFontStyle = Font.PLAIN;
+                    if (milestone.frontFontBold) frontFontStyle |= Font.BOLD;
+                    if (milestone.frontFontItalic) frontFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font(milestone.frontFontFamily, frontFontStyle, milestone.frontFontSize));
+                    g2d.setColor(milestone.frontTextColor != null ? milestone.frontTextColor : Color.BLACK);
+                    FontMetrics frontFm = g2d.getFontMetrics();
+                    if (milestone.frontTextWrap) {
+                        drawWrappedText(g2d, milestone.frontText, x - milestone.width / 2 - milestone.width - 5, y, milestone.width, milestone.frontTextXOffset, milestone.frontTextYOffset, false);
+                    } else {
+                        int frontTextWidth = frontFm.stringWidth(milestone.frontText);
+                        g2d.drawString(milestone.frontText, x - milestone.width / 2 - frontTextWidth - 5 + milestone.frontTextXOffset,
+                                       y + (frontFm.getAscent() - frontFm.getDescent()) / 2 + milestone.frontTextYOffset);
+                    }
+                }
+
+                // Draw above text (above the milestone)
+                if (milestone.aboveTextVisible && milestone.aboveText != null && !milestone.aboveText.isEmpty()) {
+                    int aboveFontStyle = Font.PLAIN;
+                    if (milestone.aboveFontBold) aboveFontStyle |= Font.BOLD;
+                    if (milestone.aboveFontItalic) aboveFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font(milestone.aboveFontFamily, aboveFontStyle, milestone.aboveFontSize));
+                    g2d.setColor(milestone.aboveTextColor != null ? milestone.aboveTextColor : Color.BLACK);
+                    FontMetrics aboveFm = g2d.getFontMetrics();
+                    if (milestone.aboveTextWrap) {
+                        drawWrappedText(g2d, milestone.aboveText, x - milestone.width / 2, y - milestone.height / 2 - aboveFm.getHeight() / 2 - 3, milestone.width, milestone.aboveTextXOffset, milestone.aboveTextYOffset, true);
+                    } else {
+                        int aboveTextWidth = aboveFm.stringWidth(milestone.aboveText);
+                        g2d.drawString(milestone.aboveText, x - aboveTextWidth / 2 + milestone.aboveTextXOffset,
+                                       y - milestone.height / 2 - 3 + milestone.aboveTextYOffset);
+                    }
+                }
+
+                // Draw center/label text below milestone
+                if (milestone.centerTextVisible && milestone.centerText != null && !milestone.centerText.isEmpty()) {
                     int fontStyle = Font.PLAIN;
                     if (milestone.fontBold) fontStyle |= Font.BOLD;
                     if (milestone.fontItalic) fontStyle |= Font.ITALIC;
                     g2d.setFont(new Font(milestone.fontFamily, fontStyle, milestone.fontSize));
                     g2d.setColor(milestone.textColor);
                     FontMetrics fm = g2d.getFontMetrics();
-                    int textWidth = fm.stringWidth(milestone.labelText);
-                    g2d.drawString(milestone.labelText, x - textWidth / 2, y + milestone.height / 2 + fm.getAscent() + 3);
+                    if (milestone.centerTextWrap) {
+                        drawWrappedText(g2d, milestone.centerText, x - milestone.width / 2, y + milestone.height / 2 + fm.getAscent() + 3, milestone.width, milestone.centerTextXOffset, milestone.centerTextYOffset, true);
+                    } else {
+                        int textWidth = fm.stringWidth(milestone.centerText);
+                        g2d.drawString(milestone.centerText, x - textWidth / 2 + milestone.centerTextXOffset, y + milestone.height / 2 + fm.getAscent() + 3 + milestone.centerTextYOffset);
+                    }
+                }
+
+                // Draw underneath text (further below the milestone, below center text)
+                if (milestone.underneathTextVisible && milestone.underneathText != null && !milestone.underneathText.isEmpty()) {
+                    int underneathFontStyle = Font.PLAIN;
+                    if (milestone.underneathFontBold) underneathFontStyle |= Font.BOLD;
+                    if (milestone.underneathFontItalic) underneathFontStyle |= Font.ITALIC;
+                    g2d.setFont(new Font(milestone.underneathFontFamily, underneathFontStyle, milestone.underneathFontSize));
+                    g2d.setColor(milestone.underneathTextColor != null ? milestone.underneathTextColor : Color.BLACK);
+                    FontMetrics underneathFm = g2d.getFontMetrics();
+                    // Position underneath text below the center text area
+                    int centerOffset = milestone.fontSize + 5; // Account for center text space
+                    if (milestone.underneathTextWrap) {
+                        drawWrappedText(g2d, milestone.underneathText, x - milestone.width / 2, y + milestone.height / 2 + centerOffset + underneathFm.getAscent() + 3, milestone.width, milestone.underneathTextXOffset, milestone.underneathTextYOffset, true);
+                    } else {
+                        int underneathTextWidth = underneathFm.stringWidth(milestone.underneathText);
+                        g2d.drawString(milestone.underneathText, x - underneathTextWidth / 2 + milestone.underneathTextXOffset,
+                                       y + milestone.height / 2 + centerOffset + underneathFm.getAscent() + 3 + milestone.underneathTextYOffset);
+                    }
                 }
             } catch (Exception e) {}
         }
@@ -6379,6 +10202,97 @@ public class Timeline2 extends JFrame {
             }
         }
 
+        private BasicStroke getExtendTicksStroke() {
+            float thickness = extendTicksThickness;
+            switch (extendTicksLineType) {
+                case "Dashed":
+                    return new BasicStroke(thickness, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{10.0f, 5.0f}, 0.0f);
+                case "Dotted":
+                    return new BasicStroke(thickness, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1.0f, new float[]{2.0f, 5.0f}, 0.0f);
+                case "Dash-Dot":
+                    return new BasicStroke(thickness, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{10.0f, 5.0f, 2.0f, 5.0f}, 0.0f);
+                case "Solid":
+                default:
+                    return new BasicStroke(thickness);
+            }
+        }
+
+        // Helper method to draw wrapped text within a given width
+        private void drawWrappedText(Graphics2D g2d, String text, int x, int y, int maxWidth, int xOffset, int yOffset, boolean centerHorizontally) {
+            if (text == null || text.isEmpty()) return;
+            FontMetrics fm = g2d.getFontMetrics();
+            int lineHeight = fm.getHeight();
+
+            // Split text into words
+            String[] words = text.split(" ");
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            StringBuilder currentLine = new StringBuilder();
+
+            for (String word : words) {
+                if (currentLine.length() == 0) {
+                    currentLine.append(word);
+                } else {
+                    String testLine = currentLine + " " + word;
+                    if (fm.stringWidth(testLine) <= maxWidth) {
+                        currentLine.append(" ").append(word);
+                    } else {
+                        lines.add(currentLine.toString());
+                        currentLine = new StringBuilder(word);
+                    }
+                }
+            }
+            if (currentLine.length() > 0) {
+                lines.add(currentLine.toString());
+            }
+
+            // Draw each line
+            int totalHeight = lines.size() * lineHeight;
+            int startY = y - totalHeight / 2 + fm.getAscent() + yOffset;
+
+            for (String line : lines) {
+                int lineWidth = fm.stringWidth(line);
+                int lineX = centerHorizontally ? x + (maxWidth - lineWidth) / 2 + xOffset : x + xOffset;
+                g2d.drawString(line, lineX, startY);
+                startY += lineHeight;
+            }
+        }
+
+        private void drawExtendedTicks(Graphics2D g2d, int timelineX, int timelineWidth, int timelineY, long totalDays) {
+            if (!extendTicks) return;
+
+            long days = ChronoUnit.DAYS.between(startDate, endDate);
+            boolean showYears = days > 365 * 2;
+
+            LocalDate tick;
+            if (showYears) {
+                if (startDate.getDayOfYear() == 1) {
+                    tick = startDate;
+                } else {
+                    tick = startDate.plusYears(1).withDayOfYear(1);
+                }
+            } else {
+                if (startDate.getDayOfMonth() == 1) {
+                    tick = startDate;
+                } else {
+                    tick = startDate.plusMonths(1).withDayOfMonth(1);
+                }
+            }
+
+            g2d.setColor(extendTicksColor);
+            g2d.setStroke(getExtendTicksStroke());
+
+            while (!tick.isAfter(endDate)) {
+                int x = getXForDate(tick, timelineX, timelineWidth, totalDays);
+                g2d.drawLine(x, 0, x, timelineY);
+
+                if (showYears) {
+                    tick = tick.plusYears(1);
+                } else {
+                    tick = tick.plusMonths(1);
+                }
+            }
+        }
+
         private void drawEvents(Graphics2D g2d, int timelineX, int timelineWidth, int timelineY, long totalDays) {
             int eventY = timelineY + 50;
             boolean alternate = false;
@@ -6437,6 +10351,106 @@ public class Timeline2 extends JFrame {
 
         private String truncate(String str, int maxLen) {
             return str.length() <= maxLen ? str : str.substring(0, maxLen - 3) + "...";
+        }
+    }
+
+    // Custom TabbedPaneUI to support gradient tab backgrounds
+    class GradientTabbedPaneUI extends javax.swing.plaf.basic.BasicTabbedPaneUI {
+        @Override
+        protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex,
+                                          int x, int y, int w, int h, boolean isSelected) {
+            Graphics2D g2d = (Graphics2D) g;
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            Color color1, color2;
+            boolean useGradient;
+            double angle;
+            ArrayList<float[]> stops;
+
+            if (isSelected) {
+                color1 = formatSelectedTabColor;
+                color2 = formatSelectedTabColor2;
+                useGradient = formatSelectedTabUseGradient;
+                angle = formatSelectedTabGradientAngle;
+                stops = formatSelectedTabGradientStops;
+            } else {
+                color1 = formatTabColor;
+                color2 = formatTabColor2;
+                useGradient = formatTabUseGradient;
+                angle = formatTabGradientAngle;
+                stops = formatTabGradientStops;
+            }
+
+            if (useGradient && stops.size() >= 2) {
+                float[] fractions = new float[stops.size()];
+                Color[] colors = new Color[stops.size()];
+                for (int i = 0; i < stops.size(); i++) {
+                    float[] stop = stops.get(i);
+                    fractions[i] = stop[0];
+                    colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                }
+                java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, angle, fractions, colors);
+                // Translate to tab position
+                g2d.translate(x, y);
+                g2d.setPaint(lgp);
+                g2d.fillRect(0, 0, w, h);
+                g2d.translate(-x, -y);
+            } else {
+                g2d.setColor(color1);
+                g2d.fillRect(x, y, w, h);
+            }
+        }
+
+        @Override
+        protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
+            // Paint content border with tab content color
+            int width = tabPane.getWidth();
+            int height = tabPane.getHeight();
+            Insets insets = tabPane.getInsets();
+            int x = insets.left;
+            int y = insets.top;
+            int w = width - insets.right - insets.left;
+            int h = height - insets.top - insets.bottom;
+
+            switch (tabPlacement) {
+                case TOP:
+                    y += calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight);
+                    h -= y - insets.top;
+                    break;
+                case BOTTOM:
+                    h -= calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight);
+                    break;
+                case LEFT:
+                    x += calculateTabAreaWidth(tabPlacement, runCount, maxTabWidth);
+                    w -= x - insets.left;
+                    break;
+                case RIGHT:
+                    w -= calculateTabAreaWidth(tabPlacement, runCount, maxTabWidth);
+                    break;
+            }
+
+            Graphics2D g2d = (Graphics2D) g;
+            if (formatTabContentUseGradient && formatTabContentGradientStops.size() >= 2) {
+                float[] fractions = new float[formatTabContentGradientStops.size()];
+                Color[] colors = new Color[formatTabContentGradientStops.size()];
+                for (int i = 0; i < formatTabContentGradientStops.size(); i++) {
+                    float[] stop = formatTabContentGradientStops.get(i);
+                    fractions[i] = stop[0];
+                    colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
+                }
+                java.awt.LinearGradientPaint lgp = createAngledGradient(w, h, formatTabContentGradientAngle, fractions, colors);
+                g2d.translate(x, y);
+                g2d.setPaint(lgp);
+                g2d.fillRect(0, 0, w, h);
+                g2d.translate(-x, -y);
+            } else {
+                g2d.setColor(formatTabContentColor);
+                g2d.fillRect(x, y, w, h);
+            }
+
+            // Draw border
+            g2d.setColor(Color.GRAY);
+            g2d.drawRect(x, y, w - 1, h - 1);
         }
     }
 }
