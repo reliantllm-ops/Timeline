@@ -4275,6 +4275,7 @@ public class Timeline2 extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(new Color(250, 250, 250));
+        panel.setMinimumSize(new Dimension(250, 400));
 
         // Timeline Appearance Section
         addSectionHeader(panel, "Appearance");
@@ -4282,7 +4283,9 @@ public class Timeline2 extends JFrame {
         JPanel bgColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         bgColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         bgColorRow.setOpaque(false);
-        bgColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        bgColorRow.setMinimumSize(new Dimension(250, 25));
+        bgColorRow.setPreferredSize(new Dimension(250, 25));
+        bgColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel bgLabel = new JLabel("Background:");
         bgLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -4346,7 +4349,9 @@ public class Timeline2 extends JFrame {
         JPanel axisStyleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         axisStyleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         axisStyleRow.setOpaque(false);
-        axisStyleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        axisStyleRow.setMinimumSize(new Dimension(250, 25));
+        axisStyleRow.setPreferredSize(new Dimension(250, 25));
+        axisStyleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel axisStyleLabel = new JLabel("Style:");
         axisStyleLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -4368,17 +4373,20 @@ public class Timeline2 extends JFrame {
         axisStyleRow.add(timelineAxisStyleCombo);
 
         panel.add(axisStyleRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Bar fill color row (visible only when Bar style selected)
         axisBarFillRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         axisBarFillRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         axisBarFillRow.setOpaque(false);
-        axisBarFillRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        axisBarFillRow.setMinimumSize(new Dimension(250, 25));
+        axisBarFillRow.setPreferredSize(new Dimension(250, 25));
+        axisBarFillRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
         axisBarFillRow.setVisible("Bar".equals(timelineAxisStyle));
 
-        JLabel axisBarFillLabel = new JLabel("Fill:");
+        JLabel axisBarFillLabel = new JLabel("Fill Color:");
         axisBarFillLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisBarFillLabel.setPreferredSize(new Dimension(70, 15));
         axisBarFillRow.add(axisBarFillLabel);
 
         axisBarFillColorBtn = new JButton();
@@ -4396,8 +4404,9 @@ public class Timeline2 extends JFrame {
         axisBarFillRow.add(axisBarFillColorBtn);
 
         axisBarFillRow.add(Box.createHorizontalStrut(10));
-        JLabel axisBarHeightLabel = new JLabel("Height:");
+        JLabel axisBarHeightLabel = new JLabel("Bar Height:");
         axisBarHeightLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisBarHeightLabel.setPreferredSize(new Dimension(75, 15));
         axisBarFillRow.add(axisBarHeightLabel);
 
         axisBarHeightSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisBarHeight, 6, 50, 2));
@@ -4409,17 +4418,20 @@ public class Timeline2 extends JFrame {
         axisBarFillRow.add(axisBarHeightSpinner);
 
         panel.add(axisBarFillRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Bar outline color and thickness row
         axisBarOutlineRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         axisBarOutlineRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         axisBarOutlineRow.setOpaque(false);
-        axisBarOutlineRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        axisBarOutlineRow.setMinimumSize(new Dimension(250, 25));
+        axisBarOutlineRow.setPreferredSize(new Dimension(250, 25));
+        axisBarOutlineRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
         axisBarOutlineRow.setVisible("Bar".equals(timelineAxisStyle));
 
-        JLabel axisBarOutlineLabel = new JLabel("Outline:");
+        JLabel axisBarOutlineLabel = new JLabel("Outline Color:");
         axisBarOutlineLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisBarOutlineLabel.setPreferredSize(new Dimension(70, 15));
         axisBarOutlineRow.add(axisBarOutlineLabel);
 
         axisBarOutlineColorBtn = new JButton();
@@ -4436,7 +4448,11 @@ public class Timeline2 extends JFrame {
         });
         axisBarOutlineRow.add(axisBarOutlineColorBtn);
 
-        axisBarOutlineRow.add(new JLabel("Thickness:"));
+        axisBarOutlineRow.add(Box.createHorizontalStrut(10));
+        JLabel outlineWidthLabel = new JLabel("Outline Width:");
+        outlineWidthLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        outlineWidthLabel.setPreferredSize(new Dimension(75, 15));
+        axisBarOutlineRow.add(outlineWidthLabel);
         axisBarOutlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisBarOutlineThickness, 0, 10, 1));
         axisBarOutlineThicknessSpinner.setPreferredSize(new Dimension(50, 20));
         axisBarOutlineThicknessSpinner.addChangeListener(e -> {
@@ -4446,17 +4462,20 @@ public class Timeline2 extends JFrame {
         axisBarOutlineRow.add(axisBarOutlineThicknessSpinner);
 
         panel.add(axisBarOutlineRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Bar tick color and width row
         axisBarTickRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         axisBarTickRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         axisBarTickRow.setOpaque(false);
-        axisBarTickRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        axisBarTickRow.setMinimumSize(new Dimension(250, 25));
+        axisBarTickRow.setPreferredSize(new Dimension(250, 25));
+        axisBarTickRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
         axisBarTickRow.setVisible("Bar".equals(timelineAxisStyle));
 
         JLabel axisBarTickLabel = new JLabel("Tick Color:");
         axisBarTickLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisBarTickLabel.setPreferredSize(new Dimension(70, 15));
         axisBarTickRow.add(axisBarTickLabel);
 
         axisBarTickColorBtn = new JButton();
@@ -4473,7 +4492,11 @@ public class Timeline2 extends JFrame {
         });
         axisBarTickRow.add(axisBarTickColorBtn);
 
-        axisBarTickRow.add(new JLabel("Width:"));
+        axisBarTickRow.add(Box.createHorizontalStrut(10));
+        JLabel tickWidthLabel = new JLabel("Tick Width:");
+        tickWidthLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        tickWidthLabel.setPreferredSize(new Dimension(75, 15));
+        axisBarTickRow.add(tickWidthLabel);
         axisBarTickWidthSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisBarTickWidth, 1, 10, 1));
         axisBarTickWidthSpinner.setPreferredSize(new Dimension(50, 20));
         axisBarTickWidthSpinner.addChangeListener(e -> {
@@ -4483,13 +4506,15 @@ public class Timeline2 extends JFrame {
         axisBarTickRow.add(axisBarTickWidthSpinner);
 
         panel.add(axisBarTickRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Timeline axis color row (Line style)
         axisLineColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         axisLineColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         axisLineColorRow.setOpaque(false);
-        axisLineColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        axisLineColorRow.setMinimumSize(new Dimension(250, 25));
+        axisLineColorRow.setPreferredSize(new Dimension(250, 25));
+        axisLineColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel axisColorLabel = new JLabel("Line Color:");
         axisColorLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -4503,13 +4528,15 @@ public class Timeline2 extends JFrame {
         axisLineColorRow.add(timelineAxisColorBtn);
 
         panel.add(axisLineColorRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Timeline axis thickness row (Line style)
         axisLineThicknessRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         axisLineThicknessRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         axisLineThicknessRow.setOpaque(false);
-        axisLineThicknessRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        axisLineThicknessRow.setMinimumSize(new Dimension(250, 25));
+        axisLineThicknessRow.setPreferredSize(new Dimension(250, 25));
+        axisLineThicknessRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel axisThicknessLabel = new JLabel("Line Thickness:");
         axisThicknessLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -4524,7 +4551,7 @@ public class Timeline2 extends JFrame {
         axisLineThicknessRow.add(timelineAxisThicknessSpinner);
 
         panel.add(axisLineThicknessRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Extend ticks checkbox row
         JPanel extendTicksRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -4629,7 +4656,9 @@ public class Timeline2 extends JFrame {
         JPanel dateLabelColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         dateLabelColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         dateLabelColorRow.setOpaque(false);
-        dateLabelColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        dateLabelColorRow.setMinimumSize(new Dimension(250, 25));
+        dateLabelColorRow.setPreferredSize(new Dimension(250, 25));
+        dateLabelColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel dateLabelColorLabel = new JLabel("Color:");
         dateLabelColorLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -4643,13 +4672,15 @@ public class Timeline2 extends JFrame {
         dateLabelColorRow.add(axisDateColorBtn);
 
         panel.add(dateLabelColorRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Date label font family row
         JPanel dateLabelFontRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         dateLabelFontRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         dateLabelFontRow.setOpaque(false);
-        dateLabelFontRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        dateLabelFontRow.setMinimumSize(new Dimension(250, 25));
+        dateLabelFontRow.setPreferredSize(new Dimension(250, 25));
+        dateLabelFontRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel dateLabelFontLabel = new JLabel("Font:");
         dateLabelFontLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -4664,13 +4695,15 @@ public class Timeline2 extends JFrame {
         dateLabelFontRow.add(axisDateFontCombo);
 
         panel.add(dateLabelFontRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Date label font size row
         JPanel dateLabelSizeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         dateLabelSizeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         dateLabelSizeRow.setOpaque(false);
-        dateLabelSizeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        dateLabelSizeRow.setMinimumSize(new Dimension(250, 25));
+        dateLabelSizeRow.setPreferredSize(new Dimension(250, 25));
+        dateLabelSizeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel dateLabelSizeLabel = new JLabel("Size:");
         dateLabelSizeLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -4685,13 +4718,15 @@ public class Timeline2 extends JFrame {
         dateLabelSizeRow.add(axisDateFontSizeSpinner);
 
         panel.add(dateLabelSizeRow);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(1));
 
         // Date label bold/italic row
         JPanel dateLabelStyleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         dateLabelStyleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         dateLabelStyleRow.setOpaque(false);
-        dateLabelStyleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        dateLabelStyleRow.setMinimumSize(new Dimension(250, 25));
+        dateLabelStyleRow.setPreferredSize(new Dimension(250, 25));
+        dateLabelStyleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
         JLabel dateLabelStyleLabel = new JLabel("Style:");
         dateLabelStyleLabel.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -7645,6 +7680,14 @@ public class Timeline2 extends JFrame {
             header = new JPanel(new BorderLayout(5, 0)) {
                 @Override
                 protected void paintComponent(Graphics g) {
+                    // Skip gradient when collapsed - fill with solid light gray
+                    if (collapsed) {
+                        Graphics2D g2d = (Graphics2D) g;
+                        g2d.setColor(new Color(220, 220, 220));
+                        g2d.fillRect(0, 0, getWidth(), getHeight());
+                        return;
+                    }
+
                     boolean useGradient = false;
                     ArrayList<float[]> stops = null;
                     double angle = 0;
@@ -7692,6 +7735,18 @@ public class Timeline2 extends JFrame {
             String collapseArrow = isLeft ? "\u25C0" : "\u25B6";  // Left arrow for left panel, right arrow for right panel
             collapseBtn = createHeaderButton(collapseArrow, "Collapse");
             collapseBtn.addActionListener(e -> toggleCollapse());
+            collapseBtn.setBackground(new Color(220, 220, 220));
+            collapseBtn.setOpaque(true);
+            collapseBtn.setBorderPainted(false);
+            collapseBtn.setFocusPainted(false);
+            collapseBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    collapseBtn.setBackground(new Color(180, 180, 180));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    collapseBtn.setBackground(new Color(220, 220, 220));
+                }
+            });
             header.add(collapseBtn, BorderLayout.EAST);
             add(header, BorderLayout.NORTH);
 
@@ -7716,14 +7771,27 @@ public class Timeline2 extends JFrame {
             collapsed = !collapsed;
 
             if (collapsed) {
-                setPreferredSize(new Dimension(30, 600));
+                setPreferredSize(new Dimension(30, getParent() != null ? getParent().getHeight() : 600));
                 // When collapsed: show arrow pointing toward the panel to expand
                 collapseBtn.setText(isLeft ? "\u25B6" : "\u25C0");  // Right arrow for left panel, left arrow for right panel
                 collapseBtn.setToolTipText("Expand");
                 for (Component c : getComponents()) {
                     if (c != header) c.setVisible(false);
                 }
-                header.setPreferredSize(new Dimension(30, 600));
+                // Hide title label when collapsed
+                for (Component c : header.getComponents()) {
+                    if (c instanceof JLabel) c.setVisible(false);
+                }
+                // Move button to CENTER so it fills the whole header
+                header.remove(collapseBtn);
+                header.add(collapseBtn, BorderLayout.CENTER);
+                header.setPreferredSize(new Dimension(30, Integer.MAX_VALUE));
+                // Use uniform light gray for entire collapsed panel
+                Color collapsedGray = new Color(220, 220, 220);
+                header.setBackground(collapsedGray);
+                setBackground(collapsedGray);
+                setBorder(BorderFactory.createLineBorder(collapsedGray));
+                collapseBtn.setBackground(collapsedGray);
             } else {
                 setPreferredSize(expandedSize);
                 // When expanded: show arrow pointing away from center to collapse
@@ -7732,8 +7800,23 @@ public class Timeline2 extends JFrame {
                 for (Component c : getComponents()) {
                     c.setVisible(true);
                 }
+                // Show title label when expanded
+                for (Component c : header.getComponents()) {
+                    if (c instanceof JLabel) c.setVisible(true);
+                }
+                // Move button back to EAST
+                header.remove(collapseBtn);
+                header.add(collapseBtn, BorderLayout.EAST);
                 header.setPreferredSize(null);
+                // Restore button to normal size
+                collapseBtn.setPreferredSize(null);
+                // Restore original colors when expanded
+                header.setBackground(new Color(70, 130, 180));
+                setBackground(new Color(250, 250, 250));
+                setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+                collapseBtn.setBackground(new Color(220, 220, 220));
             }
+            header.repaint();
             revalidate();
             Timeline2.this.revalidate();
             Timeline2.this.repaint();
