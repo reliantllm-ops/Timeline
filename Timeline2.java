@@ -271,6 +271,10 @@ public class Timeline2 extends JFrame {
         JMenuItem exportGraphicItem = new JMenuItem("Export Graphic...");
         exportGraphicItem.addActionListener(e -> exportGraphic());
         fileMenu.add(exportGraphicItem);
+        fileMenu.addSeparator();
+        JMenuItem restartItem = new JMenuItem("Restart Program");
+        restartItem.addActionListener(e -> restartProgram());
+        fileMenu.add(restartItem);
         menuBar.add(fileMenu);
 
         // Edit menu
@@ -6356,6 +6360,24 @@ public class Timeline2 extends JFrame {
                         "Error exporting graphic: " + ex.getMessage(),
                         "Export Error", JOptionPane.ERROR_MESSAGE);
             }
+        }
+    }
+
+    private void restartProgram() {
+        try {
+            String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+            String classpath = System.getProperty("java.class.path");
+            String className = Timeline2.class.getName();
+
+            ProcessBuilder builder = new ProcessBuilder(javaBin, "-cp", classpath, className);
+            builder.inheritIO();
+            builder.start();
+
+            System.exit(0);
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Error restarting program: " + ex.getMessage(),
+                    "Restart Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
