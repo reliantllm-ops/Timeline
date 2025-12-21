@@ -20,6 +20,7 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import com.formdev.flatlaf.FlatLightLaf;
 
 public class Timeline2 extends JFrame {
 
@@ -198,23 +199,11 @@ public class Timeline2 extends JFrame {
     private int timelineAxisThickness = 3;
     private JButton timelineAxisColorBtn;
     private JSpinner timelineAxisThicknessSpinner;
-    private String timelineAxisStyle = "Line";
-    private JComboBox<String> timelineAxisStyleCombo;
-    private Color timelineAxisBarFillColor = new Color(70, 130, 180);
-    private int timelineAxisBarHeight = 12;
-    private Color timelineAxisBarOutlineColor = Color.BLACK;
-    private int timelineAxisBarOutlineThickness = 1;
-    private Color timelineAxisBarTickColor = Color.BLACK;
-    private int timelineAxisBarTickWidth = 1;
-    private JPanel axisBarFillRow;
-    private JButton axisBarFillColorBtn;
-    private JSpinner axisBarHeightSpinner;
-    private JPanel axisBarOutlineRow;
-    private JButton axisBarOutlineColorBtn;
-    private JSpinner axisBarOutlineThicknessSpinner;
-    private JPanel axisBarTickRow;
-    private JButton axisBarTickColorBtn;
-    private JSpinner axisBarTickWidthSpinner;
+    private String timelineAxisPosition = "Bottom";
+    private JComboBox<String> timelineAxisPositionCombo;
+    private Color timelineAxisTickColor = Color.BLACK;
+    private int timelineAxisTickWidth = 1;
+    private int timelineAxisTickHeight = 15;
     private JPanel axisLineColorRow;
     private JPanel axisLineThicknessRow;
     // Extend ticks settings
@@ -267,6 +256,11 @@ public class Timeline2 extends JFrame {
     };
 
     public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         SwingUtilities.invokeLater(() -> new Timeline2().setVisible(true));
     }
 
@@ -362,6 +356,7 @@ public class Timeline2 extends JFrame {
 
         rightTabbedPane = new JTabbedPane();
         rightTabbedPane.addTab("Layers", layersPanel);
+        rightTabbedPane.addTab("General", new JScrollPane(createGeneralPanel()));
         rightTabbedPane.addTab("Settings", new JScrollPane(settingsPanel));
 
         JPanel rightTabbedWrapper = new JPanel(new BorderLayout());
@@ -4271,13 +4266,13 @@ public class Timeline2 extends JFrame {
         return panel;
     }
 
-    private JPanel createSettingsPanel() {
+    private JPanel createGeneralPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(new Color(250, 250, 250));
         panel.setMinimumSize(new Dimension(250, 400));
 
-        // Timeline Appearance Section
+        // Appearance Section
         addSectionHeader(panel, "Appearance");
 
         JPanel bgColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -4340,175 +4335,44 @@ public class Timeline2 extends JFrame {
         bgColorRow.add(gradientArrowBtn);
 
         panel.add(bgColorRow);
-        panel.add(Box.createVerticalStrut(8));
+
+        return panel;
+    }
+
+    private JPanel createSettingsPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(250, 250, 250));
+        panel.setMinimumSize(new Dimension(250, 400));
 
         // Timeline Axis section header
         addSectionHeader(panel, "Timeline Axis");
 
-        // Axis style row
-        JPanel axisStyleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        axisStyleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        axisStyleRow.setOpaque(false);
-        axisStyleRow.setMinimumSize(new Dimension(250, 25));
-        axisStyleRow.setPreferredSize(new Dimension(250, 25));
-        axisStyleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+        // Axis position row
+        JPanel axisPositionRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        axisPositionRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        axisPositionRow.setOpaque(false);
+        axisPositionRow.setMinimumSize(new Dimension(250, 25));
+        axisPositionRow.setPreferredSize(new Dimension(250, 25));
+        axisPositionRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
-        JLabel axisStyleLabel = new JLabel("Style:");
-        axisStyleLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        axisStyleRow.add(axisStyleLabel);
+        JLabel axisPositionLabel = new JLabel("Position:");
+        axisPositionLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisPositionRow.add(axisPositionLabel);
 
-        timelineAxisStyleCombo = new JComboBox<>(new String[]{"Line", "Bar"});
-        timelineAxisStyleCombo.setPreferredSize(new Dimension(70, 20));
-        timelineAxisStyleCombo.setSelectedItem(timelineAxisStyle);
-        timelineAxisStyleCombo.addActionListener(e -> {
-            timelineAxisStyle = (String) timelineAxisStyleCombo.getSelectedItem();
-            boolean isBar = "Bar".equals(timelineAxisStyle);
-            axisBarFillRow.setVisible(isBar);
-            axisBarOutlineRow.setVisible(isBar);
-            axisBarTickRow.setVisible(isBar);
-            axisLineColorRow.setVisible(!isBar);
-            axisLineThicknessRow.setVisible(!isBar);
+        timelineAxisPositionCombo = new JComboBox<>(new String[]{"Bottom", "Top"});
+        timelineAxisPositionCombo.setPreferredSize(new Dimension(70, 20));
+        timelineAxisPositionCombo.setSelectedItem(timelineAxisPosition);
+        timelineAxisPositionCombo.addActionListener(e -> {
+            timelineAxisPosition = (String) timelineAxisPositionCombo.getSelectedItem();
             if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
         });
-        axisStyleRow.add(timelineAxisStyleCombo);
+        axisPositionRow.add(timelineAxisPositionCombo);
 
-        panel.add(axisStyleRow);
+        panel.add(axisPositionRow);
         panel.add(Box.createVerticalStrut(1));
 
-        // Bar fill color row (visible only when Bar style selected)
-        axisBarFillRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        axisBarFillRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        axisBarFillRow.setOpaque(false);
-        axisBarFillRow.setMinimumSize(new Dimension(250, 25));
-        axisBarFillRow.setPreferredSize(new Dimension(250, 25));
-        axisBarFillRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        axisBarFillRow.setVisible("Bar".equals(timelineAxisStyle));
-
-        JLabel axisBarFillLabel = new JLabel("Fill Color:");
-        axisBarFillLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        axisBarFillLabel.setPreferredSize(new Dimension(70, 15));
-        axisBarFillRow.add(axisBarFillLabel);
-
-        axisBarFillColorBtn = new JButton();
-        axisBarFillColorBtn.setPreferredSize(new Dimension(30, 20));
-        axisBarFillColorBtn.setBackground(timelineAxisBarFillColor);
-        axisBarFillColorBtn.setToolTipText("Click to change bar fill color");
-        axisBarFillColorBtn.addActionListener(e -> {
-            Color newColor = JColorChooser.showDialog(this, "Choose Bar Fill Color", timelineAxisBarFillColor);
-            if (newColor != null) {
-                timelineAxisBarFillColor = newColor;
-                axisBarFillColorBtn.setBackground(timelineAxisBarFillColor);
-                if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
-            }
-        });
-        axisBarFillRow.add(axisBarFillColorBtn);
-
-        axisBarFillRow.add(Box.createHorizontalStrut(10));
-        JLabel axisBarHeightLabel = new JLabel("Bar Height:");
-        axisBarHeightLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        axisBarHeightLabel.setPreferredSize(new Dimension(75, 15));
-        axisBarFillRow.add(axisBarHeightLabel);
-
-        axisBarHeightSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisBarHeight, 6, 50, 2));
-        axisBarHeightSpinner.setPreferredSize(new Dimension(50, 20));
-        axisBarHeightSpinner.addChangeListener(e -> {
-            timelineAxisBarHeight = (Integer) axisBarHeightSpinner.getValue();
-            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
-        });
-        axisBarFillRow.add(axisBarHeightSpinner);
-
-        panel.add(axisBarFillRow);
-        panel.add(Box.createVerticalStrut(1));
-
-        // Bar outline color and thickness row
-        axisBarOutlineRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        axisBarOutlineRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        axisBarOutlineRow.setOpaque(false);
-        axisBarOutlineRow.setMinimumSize(new Dimension(250, 25));
-        axisBarOutlineRow.setPreferredSize(new Dimension(250, 25));
-        axisBarOutlineRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        axisBarOutlineRow.setVisible("Bar".equals(timelineAxisStyle));
-
-        JLabel axisBarOutlineLabel = new JLabel("Outline Color:");
-        axisBarOutlineLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        axisBarOutlineLabel.setPreferredSize(new Dimension(70, 15));
-        axisBarOutlineRow.add(axisBarOutlineLabel);
-
-        axisBarOutlineColorBtn = new JButton();
-        axisBarOutlineColorBtn.setPreferredSize(new Dimension(30, 20));
-        axisBarOutlineColorBtn.setBackground(timelineAxisBarOutlineColor);
-        axisBarOutlineColorBtn.setToolTipText("Click to change outline color");
-        axisBarOutlineColorBtn.addActionListener(e -> {
-            Color newColor = JColorChooser.showDialog(this, "Choose Outline Color", timelineAxisBarOutlineColor);
-            if (newColor != null) {
-                timelineAxisBarOutlineColor = newColor;
-                axisBarOutlineColorBtn.setBackground(timelineAxisBarOutlineColor);
-                if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
-            }
-        });
-        axisBarOutlineRow.add(axisBarOutlineColorBtn);
-
-        axisBarOutlineRow.add(Box.createHorizontalStrut(10));
-        JLabel outlineWidthLabel = new JLabel("Outline Width:");
-        outlineWidthLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        outlineWidthLabel.setPreferredSize(new Dimension(75, 15));
-        axisBarOutlineRow.add(outlineWidthLabel);
-        axisBarOutlineThicknessSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisBarOutlineThickness, 0, 10, 1));
-        axisBarOutlineThicknessSpinner.setPreferredSize(new Dimension(50, 20));
-        axisBarOutlineThicknessSpinner.addChangeListener(e -> {
-            timelineAxisBarOutlineThickness = (Integer) axisBarOutlineThicknessSpinner.getValue();
-            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
-        });
-        axisBarOutlineRow.add(axisBarOutlineThicknessSpinner);
-
-        panel.add(axisBarOutlineRow);
-        panel.add(Box.createVerticalStrut(1));
-
-        // Bar tick color and width row
-        axisBarTickRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        axisBarTickRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        axisBarTickRow.setOpaque(false);
-        axisBarTickRow.setMinimumSize(new Dimension(250, 25));
-        axisBarTickRow.setPreferredSize(new Dimension(250, 25));
-        axisBarTickRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        axisBarTickRow.setVisible("Bar".equals(timelineAxisStyle));
-
-        JLabel axisBarTickLabel = new JLabel("Tick Color:");
-        axisBarTickLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        axisBarTickLabel.setPreferredSize(new Dimension(70, 15));
-        axisBarTickRow.add(axisBarTickLabel);
-
-        axisBarTickColorBtn = new JButton();
-        axisBarTickColorBtn.setPreferredSize(new Dimension(30, 20));
-        axisBarTickColorBtn.setBackground(timelineAxisBarTickColor);
-        axisBarTickColorBtn.setToolTipText("Click to change tick color");
-        axisBarTickColorBtn.addActionListener(e -> {
-            Color newColor = JColorChooser.showDialog(this, "Choose Tick Color", timelineAxisBarTickColor);
-            if (newColor != null) {
-                timelineAxisBarTickColor = newColor;
-                axisBarTickColorBtn.setBackground(timelineAxisBarTickColor);
-                if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
-            }
-        });
-        axisBarTickRow.add(axisBarTickColorBtn);
-
-        axisBarTickRow.add(Box.createHorizontalStrut(10));
-        JLabel tickWidthLabel = new JLabel("Tick Width:");
-        tickWidthLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        tickWidthLabel.setPreferredSize(new Dimension(75, 15));
-        axisBarTickRow.add(tickWidthLabel);
-        axisBarTickWidthSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisBarTickWidth, 1, 10, 1));
-        axisBarTickWidthSpinner.setPreferredSize(new Dimension(50, 20));
-        axisBarTickWidthSpinner.addChangeListener(e -> {
-            timelineAxisBarTickWidth = (Integer) axisBarTickWidthSpinner.getValue();
-            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
-        });
-        axisBarTickRow.add(axisBarTickWidthSpinner);
-
-        panel.add(axisBarTickRow);
-        panel.add(Box.createVerticalStrut(1));
-
-        // Timeline axis color row (Line style)
+        // Timeline axis color row
         axisLineColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         axisLineColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         axisLineColorRow.setOpaque(false);
@@ -4544,6 +4408,9 @@ public class Timeline2 extends JFrame {
 
         timelineAxisThicknessSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisThickness, 1, 10, 1));
         timelineAxisThicknessSpinner.setPreferredSize(new Dimension(50, 20));
+        JSpinner.NumberEditor thicknessEditor = new JSpinner.NumberEditor(timelineAxisThicknessSpinner, "0 'pt'");
+        timelineAxisThicknessSpinner.setEditor(thicknessEditor);
+        thicknessEditor.getTextField().setHorizontalAlignment(JTextField.LEFT);
         timelineAxisThicknessSpinner.addChangeListener(e -> {
             timelineAxisThickness = (Integer) timelineAxisThicknessSpinner.getValue();
             if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
@@ -4551,6 +4418,84 @@ public class Timeline2 extends JFrame {
         axisLineThicknessRow.add(timelineAxisThicknessSpinner);
 
         panel.add(axisLineThicknessRow);
+        panel.add(Box.createVerticalStrut(8));
+
+        // Tick Marks section header
+        addSectionHeader(panel, "Tick Marks");
+
+        // Tick color row (moved from Bar-only section, now always visible)
+        JPanel tickColorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        tickColorRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tickColorRow.setOpaque(false);
+        tickColorRow.setMinimumSize(new Dimension(250, 25));
+        tickColorRow.setPreferredSize(new Dimension(250, 25));
+        tickColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        JLabel tickColorLabel = new JLabel("Tick Color:");
+        tickColorLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        tickColorRow.add(tickColorLabel);
+
+        JButton tickColorBtn = new JButton();
+        tickColorBtn.setPreferredSize(new Dimension(30, 20));
+        tickColorBtn.setBackground(timelineAxisTickColor);
+        tickColorBtn.setToolTipText("Click to change tick color");
+        tickColorBtn.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(this, "Choose Tick Color", timelineAxisTickColor);
+            if (newColor != null) {
+                timelineAxisTickColor = newColor;
+                tickColorBtn.setBackground(timelineAxisTickColor);
+                if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+            }
+        });
+        tickColorRow.add(tickColorBtn);
+
+        panel.add(tickColorRow);
+        panel.add(Box.createVerticalStrut(1));
+
+        // Tick height row
+        JPanel tickHeightRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        tickHeightRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tickHeightRow.setOpaque(false);
+        tickHeightRow.setMinimumSize(new Dimension(250, 25));
+        tickHeightRow.setPreferredSize(new Dimension(250, 25));
+        tickHeightRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        JLabel tickHeightLbl = new JLabel("Tick Height:");
+        tickHeightLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        tickHeightRow.add(tickHeightLbl);
+
+        JSpinner tickHeightSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisTickHeight, 5, 50, 1));
+        tickHeightSpinner.setPreferredSize(new Dimension(50, 20));
+        tickHeightSpinner.addChangeListener(e -> {
+            timelineAxisTickHeight = (Integer) tickHeightSpinner.getValue();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        tickHeightRow.add(tickHeightSpinner);
+
+        panel.add(tickHeightRow);
+        panel.add(Box.createVerticalStrut(1));
+
+        // Tick width row
+        JPanel tickWidthRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        tickWidthRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tickWidthRow.setOpaque(false);
+        tickWidthRow.setMinimumSize(new Dimension(250, 25));
+        tickWidthRow.setPreferredSize(new Dimension(250, 25));
+        tickWidthRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        JLabel tickWidthLbl = new JLabel("Tick Width:");
+        tickWidthLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        tickWidthRow.add(tickWidthLbl);
+
+        JSpinner tickWidthSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisTickWidth, 1, 10, 1));
+        tickWidthSpinner.setPreferredSize(new Dimension(50, 20));
+        tickWidthSpinner.addChangeListener(e -> {
+            timelineAxisTickWidth = (Integer) tickWidthSpinner.getValue();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        tickWidthRow.add(tickWidthSpinner);
+
+        panel.add(tickWidthRow);
         panel.add(Box.createVerticalStrut(1));
 
         // Extend ticks checkbox row
@@ -8952,7 +8897,8 @@ public class Timeline2 extends JFrame {
                 }
             }
             // Auto-calculate Y position based on layer order
-            int y = 45;
+            // When axis is at top, start tasks below the axis (at y=100)
+            int y = "Top".equals(timelineAxisPosition) ? 100 : 45;
             for (int i = layerOrder.size() - 1; i > layerIndex; i--) {
                 Object layerItem = layerOrder.get(i);
                 if (layerItem instanceof TimelineTask) {
@@ -9032,6 +8978,39 @@ public class Timeline2 extends JFrame {
                 }
             }
             return lowestBottom;
+        }
+
+        private int getHighestItemTop() {
+            int highestTop = Integer.MAX_VALUE;
+            int autoY = 100; // Starting Y for auto-positioned items when axis is at top
+
+            // Check all items in layer order
+            for (int i = layerOrder.size() - 1; i >= 0; i--) {
+                Object item = layerOrder.get(i);
+                if (item instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) item;
+                    int taskTop;
+                    if (task.yPosition >= 0) {
+                        taskTop = task.yPosition;
+                    } else {
+                        taskTop = autoY;
+                        autoY += task.height + TASK_BAR_SPACING;
+                    }
+                    if (taskTop < highestTop) {
+                        highestTop = taskTop;
+                    }
+                } else if (item instanceof TimelineMilestone) {
+                    TimelineMilestone milestone = (TimelineMilestone) item;
+                    if (milestone.yPosition >= 0) {
+                        int milestoneTop = milestone.yPosition - milestone.height / 2;
+                        if (milestoneTop < highestTop) {
+                            highestTop = milestoneTop;
+                        }
+                    }
+                }
+            }
+            // Return a reasonable default if no items found
+            return highestTop == Integer.MAX_VALUE ? 100 : highestTop;
         }
 
         private void setupMouseListeners() {
@@ -9131,7 +9110,7 @@ public class Timeline2 extends JFrame {
             if (totalDays <= 0) return;
 
             int tasksHeight = getTotalTasksHeight();
-            int timelineY = getLowestItemBottom() + 30; // 30 pixels below lowest item
+            int timelineY = "Top".equals(timelineAxisPosition) ? getHighestItemTop() - 65 : getLowestItemBottom() + 30;
 
             // Check items in layer order (front to back - index 0 is topmost)
             for (int layerIdx = 0; layerIdx < layerOrder.size(); layerIdx++) {
@@ -9215,7 +9194,14 @@ public class Timeline2 extends JFrame {
                         if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) continue;
 
                         int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
-                        int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                        int my;
+                        if (milestone.yPosition >= 0) {
+                            my = milestone.yPosition;
+                        } else if ("Top".equals(timelineAxisPosition)) {
+                            my = timelineY + milestone.height / 2 + 20;
+                        } else {
+                            my = timelineY - milestone.height / 2 - 10;
+                        }
                         int halfW = milestone.width / 2;
                         int halfH = milestone.height / 2;
                         int boxPadding = 6;
@@ -9280,7 +9266,7 @@ public class Timeline2 extends JFrame {
             long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
             if (totalDays <= 0) return;
 
-            int timelineY = getLowestItemBottom() + 30;
+            int timelineY = "Top".equals(timelineAxisPosition) ? getHighestItemTop() - 65 : getLowestItemBottom() + 30;
 
             // Normalize selection box coordinates
             int boxLeft = Math.min(selectionBoxStartX, selectionBoxEndX);
@@ -9327,7 +9313,14 @@ public class Timeline2 extends JFrame {
                         if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) continue;
 
                         int mx = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
-                        int my = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                        int my;
+                        if (milestone.yPosition >= 0) {
+                            my = milestone.yPosition;
+                        } else if ("Top".equals(timelineAxisPosition)) {
+                            my = timelineY + milestone.height / 2 + 20;
+                        } else {
+                            my = timelineY - milestone.height / 2 - 10;
+                        }
                         int halfW = milestone.width / 2;
                         int halfH = milestone.height / 2;
 
@@ -9677,7 +9670,12 @@ public class Timeline2 extends JFrame {
             int timelineX = MARGIN_LEFT;
             int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
             int tasksHeight = getTotalTasksHeight();
-            int timelineY = getLowestItemBottom() + 30; // 30 pixels below lowest item
+            int timelineY;
+            if ("Top".equals(timelineAxisPosition)) {
+                timelineY = getHighestItemTop() - 65; // 65 pixels above highest item
+            } else {
+                timelineY = getLowestItemBottom() + 30; // 30 pixels below lowest item (Bottom)
+            }
 
             long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
             if (totalDays <= 0) totalDays = 1;
@@ -9720,24 +9718,10 @@ public class Timeline2 extends JFrame {
                 }
             }
 
-            // Timeline line or bar
-            if ("Bar".equals(timelineAxisStyle)) {
-                // Draw bar style (rectangle)
-                int barHeight = timelineAxisBarHeight;
-                int barY = timelineY - barHeight / 2;
-                g2d.setColor(timelineAxisBarFillColor);
-                g2d.fillRoundRect(timelineX, barY, timelineWidth, barHeight, 6, 6);
-                if (timelineAxisBarOutlineThickness > 0) {
-                    g2d.setColor(timelineAxisBarOutlineColor);
-                    g2d.setStroke(new BasicStroke(timelineAxisBarOutlineThickness));
-                    g2d.drawRoundRect(timelineX, barY, timelineWidth, barHeight, 6, 6);
-                }
-            } else {
-                g2d.setColor(timelineAxisColor);
-                // Draw line style (original)
-                g2d.setStroke(new BasicStroke(timelineAxisThickness));
-                g2d.drawLine(timelineX, timelineY, timelineX + timelineWidth, timelineY);
-            }
+            // Timeline line
+            g2d.setColor(timelineAxisColor);
+            g2d.setStroke(new BasicStroke(timelineAxisThickness));
+            g2d.drawLine(timelineX, timelineY, timelineX + timelineWidth, timelineY);
 
             // Date ticks
             drawDateTicks(g2d, timelineX, timelineWidth, timelineY, totalDays);
@@ -10049,7 +10033,14 @@ public class Timeline2 extends JFrame {
                 if (milestoneDate.isBefore(startDate) || milestoneDate.isAfter(endDate)) return;
 
                 int x = getXForDate(milestoneDate, timelineX, timelineWidth, totalDays);
-                int y = milestone.yPosition >= 0 ? milestone.yPosition : timelineY - milestone.height / 2 - 10;
+                int y;
+                if (milestone.yPosition >= 0) {
+                    y = milestone.yPosition;
+                } else if ("Top".equals(timelineAxisPosition)) {
+                    y = timelineY + milestone.height / 2 + 20; // Below axis when at top
+                } else {
+                    y = timelineY - milestone.height / 2 - 10; // Above axis when at bottom
+                }
                 boolean isSelected = (index == selectedMilestoneIndex) || selectedMilestoneIndices.contains(index);
 
                 // Selection highlight (rounded box around shape, like tasks)
@@ -10422,19 +10413,15 @@ public class Timeline2 extends JFrame {
             while (!tick.isAfter(endDate)) {
                 int x = getXForDate(tick, timelineX, timelineWidth, totalDays);
 
-                if ("Bar".equals(timelineAxisStyle)) {
-                    g2d.setColor(timelineAxisBarTickColor);
-                    g2d.setStroke(new BasicStroke(timelineAxisBarTickWidth));
-                } else {
-                    g2d.setColor(timelineAxisColor);
-                    g2d.setStroke(new BasicStroke(Math.max(1, timelineAxisThickness - 1)));
-                }
-                g2d.drawLine(x, timelineY, x, timelineY + 15);
+                // Use tick color and width settings for tick marks (both Line and Bar styles)
+                g2d.setColor(timelineAxisTickColor);
+                g2d.setStroke(new BasicStroke(timelineAxisTickWidth));
+                g2d.drawLine(x, timelineY, x, timelineY + timelineAxisTickHeight);
 
                 g2d.setColor(axisDateColor);
                 String dateStr = tick.format(tickFormat);
                 FontMetrics fm = g2d.getFontMetrics();
-                g2d.drawString(dateStr, x - fm.stringWidth(dateStr) / 2, timelineY + 30);
+                g2d.drawString(dateStr, x - fm.stringWidth(dateStr) / 2, timelineY + timelineAxisTickHeight + 15);
 
                 // Advance to next month or year
                 if (showYears) {
