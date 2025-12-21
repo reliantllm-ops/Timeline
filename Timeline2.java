@@ -198,6 +198,8 @@ public class Timeline2 extends JFrame {
     private int timelineAxisThickness = 3;
     private JButton timelineAxisColorBtn;
     private JSpinner timelineAxisThicknessSpinner;
+    private String timelineAxisStyle = "Line";
+    private JComboBox<String> timelineAxisStyleCombo;
     // Extend ticks settings
     private boolean extendTicks = false;
     private Color extendTicksColor = new Color(200, 200, 200);
@@ -4158,52 +4160,6 @@ public class Timeline2 extends JFrame {
 
         panel.add(rangeSlider);
 
-        // Year spinners below the slider - centered on slider ends
-        int spinnerWidth = 60;
-        int rowWidth = 270;  // Same as slider with padding
-
-        JPanel yearSpinnerRow = new JPanel(null);  // Absolute positioning
-        yearSpinnerRow.setOpaque(false);
-        yearSpinnerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        yearSpinnerRow.setPreferredSize(new Dimension(rowWidth, 25));
-        yearSpinnerRow.setMaximumSize(new Dimension(rowWidth, 25));
-
-        JSpinner startYearSpinner = new JSpinner(new SpinnerNumberModel(sliderYears[0], 1900, 2100, 1));
-        startYearSpinner.setEditor(new JSpinner.NumberEditor(startYearSpinner, "#"));
-        ((JSpinner.DefaultEditor) startYearSpinner.getEditor()).getTextField().setColumns(3);
-        startYearSpinner.setBounds(0, 0, spinnerWidth, 22);  // Centered on slider start (center at x=30)
-
-        JSpinner endYearSpinner = new JSpinner(new SpinnerNumberModel(sliderYears[1], 1900, 2100, 1));
-        endYearSpinner.setEditor(new JSpinner.NumberEditor(endYearSpinner, "#"));
-        ((JSpinner.DefaultEditor) endYearSpinner.getEditor()).getTextField().setColumns(3);
-        endYearSpinner.setBounds(rowWidth - spinnerWidth, 0, spinnerWidth, 22);  // Centered on slider end (center at x=240)
-
-        startYearSpinner.addChangeListener(e -> {
-            int newStart = (Integer) startYearSpinner.getValue();
-            if (newStart >= sliderYears[1]) {
-                startYearSpinner.setValue(sliderYears[0]);  // Revert to previous value
-                return;
-            }
-            sliderYears[0] = newStart;
-            rangeSlider.setMax(getTotalDays.get());
-            rangeSlider.repaint();
-        });
-
-        endYearSpinner.addChangeListener(e -> {
-            int newEnd = (Integer) endYearSpinner.getValue();
-            if (newEnd <= sliderYears[0]) {
-                endYearSpinner.setValue(sliderYears[1]);  // Revert to previous value
-                return;
-            }
-            sliderYears[1] = newEnd;
-            rangeSlider.setMax(getTotalDays.get());
-            rangeSlider.repaint();
-        });
-
-        yearSpinnerRow.add(startYearSpinner);
-        yearSpinnerRow.add(endYearSpinner);
-        panel.add(yearSpinnerRow);
-
         // Button row for Set to tasks buttons
         JPanel setToTasksBtnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         setToTasksBtnRow.setOpaque(false);
@@ -4360,6 +4316,31 @@ public class Timeline2 extends JFrame {
         bgColorRow.add(gradientArrowBtn);
 
         panel.add(bgColorRow);
+        panel.add(Box.createVerticalStrut(8));
+
+        // Timeline Axis section header
+        addSectionHeader(panel, "Timeline Axis");
+
+        // Axis style row
+        JPanel axisStyleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        axisStyleRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        axisStyleRow.setOpaque(false);
+        axisStyleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        JLabel axisStyleLabel = new JLabel("Style:");
+        axisStyleLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        axisStyleRow.add(axisStyleLabel);
+
+        timelineAxisStyleCombo = new JComboBox<>(new String[]{"Line", "Bar"});
+        timelineAxisStyleCombo.setPreferredSize(new Dimension(70, 20));
+        timelineAxisStyleCombo.setSelectedItem(timelineAxisStyle);
+        timelineAxisStyleCombo.addActionListener(e -> {
+            timelineAxisStyle = (String) timelineAxisStyleCombo.getSelectedItem();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        axisStyleRow.add(timelineAxisStyleCombo);
+
+        panel.add(axisStyleRow);
         panel.add(Box.createVerticalStrut(2));
 
         // Timeline axis color row
@@ -4368,7 +4349,7 @@ public class Timeline2 extends JFrame {
         axisColorRow.setOpaque(false);
         axisColorRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
 
-        JLabel axisColorLabel = new JLabel("Axis Color:");
+        JLabel axisColorLabel = new JLabel("Color:");
         axisColorLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         axisColorRow.add(axisColorLabel);
 
@@ -4388,7 +4369,7 @@ public class Timeline2 extends JFrame {
         axisThicknessRow.setOpaque(false);
         axisThicknessRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
 
-        JLabel axisThicknessLabel = new JLabel("Axis Thickness:");
+        JLabel axisThicknessLabel = new JLabel("Thickness:");
         axisThicknessLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         axisThicknessRow.add(axisThicknessLabel);
 
@@ -4422,7 +4403,7 @@ public class Timeline2 extends JFrame {
 
         panel.add(extendTicksRow);
 
-        // Extend ticks options panel (shown when checkbox is selected)
+        // Extend ticks options panel
         extendTicksOptionsPanel = new JPanel();
         extendTicksOptionsPanel.setLayout(new BoxLayout(extendTicksOptionsPanel, BoxLayout.Y_AXIS));
         extendTicksOptionsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -9496,10 +9477,21 @@ public class Timeline2 extends JFrame {
                 }
             }
 
-            // Timeline line
-            g2d.setStroke(new BasicStroke(timelineAxisThickness));
+            // Timeline line or bar
             g2d.setColor(timelineAxisColor);
-            g2d.drawLine(timelineX, timelineY, timelineX + timelineWidth, timelineY);
+            if ("Bar".equals(timelineAxisStyle)) {
+                // Draw bar style (rectangle)
+                int barHeight = Math.max(timelineAxisThickness * 4, 12);
+                int barY = timelineY - barHeight / 2;
+                g2d.fillRoundRect(timelineX, barY, timelineWidth, barHeight, 6, 6);
+                g2d.setColor(timelineAxisColor.darker());
+                g2d.setStroke(new BasicStroke(1));
+                g2d.drawRoundRect(timelineX, barY, timelineWidth, barHeight, 6, 6);
+            } else {
+                // Draw line style (original)
+                g2d.setStroke(new BasicStroke(timelineAxisThickness));
+                g2d.drawLine(timelineX, timelineY, timelineX + timelineWidth, timelineY);
+            }
 
             // Date ticks
             drawDateTicks(g2d, timelineX, timelineWidth, timelineY, totalDays);
