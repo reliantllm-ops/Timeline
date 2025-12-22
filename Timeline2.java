@@ -41,6 +41,7 @@ public class Timeline2 extends JFrame {
     private double settingsGradientAngle = 90.0; // 0=right, 90=down, 180=left, 270=up
     private ArrayList<float[]> settingsGradientStops = new ArrayList<>();
     private Color settingsOutlineColor = new Color(200, 200, 200);
+    private boolean settingsBorderVisible = true;
     private Color settingsHeaderColor = new Color(70, 130, 180);
     private Color settingsHeaderColor2 = new Color(70, 130, 180);
     private boolean settingsHeaderUseGradient = false;
@@ -71,6 +72,7 @@ public class Timeline2 extends JFrame {
     private double layersGradientAngle = 90.0;
     private ArrayList<float[]> layersGradientStops = new ArrayList<>();
     private Color layersOutlineColor = new Color(200, 200, 200);
+    private boolean layersBorderVisible = true;
     private Color layersHeaderColor = new Color(70, 130, 180);
     private Color layersHeaderColor2 = new Color(70, 130, 180);
     private boolean layersHeaderUseGradient = false;
@@ -117,12 +119,17 @@ public class Timeline2 extends JFrame {
     private Color rightTabbedSelectedBgColor = new Color(70, 130, 180);
     private Color rightTabbedSelectedFgColor = Color.WHITE;
     private Color rightTabbedBorderColor = new Color(150, 150, 150);
+    private boolean rightTabbedBorderVisible = true;
+    private Color rightTabbedUnderlineColor = new Color(70, 130, 180);
+    private boolean rightTabbedUnderlineVisible = false;
     // Panel colors - General Tab
     private Color generalInteriorColor = new Color(230, 230, 230);
     private Color generalInteriorColor2 = new Color(230, 230, 230);
     private boolean generalUseGradient = false;
     private double generalGradientAngle = 90.0;
     private ArrayList<float[]> generalGradientStops = new ArrayList<>();
+    private Color generalOutlineColor = new Color(200, 200, 200);
+    private boolean generalBorderVisible = true;
     private Color formatResizeHandleColor = new Color(230, 230, 230);
     private Color formatTabColor = new Color(220, 220, 220);
     private Color formatTabColor2 = new Color(220, 220, 220);
@@ -392,11 +399,12 @@ public class Timeline2 extends JFrame {
         redoBtn.setToolTipText("Redo last undone action (Ctrl+Y)");
         redoBtn.addActionListener(e -> redo());
         toolbarPanel.add(redoBtn);
-        centerPanel.add(toolbarPanel, BorderLayout.NORTH);
+        // Toolbar at top spanning full width
+        add(toolbarPanel, BorderLayout.NORTH);
 
         timelineDisplayPanel = new TimelineDisplayPanel();
         JScrollPane scrollPane = new JScrollPane(timelineDisplayPanel);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Timeline"));
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
         centerPanel.add(scrollPane, BorderLayout.CENTER);
 
         add(centerPanel, BorderLayout.CENTER);
@@ -4624,6 +4632,9 @@ public class Timeline2 extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 0));
         panel.setMinimumSize(new Dimension(250, 400));
 
+        // Add spacer row above Timeline Axis header
+        panel.add(Box.createVerticalStrut(15));
+
         // Timeline Axis section header
         addSectionHeader(panel, "Timeline Axis");
 
@@ -5650,8 +5661,40 @@ public class Timeline2 extends JFrame {
         rpgbc.gridx = 2; rpgbc.gridy = 1;
         rightPanelSkinsTab.add(skinsLayersInteriorGradientBtn, rpgbc);
 
-        // Add filler to push content to top
+        // Separator row (border between tabs and content)
         rpgbc.gridx = 0; rpgbc.gridy = 2;
+        rpgbc.gridwidth = 1;
+        rightPanelSkinsTab.add(new JLabel("Separator:"), rpgbc);
+        JButton separatorBtn = new JButton();
+        separatorBtn.setPreferredSize(new Dimension(60, 25));
+        separatorBtn.setBackground(rightTabbedBorderColor);
+        separatorBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Separator Color", rightTabbedBorderColor, color -> {
+                rightTabbedBorderColor = color;
+                separatorBtn.setBackground(color);
+                applyRightTabbedPaneColors();
+            });
+            if (newColor != null) {
+                rightTabbedBorderColor = newColor;
+                separatorBtn.setBackground(newColor);
+                applyRightTabbedPaneColors();
+            }
+        });
+        rpgbc.gridx = 1;
+        rightPanelSkinsTab.add(separatorBtn, rpgbc);
+
+        // Visible checkbox for separator
+        JCheckBox separatorVisibleChk = new JCheckBox("Visible");
+        separatorVisibleChk.setSelected(rightTabbedBorderVisible);
+        separatorVisibleChk.addActionListener(e -> {
+            rightTabbedBorderVisible = separatorVisibleChk.isSelected();
+            applyRightTabbedPaneColors();
+        });
+        rpgbc.gridx = 2;
+        rightPanelSkinsTab.add(separatorVisibleChk, rpgbc);
+
+        // Add filler to push content to top
+        rpgbc.gridx = 0; rpgbc.gridy = 3;
         rpgbc.gridwidth = 3;
         rpgbc.weighty = 1.0;
         rpgbc.fill = GridBagConstraints.BOTH;
@@ -6019,30 +6062,86 @@ public class Timeline2 extends JFrame {
         rtgbc.gridx = 1;
         rightTabbedSkinsTab.add(rtSelFgBtn, rtgbc);
 
-        // Border Color row
+        // Underline Color row with visibility checkbox
         rtgbc.gridx = 0; rtgbc.gridy = 4;
-        rightTabbedSkinsTab.add(new JLabel("Border:"), rtgbc);
-        JButton rtBorderBtn = new JButton();
-        rtBorderBtn.setPreferredSize(new Dimension(60, 25));
-        rtBorderBtn.setBackground(rightTabbedBorderColor);
-        rtBorderBtn.addActionListener(e -> {
-            Color newColor = showColorChooserWithAlpha("Choose Tab Border Color", rightTabbedBorderColor, color -> {
-                rightTabbedBorderColor = color;
-                rtBorderBtn.setBackground(color);
+        rightTabbedSkinsTab.add(new JLabel("Underline:"), rtgbc);
+        JButton rtUnderlineBtn = new JButton();
+        rtUnderlineBtn.setPreferredSize(new Dimension(60, 25));
+        rtUnderlineBtn.setBackground(rightTabbedUnderlineColor);
+        rtUnderlineBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Tab Underline Color", rightTabbedUnderlineColor, color -> {
+                rightTabbedUnderlineColor = color;
+                rtUnderlineBtn.setBackground(color);
                 applyRightTabbedPaneColors();
             });
             if (newColor != null) {
-                rightTabbedBorderColor = newColor;
-                rtBorderBtn.setBackground(newColor);
+                rightTabbedUnderlineColor = newColor;
+                rtUnderlineBtn.setBackground(newColor);
                 applyRightTabbedPaneColors();
+            }
+        });
+        rtgbc.gridx = 1;
+        rightTabbedSkinsTab.add(rtUnderlineBtn, rtgbc);
+
+        // Visible checkbox for underline
+        JCheckBox rtUnderlineVisibleChk = new JCheckBox("Visible");
+        rtUnderlineVisibleChk.setSelected(rightTabbedUnderlineVisible);
+        rtUnderlineVisibleChk.addActionListener(e -> {
+            rightTabbedUnderlineVisible = rtUnderlineVisibleChk.isSelected();
+            applyRightTabbedPaneColors();
+        });
+        rtgbc.gridx = 2;
+        rightTabbedSkinsTab.add(rtUnderlineVisibleChk, rtgbc);
+
+        // Border row with visible checkbox (applies to all tab content panels)
+        rtgbc.gridx = 0; rtgbc.gridy = 5;
+        rtgbc.gridwidth = 1;
+        rtgbc.weighty = 0;
+        rtgbc.fill = GridBagConstraints.NONE;
+        rightTabbedSkinsTab.add(new JLabel("Border:"), rtgbc);
+        JButton rtBorderBtn = new JButton();
+        rtBorderBtn.setPreferredSize(new Dimension(60, 25));
+        rtBorderBtn.setBackground(settingsOutlineColor);
+        rtBorderBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Border Color", settingsOutlineColor, color -> {
+                settingsOutlineColor = color;
+                layersOutlineColor = color;
+                generalOutlineColor = color;
+                rtBorderBtn.setBackground(color);
+                applySettingsPanelColors();
+                applyLayersPanelColors();
+                applyGeneralPanelColors();
+            });
+            if (newColor != null) {
+                settingsOutlineColor = newColor;
+                layersOutlineColor = newColor;
+                generalOutlineColor = newColor;
+                rtBorderBtn.setBackground(newColor);
+                applySettingsPanelColors();
+                applyLayersPanelColors();
+                applyGeneralPanelColors();
             }
         });
         rtgbc.gridx = 1;
         rightTabbedSkinsTab.add(rtBorderBtn, rtgbc);
 
+        // Visible checkbox for border
+        JCheckBox rtBorderVisibleChk = new JCheckBox("Visible");
+        rtBorderVisibleChk.setSelected(settingsBorderVisible);
+        rtBorderVisibleChk.addActionListener(e -> {
+            settingsBorderVisible = rtBorderVisibleChk.isSelected();
+            layersBorderVisible = rtBorderVisibleChk.isSelected();
+            generalBorderVisible = rtBorderVisibleChk.isSelected();
+            applySettingsPanelColors();
+            applyLayersPanelColors();
+            applyGeneralPanelColors();
+        });
+        rtgbc.gridx = 2;
+        rightTabbedSkinsTab.add(rtBorderVisibleChk, rtgbc);
+
         // Filler
-        rtgbc.gridx = 0; rtgbc.gridy = 5;
-        rtgbc.gridwidth = 2;
+        rtgbc.gridx = 0; rtgbc.gridy = 6;
+        rtgbc.gridwidth = 3;
         rtgbc.weighty = 1.0;
         rtgbc.fill = GridBagConstraints.BOTH;
         rightTabbedSkinsTab.add(new JPanel(), rtgbc);
@@ -6127,14 +6226,14 @@ public class Timeline2 extends JFrame {
         ggbc.fill = GridBagConstraints.BOTH;
         generalSkinsTab.add(new JPanel(), ggbc);
 
-        // Add all tabs in desired order: Toolbar, Format, Right Panel, rightTabbedPane, Layers, General, Time Axis
+        // Add all tabs in desired order: Toolbar, Format, Right Panel, rightTabbedPane, Layers, Timeline, General
         tabbedPane.addTab("Toolbar", toolbarSkinsTab);
         tabbedPane.addTab("Format", formatTab);
         tabbedPane.addTab("Right Panel", rightPanelSkinsTab);
         tabbedPane.addTab("rightTabbedPane", rightTabbedSkinsTab);
         tabbedPane.addTab("Layers", skinsLayersTab);
+        tabbedPane.addTab("Timeline", timeAxisSkinsTab);
         tabbedPane.addTab("General", generalSkinsTab);
-        tabbedPane.addTab("Time Axis", timeAxisSkinsTab);
 
         dialog.add(tabbedPane, BorderLayout.CENTER);
 
@@ -6735,6 +6834,12 @@ public class Timeline2 extends JFrame {
     private void applyRightPanelColors() {
         if (rightPanel != null) {
             rightPanel.applyColors(layersInteriorColor, layersOutlineColor, layersHeaderColor, layersHeaderTextColor);
+            // Override border based on visibility
+            if (layersBorderVisible) {
+                rightPanel.setBorder(BorderFactory.createLineBorder(layersOutlineColor));
+            } else {
+                rightPanel.setBorder(null);
+            }
             rightPanel.repaint();
         }
     }
@@ -6742,6 +6847,12 @@ public class Timeline2 extends JFrame {
     private void applyLayersListColors() {
         if (layersPanel != null) {
             layersPanel.setListBackground(layersListBgColor);
+            // Apply border based on visibility
+            if (layersBorderVisible) {
+                layersPanel.setBorder(BorderFactory.createLineBorder(layersOutlineColor));
+            } else {
+                layersPanel.setBorder(null);
+            }
             layersPanel.refreshList();
             layersPanel.repaint();
         }
@@ -6750,6 +6861,12 @@ public class Timeline2 extends JFrame {
     private void applySettingsPanelColors() {
         if (settingsPanel != null) {
             settingsPanel.setBackground(settingsInteriorColor);
+            // Apply border based on visibility
+            if (settingsBorderVisible) {
+                settingsPanel.setBorder(BorderFactory.createLineBorder(settingsOutlineColor));
+            } else {
+                settingsPanel.setBorder(null);
+            }
             // Apply to all child components
             applyColorToChildren(settingsPanel, settingsInteriorColor);
             settingsPanel.repaint();
@@ -6759,6 +6876,12 @@ public class Timeline2 extends JFrame {
     private void applyGeneralPanelColors() {
         if (generalPanel != null) {
             generalPanel.setBackground(generalInteriorColor);
+            // Apply border based on visibility
+            if (generalBorderVisible) {
+                generalPanel.setBorder(BorderFactory.createLineBorder(generalOutlineColor));
+            } else {
+                generalPanel.setBorder(null);
+            }
             // Apply to all child components
             applyColorToChildren(generalPanel, generalInteriorColor);
             generalPanel.repaint();
@@ -6767,23 +6890,48 @@ public class Timeline2 extends JFrame {
 
     private void applyRightTabbedPaneColors() {
         if (rightTabbedPane != null) {
+            // Set FlatLaf UI defaults
+            UIManager.put("TabbedPane.selectedBackground", rightTabbedSelectedBgColor);
+            UIManager.put("TabbedPane.selectedForeground", rightTabbedSelectedFgColor);
+
+            // Underline properties - only apply when visible is checked
+            if (rightTabbedUnderlineVisible) {
+                UIManager.put("TabbedPane.underlineColor", rightTabbedUnderlineColor);
+                UIManager.put("TabbedPane.tabUnderlineColor", rightTabbedUnderlineColor);
+                UIManager.put("TabbedPane.contentAreaColor", rightTabbedUnderlineColor);
+                UIManager.put("TabbedPane.focusColor", rightTabbedUnderlineColor);
+                UIManager.put("TabbedPane.hoverColor", rightTabbedUnderlineColor);
+            } else {
+                // Reset to default/transparent when not visible
+                UIManager.put("TabbedPane.underlineColor", null);
+                UIManager.put("TabbedPane.tabUnderlineColor", null);
+                UIManager.put("TabbedPane.contentAreaColor", null);
+                UIManager.put("TabbedPane.focusColor", null);
+                UIManager.put("TabbedPane.hoverColor", null);
+            }
+
+            // Force UI refresh to pick up new colors
+            rightTabbedPane.updateUI();
+
             rightTabbedPane.setBackground(rightTabbedBgColor);
             rightTabbedPane.setForeground(rightTabbedFgColor);
-            // Set UI properties for tab colors
-            UIManager.put("TabbedPane.selected", rightTabbedSelectedBgColor);
-            UIManager.put("TabbedPane.selectedForeground", rightTabbedSelectedFgColor);
-            UIManager.put("TabbedPane.background", rightTabbedBgColor);
-            UIManager.put("TabbedPane.foreground", rightTabbedFgColor);
-            // Update border
-            rightTabbedPane.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, rightTabbedBorderColor),
-                BorderFactory.createEmptyBorder(10, 0, 0, 0)));
-            // Update tab colors for each tab
+
+            // Update border (separator)
+            if (rightTabbedBorderVisible) {
+                rightTabbedPane.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(1, 0, 0, 0, rightTabbedBorderColor),
+                    BorderFactory.createEmptyBorder(10, 0, 0, 0)));
+            } else {
+                rightTabbedPane.setBorder(BorderFactory.createEmptyBorder(11, 0, 0, 0));
+            }
+
+            // Update tab colors for each tab (background = unselected tab color)
             for (int i = 0; i < rightTabbedPane.getTabCount(); i++) {
                 rightTabbedPane.setBackgroundAt(i, rightTabbedBgColor);
                 rightTabbedPane.setForegroundAt(i, rightTabbedFgColor);
             }
-            rightTabbedPane.updateUI();
+
+            rightTabbedPane.revalidate();
             rightTabbedPane.repaint();
         }
     }
