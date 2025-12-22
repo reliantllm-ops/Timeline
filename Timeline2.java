@@ -50,7 +50,7 @@ public class Timeline2 extends JFrame {
     private Color settingsHeaderTextColor = Color.WHITE;
     private Color settingsLabelColor = Color.BLACK;
     private Color settingsFieldBgColor = Color.WHITE;
-    private Color settingsButtonBgColor = new Color(240, 240, 240);
+    private Color settingsButtonBgColor = new Color(230, 230, 230);
     private Color settingsButtonTextColor = Color.BLACK;
     // Panel colors - Timeline
     private Color timelineInteriorColor = Color.WHITE;
@@ -85,8 +85,8 @@ public class Timeline2 extends JFrame {
     private Color layersItemTextColor = Color.BLACK;
     private Color layersSelectedBgColor = new Color(200, 200, 200);
     private Color layersDragHandleColor = new Color(150, 150, 150);
-    private Color layersTaskColor = new Color(245, 245, 245);
-    private Color layersTaskColor2 = new Color(245, 245, 245);
+    private Color layersTaskColor = new Color(230, 230, 230);
+    private Color layersTaskColor2 = new Color(230, 230, 230);
     private boolean layersTaskUseGradient = false;
     private double layersTaskGradientAngle = 90.0;
     private ArrayList<float[]> layersTaskGradientStops = new ArrayList<>();
@@ -102,6 +102,13 @@ public class Timeline2 extends JFrame {
     private boolean formatHeaderUseGradient = false;
     private double formatHeaderGradientAngle = 0.0;
     private ArrayList<float[]> formatHeaderGradientStops = new ArrayList<>();
+// Panel colors - Toolbar
+    private Color toolbarBgColor = new Color(230, 230, 230);
+    private Color toolbarBgColor2 = new Color(230, 230, 230);
+    private boolean toolbarUseGradient = false;
+    private double toolbarGradientAngle = 90.0;
+    private ArrayList<float[]> toolbarGradientStops = new ArrayList<>();
+    private JPanel toolbarPanel;
     private Color formatLabelColor = Color.BLACK;
     private Color formatSeparatorColor = new Color(200, 200, 200);
     private Color formatResizeHandleColor = new Color(230, 230, 230);
@@ -115,8 +122,8 @@ public class Timeline2 extends JFrame {
     private boolean formatSelectedTabUseGradient = false;
     private double formatSelectedTabGradientAngle = 90.0;
     private ArrayList<float[]> formatSelectedTabGradientStops = new ArrayList<>();
-    private Color formatTabContentColor = new Color(240, 240, 240);
-    private Color formatTabContentColor2 = new Color(240, 240, 240);
+    private Color formatTabContentColor = new Color(230, 230, 230);
+    private Color formatTabContentColor2 = new Color(230, 230, 230);
     private boolean formatTabContentUseGradient = false;
     private double formatTabContentGradientAngle = 90.0;
     private ArrayList<float[]> formatTabContentGradientStops = new ArrayList<>();
@@ -258,6 +265,15 @@ public class Timeline2 extends JFrame {
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(new FlatLightLaf());
+            UIManager.put("TabbedPane.showContentSeparator", false);
+            UIManager.put("TabbedPane.contentBorderInsets", new java.awt.Insets(0, 0, 0, 0));
+            UIManager.put("TabbedPane.tabsOverlapBorder", true);
+            UIManager.put("TabbedPane.hasFullBorder", false);
+            UIManager.put("TabbedPane.background", new Color(230, 230, 230));
+            UIManager.put("TabbedPane.contentAreaColor", new Color(230, 230, 230));
+            UIManager.put("Panel.background", new Color(230, 230, 230));
+            UIManager.put("ScrollPane.background", new Color(230, 230, 230));
+            UIManager.put("ScrollPane.border", BorderFactory.createEmptyBorder());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -314,8 +330,8 @@ public class Timeline2 extends JFrame {
         JPanel centerPanel = new JPanel(new BorderLayout());
 
         // Top toolbar with New Task, New Milestone, and Clear All buttons
-        JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
-        toolbarPanel.setBackground(new Color(245, 245, 245));
+        toolbarPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
+        toolbarPanel.setBackground(toolbarBgColor);
         JButton newTaskBtn = new JButton("+ New Task");
         newTaskBtn.addActionListener(e -> addNewTask());
         toolbarPanel.add(newTaskBtn);
@@ -357,7 +373,8 @@ public class Timeline2 extends JFrame {
         rightTabbedPane = new JTabbedPane();
         rightTabbedPane.addTab("Layers", layersPanel);
         rightTabbedPane.addTab("General", new JScrollPane(createGeneralPanel()));
-        rightTabbedPane.addTab("Settings", new JScrollPane(settingsPanel));
+        rightTabbedPane.addTab("Time Axis", new JScrollPane(settingsPanel));
+        rightTabbedPane.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(150, 150, 150)), BorderFactory.createEmptyBorder(10, 0, 0, 0)));
 
         JPanel rightTabbedWrapper = new JPanel(new BorderLayout());
         rightTabbedWrapper.add(timelineRangePanel, BorderLayout.NORTH);
@@ -408,7 +425,7 @@ public class Timeline2 extends JFrame {
         };
         panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
         panel.setPreferredSize(new Dimension(0, 250));
-        panel.setBackground(new Color(250, 250, 250));
+        panel.setBackground(new Color(230, 230, 230));
 
         // Content wrapper
         JPanel contentWrapper = new JPanel(new BorderLayout());
@@ -428,7 +445,7 @@ public class Timeline2 extends JFrame {
         row1Container.setPreferredSize(new Dimension(1200, 30));
 
         // Task row panel
-        JPanel taskRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
+        JPanel taskRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 1, 2));
         taskRow.setOpaque(false);
 
         formatTitleLabel = new JLabel("No task selected");
@@ -518,7 +535,7 @@ public class Timeline2 extends JFrame {
         row1Container.add(taskRow, "task");
 
         // Milestone row panel
-        JPanel milestoneRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
+        JPanel milestoneRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 1, 2));
         milestoneRow.setOpaque(false);
 
         milestoneRow.add(new JLabel("Name:"));
@@ -2584,13 +2601,19 @@ public class Timeline2 extends JFrame {
             currentDir = "Vertical";
             currentAngle = layersListBgGradientAngle;
             currentUseGradient = layersListBgUseGradient;
-        } else if ("layersTask".equals(type)) {
             currentStops = layersTaskGradientStops;
             currentColor1 = layersTaskColor;
             currentColor2 = layersTaskColor2;
             currentDir = "Horizontal";
             currentAngle = layersTaskGradientAngle;
             currentUseGradient = layersTaskUseGradient;
+        } else if ("toolbar".equals(type)) {
+            currentStops = toolbarGradientStops;
+            currentColor1 = toolbarBgColor;
+            currentColor2 = toolbarBgColor2;
+            currentDir = "Horizontal";
+            currentAngle = toolbarGradientAngle;
+            currentUseGradient = toolbarUseGradient;
         } else {
             currentStops = timelineGradientStops;
             currentColor1 = timelineInteriorColor;
@@ -3085,9 +3108,12 @@ public class Timeline2 extends JFrame {
         } else if ("layersListBg".equals(type)) {
             layersListBgGradientAngle = angle;
             layersListBgUseGradient = true;
-        } else if ("layersTask".equals(type)) {
             layersTaskGradientAngle = angle;
             layersTaskUseGradient = true;
+        } else if ("toolbar".equals(type)) {
+            toolbarGradientAngle = angle;
+            toolbarUseGradient = true;
+            if (toolbarPanel != null) toolbarPanel.repaint();
         } else {
             timelineGradientAngle = angle;
             timelineUseGradient = true;
@@ -3252,7 +3278,6 @@ public class Timeline2 extends JFrame {
                 layersListBgColor2 = color2;
                 layersListBgUseGradient = true;
                 applyLayersPanelColors();
-            } else if ("layersTask".equals(type)) {
                 layersTaskGradientStops.clear();
                 for (float[] stop : stops) {
                     layersTaskGradientStops.add(new float[]{stop[0], stop[1], stop[2], stop[3], stop[4]});
@@ -4093,8 +4118,8 @@ public class Timeline2 extends JFrame {
     private JPanel createTimelineRangePanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(new Color(250, 250, 250));
-        panel.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
+        panel.setBackground(new Color(230, 230, 230));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 8, 15, 8));
 
         // Timeline Range Section
         addSectionHeader(panel, "Timeline Range");
@@ -4269,7 +4294,7 @@ public class Timeline2 extends JFrame {
     private JPanel createGeneralPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(new Color(250, 250, 250));
+        panel.setBackground(new Color(230, 230, 230));
         panel.setMinimumSize(new Dimension(250, 400));
 
         // Appearance Section
@@ -4342,7 +4367,7 @@ public class Timeline2 extends JFrame {
     private JPanel createSettingsPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(new Color(250, 250, 250));
+        panel.setBackground(new Color(230, 230, 230));
         panel.setMinimumSize(new Dimension(250, 400));
 
         // Timeline Axis section header
@@ -4873,163 +4898,6 @@ public class Timeline2 extends JFrame {
 
         JTabbedPane tabbedPane = new JTabbedPane();
 
-        // Settings Tab - use GridBagLayout for proper alignment
-        JPanel settingsTab = new JPanel(new GridBagLayout());
-        settingsTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.NONE;
-
-        // === HEADING ROW ===
-        gbc.gridx = 0; gbc.gridy = 0;
-        settingsTab.add(new JLabel("Heading:"), gbc);
-
-        // Heading color button with gradient support
-        JButton headingBtn = new JButton() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                if (settingsHeaderUseGradient && settingsHeaderGradientStops.size() >= 2) {
-                    Graphics2D g2d = (Graphics2D) g;
-                    int w = getWidth();
-                    int h = getHeight();
-                    float[] fractions = new float[settingsHeaderGradientStops.size()];
-                    Color[] colors = new Color[settingsHeaderGradientStops.size()];
-                    for (int i = 0; i < settingsHeaderGradientStops.size(); i++) {
-                        float[] stop = settingsHeaderGradientStops.get(i);
-                        fractions[i] = stop[0];
-                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
-                    }
-                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
-                    g2d.setPaint(lgp);
-                    g2d.fillRect(0, 0, w, h);
-                } else {
-                    super.paintComponent(g);
-                }
-            }
-        };
-        headingBtn.setPreferredSize(new Dimension(60, 25));
-        headingBtn.setBackground(settingsHeaderColor);
-        final JButton finalHeadingBtn = headingBtn;
-        headingBtn.addActionListener(e -> {
-            Color newColor = showColorChooserWithAlpha("Choose Heading Color", settingsHeaderColor, color -> {
-                settingsHeaderColor = color;
-                settingsHeaderUseGradient = false;
-                finalHeadingBtn.setBackground(color);
-                finalHeadingBtn.repaint();
-            });
-            if (newColor != null) {
-                settingsHeaderColor = newColor;
-                settingsHeaderUseGradient = false;
-                finalHeadingBtn.setBackground(newColor);
-                finalHeadingBtn.repaint();
-            }
-        });
-        gbc.gridx = 1; gbc.gridy = 0;
-        settingsTab.add(headingBtn, gbc);
-
-        // Heading gradient arrow button
-        JButton headingGradientArrowBtn = new JButton("\u25BC");
-        headingGradientArrowBtn.setPreferredSize(new Dimension(20, 25));
-        headingGradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
-        headingGradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
-        headingGradientArrowBtn.setToolTipText("Gradient options");
-        JPopupMenu headingGradientMenu = new JPopupMenu();
-        JMenuItem headingGradientMenuItem = new JMenuItem("Gradient...");
-        headingGradientMenuItem.addActionListener(ev -> {
-            showGradientDialog("settingsHeader");
-            finalHeadingBtn.repaint();
-        });
-        headingGradientMenu.add(headingGradientMenuItem);
-        headingGradientArrowBtn.addActionListener(ev -> {
-            headingGradientMenu.show(headingGradientArrowBtn, 0, headingGradientArrowBtn.getHeight());
-        });
-        gbc.gridx = 2; gbc.gridy = 0;
-        settingsTab.add(headingGradientArrowBtn, gbc);
-
-        // === INTERIOR ROW ===
-        gbc.gridx = 0; gbc.gridy = 1;
-        settingsTab.add(new JLabel("Interior:"), gbc);
-
-        // Interior color button with gradient support
-        JButton interiorBtn = new JButton() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                if (settingsUseGradient && settingsGradientStops.size() >= 2) {
-                    Graphics2D g2d = (Graphics2D) g;
-                    int w = getWidth();
-                    int h = getHeight();
-                    float[] fractions = new float[settingsGradientStops.size()];
-                    Color[] colors = new Color[settingsGradientStops.size()];
-                    for (int i = 0; i < settingsGradientStops.size(); i++) {
-                        float[] stop = settingsGradientStops.get(i);
-                        fractions[i] = stop[0];
-                        colors[i] = new Color(stop[1], stop[2], stop[3], stop[4]);
-                    }
-                    java.awt.LinearGradientPaint lgp = new java.awt.LinearGradientPaint(0, 0, w, 0, fractions, colors);
-                    g2d.setPaint(lgp);
-                    g2d.fillRect(0, 0, w, h);
-                } else {
-                    super.paintComponent(g);
-                }
-            }
-        };
-        interiorBtn.setPreferredSize(new Dimension(60, 25));
-        interiorBtn.setBackground(settingsInteriorColor);
-        final JButton finalInteriorBtn = interiorBtn;
-        interiorBtn.addActionListener(e -> {
-            // Use showColorChooserWithAlpha for live preview
-            Color newColor = showColorChooserWithAlpha("Choose Interior Color", settingsInteriorColor, color -> {
-                settingsInteriorColor = color;
-                settingsUseGradient = false;
-                finalInteriorBtn.setBackground(color);
-                finalInteriorBtn.repaint();
-                if (settingsPanel != null) {
-                    settingsPanel.setBackground(color);
-                    settingsPanel.repaint();
-                }
-            });
-            if (newColor != null) {
-                settingsInteriorColor = newColor;
-                settingsUseGradient = false;
-                finalInteriorBtn.setBackground(newColor);
-                finalInteriorBtn.repaint();
-                if (settingsPanel != null) {
-                    settingsPanel.setBackground(newColor);
-                    settingsPanel.repaint();
-                }
-            }
-        });
-        gbc.gridx = 1; gbc.gridy = 1;
-        settingsTab.add(interiorBtn, gbc);
-
-        // Gradient arrow button
-        JButton gradientArrowBtn = new JButton("\u25BC");
-        gradientArrowBtn.setPreferredSize(new Dimension(20, 25));
-        gradientArrowBtn.setFont(new Font("Arial", Font.PLAIN, 8));
-        gradientArrowBtn.setMargin(new Insets(0, 0, 0, 0));
-        gradientArrowBtn.setToolTipText("Gradient options");
-        JPopupMenu gradientMenu = new JPopupMenu();
-        JMenuItem gradientMenuItem = new JMenuItem("Gradient...");
-        gradientMenuItem.addActionListener(ev -> {
-            showGradientDialog("settings");
-            finalInteriorBtn.repaint();
-        });
-        gradientMenu.add(gradientMenuItem);
-        gradientArrowBtn.addActionListener(ev -> {
-            gradientMenu.show(gradientArrowBtn, 0, gradientArrowBtn.getHeight());
-        });
-        gbc.gridx = 2; gbc.gridy = 1;
-        settingsTab.add(gradientArrowBtn, gbc);
-
-        // Add filler to push content to top
-        gbc.gridx = 0; gbc.gridy = 2;
-        gbc.gridwidth = 3;
-        gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
-        settingsTab.add(new JPanel(), gbc);
-
-        tabbedPane.addTab("Settings", settingsTab);
 
         // === FORMAT TAB ===
         JPanel formatTab = new JPanel(new GridBagLayout());
@@ -5673,8 +5541,47 @@ public class Timeline2 extends JFrame {
         slgbc.fill = GridBagConstraints.BOTH;
         skinsLayersTab.add(new JPanel(), slgbc);
 
-        tabbedPane.addTab("Layers", skinsLayersTab);
+        tabbedPane.addTab("Right Panel > Layers", skinsLayersTab);
 
+        // === TOOLBAR TAB ===
+        JPanel toolbarSkinsTab = new JPanel(new GridBagLayout());
+        toolbarSkinsTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints tbgbc = new GridBagConstraints();
+        tbgbc.insets = new Insets(8, 8, 8, 8);
+        tbgbc.anchor = GridBagConstraints.WEST;
+        tbgbc.gridx = 0; tbgbc.gridy = 0;
+        toolbarSkinsTab.add(new JLabel("Background:"), tbgbc);
+        JButton toolbarSkinsColorBtn = new JButton();
+        toolbarSkinsColorBtn.setPreferredSize(new Dimension(60, 25));
+        toolbarSkinsColorBtn.setBackground(toolbarBgColor);
+        toolbarSkinsColorBtn.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(dialog, "Choose Toolbar Background", toolbarBgColor);
+            if (newColor != null) {
+                toolbarBgColor = newColor;
+                toolbarUseGradient = false;
+                toolbarSkinsColorBtn.setBackground(newColor);
+                if (toolbarPanel != null) toolbarPanel.setBackground(newColor);
+            }
+        });
+        tbgbc.gridx = 1;
+        toolbarSkinsTab.add(toolbarSkinsColorBtn, tbgbc);
+        JButton toolbarSkinsGradBtn = new JButton("\u25BC");
+        toolbarSkinsGradBtn.setPreferredSize(new Dimension(20, 25));
+        toolbarSkinsGradBtn.setFont(new Font("Arial", Font.PLAIN, 8));
+        JPopupMenu toolbarSkinsGradMenu = new JPopupMenu();
+        JMenuItem toolbarSkinsGradItem = new JMenuItem("Gradient...");
+        toolbarSkinsGradItem.addActionListener(ev -> {
+            showGradientDialog("toolbar");
+            toolbarSkinsColorBtn.repaint();
+            if (toolbarPanel != null) toolbarPanel.repaint();
+        });
+        toolbarSkinsGradMenu.add(toolbarSkinsGradItem);
+        toolbarSkinsGradBtn.addActionListener(ev -> toolbarSkinsGradMenu.show(toolbarSkinsGradBtn, 0, toolbarSkinsGradBtn.getHeight()));
+        tbgbc.gridx = 2;
+        toolbarSkinsTab.add(toolbarSkinsGradBtn, tbgbc);
+        tbgbc.gridx = 0; tbgbc.gridy = 1; tbgbc.gridwidth = 3; tbgbc.weighty = 1.0; tbgbc.fill = GridBagConstraints.BOTH;
+        toolbarSkinsTab.add(new JPanel(), tbgbc);
+        tabbedPane.addTab("Toolbar", toolbarSkinsTab);
         dialog.add(tabbedPane, BorderLayout.CENTER);
 
         // OK/Cancel buttons
@@ -6278,6 +6185,42 @@ public class Timeline2 extends JFrame {
         }
     }
 
+
+    /**
+     * Apply colors to all panels and tabs in the application.
+     * Call this method to update all UI colors at once.
+     *
+     * Panels/Tabs available:
+     * - Toolbar: toolbarBgColor
+     * - Settings/Time Axis: settingsInteriorColor, settingsHeaderColor
+     * - Layers: layersInteriorColor, layersHeaderColor, layersListBgColor
+     * - Format: formatInteriorColor, formatHeaderColor
+     * - Timeline: timelineInteriorColor, timelineLineColor, timelineGridColor
+     */
+    private void applyAllPanelColors() {
+        // Toolbar panel
+        if (toolbarPanel != null) {
+            toolbarPanel.setBackground(toolbarBgColor);
+            toolbarPanel.repaint();
+        }
+
+        // Settings/Time Axis panel
+        if (settingsPanel != null) {
+            settingsPanel.setBackground(settingsInteriorColor);
+            settingsPanel.repaint();
+        }
+
+        // Format panel
+        applyFormatPanelColors();
+
+        // Layers panel
+        applyLayersPanelColors();
+
+        // Timeline display
+        if (timelineDisplayPanel != null) {
+            timelineDisplayPanel.repaint();
+        }
+    }
     private void setFormatChildrenOpaque(JPanel panel, boolean opaque) {
         if (panel != formatHeaderBar) { // Don't affect the header bar
             panel.setOpaque(opaque);
@@ -7682,6 +7625,7 @@ public class Timeline2 extends JFrame {
             collapseBtn.addActionListener(e -> toggleCollapse());
             collapseBtn.setBackground(new Color(220, 220, 220));
             collapseBtn.setOpaque(true);
+            collapseBtn.setForeground(Color.DARK_GRAY);
             collapseBtn.setBorderPainted(false);
             collapseBtn.setFocusPainted(false);
             collapseBtn.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -7737,6 +7681,7 @@ public class Timeline2 extends JFrame {
                 setBackground(collapsedGray);
                 setBorder(BorderFactory.createLineBorder(collapsedGray));
                 collapseBtn.setBackground(collapsedGray);
+                collapseBtn.setForeground(Color.DARK_GRAY);
             } else {
                 setPreferredSize(expandedSize);
                 // When expanded: show arrow pointing away from center to collapse
@@ -7959,7 +7904,7 @@ public class Timeline2 extends JFrame {
 
             // Buttons panel
             JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-            buttonsPanel.setBackground(new Color(245, 245, 245));
+            buttonsPanel.setBackground(new Color(230, 230, 230));
 
             JButton moveUpBtn = new JButton("\u25B2");
             moveUpBtn.setToolTipText("Move layer up (to front)");
