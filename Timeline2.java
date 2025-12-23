@@ -65,6 +65,7 @@ public class Timeline2 extends JFrame {
     private Color timelineDateTextColor = Color.BLACK; // #000000
     private Color timelineGridColor = new Color(0xDC, 0xDC, 0xDC); // #DCDCDC
     private Color timelineEventColor = new Color(0xDC, 0x35, 0x45); // #DC3545
+    private boolean showTodayMark = true;
     // Panel colors - Layers
     private Color layersInteriorColor = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
     private Color layersInteriorColor2 = new Color(0xFA, 0xFA, 0xFA); // #FAFAFA
@@ -111,6 +112,12 @@ public class Timeline2 extends JFrame {
     private double toolbarGradientAngle = 90.0;
     private ArrayList<float[]> toolbarGradientStops = new ArrayList<>();
     private JPanel toolbarPanel;
+    private JPanel spreadsheetPanel;
+    private JTable spreadsheetTable;
+    private javax.swing.table.DefaultTableModel spreadsheetTableModel;
+    private java.util.Map<Object, String[]> spreadsheetData = new java.util.HashMap<>();
+    private JSplitPane centerSplitPane;
+    private boolean spreadsheetVisible = false;
     private Color formatLabelColor = Color.BLACK; // #000000
     private Color formatSeparatorColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
     // Panel colors - Right Tabbed Pane
@@ -232,7 +239,7 @@ public class Timeline2 extends JFrame {
     private String timelineAxisPosition = "Bottom";
     private JComboBox<String> timelineAxisPositionCombo;
     private Color timelineAxisTickColor = new Color(70, 130, 180);
-    private int timelineAxisTickWidth = 1;
+    private int timelineAxisTickWidth = 3;
     private int timelineAxisTickHeight = 15;
     private JPanel axisLineColorRow;
     private JPanel axisLineThicknessRow;
@@ -349,6 +356,16 @@ public class Timeline2 extends JFrame {
         skinsItem.addActionListener(e -> showSkinsDialog());
         editMenu.add(skinsItem);
         menuBar.add(editMenu);
+
+        // View menu
+        JMenu viewMenu = new JMenu("View");
+        JCheckBoxMenuItem spreadsheetItem = new JCheckBoxMenuItem("Spreadsheet", spreadsheetVisible);
+        spreadsheetItem.addActionListener(e -> {
+            spreadsheetVisible = spreadsheetItem.isSelected();
+            toggleSpreadsheetPanel();
+        });
+        viewMenu.add(spreadsheetItem);
+        menuBar.add(viewMenu);
         setJMenuBar(menuBar);
 
         // Center - Timeline display with New Task button
@@ -415,7 +432,29 @@ public class Timeline2 extends JFrame {
         timelineDisplayPanel = new TimelineDisplayPanel();
         JScrollPane scrollPane = new JScrollPane(timelineDisplayPanel);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        centerPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Create spreadsheet panel with task table (initially hidden)
+        spreadsheetPanel = new JPanel(new BorderLayout());
+        spreadsheetPanel.setBackground(Color.WHITE);
+        spreadsheetPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        
+        String[] columnNames = {"Name", "", "", "", ""};
+        spreadsheetTableModel = new javax.swing.table.DefaultTableModel(columnNames, 0);
+        spreadsheetTable = new JTable(spreadsheetTableModel);
+        spreadsheetTable.setRowHeight(22);
+        spreadsheetTable.getTableHeader().setReorderingAllowed(false);
+        spreadsheetTable.setShowGrid(true);
+        spreadsheetTable.setGridColor(new Color(200, 200, 200));
+        spreadsheetTable.setIntercellSpacing(new Dimension(1, 1));
+        JScrollPane tableScrollPane = new JScrollPane(spreadsheetTable);
+        spreadsheetPanel.add(tableScrollPane, BorderLayout.CENTER);
+
+        // Create split pane with spreadsheet on left, timeline on right
+        centerSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, spreadsheetPanel, scrollPane);
+        centerSplitPane.setDividerLocation(0);
+        centerSplitPane.setDividerSize(5);
+        centerSplitPane.setContinuousLayout(true);
+        centerPanel.add(centerSplitPane, BorderLayout.CENTER);
 
         add(centerPanel, BorderLayout.CENTER);
 
@@ -4561,6 +4600,7 @@ public class Timeline2 extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 0));
         panel.setMinimumSize(new Dimension(250, 400));
 
+
         // Appearance Section
         addSectionHeader(panel, "Appearance");
 
@@ -4624,6 +4664,25 @@ public class Timeline2 extends JFrame {
         bgColorRow.add(gradientArrowBtn);
 
         panel.add(bgColorRow);
+
+        // Today Mark checkbox row
+        JPanel todayMarkRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        todayMarkRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        todayMarkRow.setOpaque(false);
+        todayMarkRow.setMinimumSize(new Dimension(250, 25));
+        todayMarkRow.setPreferredSize(new Dimension(250, 25));
+        todayMarkRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+
+        JCheckBox todayMarkCheckbox = new JCheckBox("Today Mark", showTodayMark);
+        todayMarkCheckbox.setFont(new Font("Arial", Font.PLAIN, 11));
+        todayMarkCheckbox.setOpaque(false);
+        todayMarkCheckbox.addActionListener(e -> {
+            showTodayMark = todayMarkCheckbox.isSelected();
+            if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+        });
+        todayMarkRow.add(todayMarkCheckbox);
+
+        panel.add(todayMarkRow);
 
         return panel;
     }
@@ -4722,7 +4781,7 @@ public class Timeline2 extends JFrame {
 
         timelineAxisThicknessSpinner = new JSpinner(new SpinnerNumberModel(timelineAxisThickness, 1, 10, 1));
         timelineAxisThicknessSpinner.setPreferredSize(new Dimension(50, 20));
-        JSpinner.NumberEditor thicknessEditor = new JSpinner.NumberEditor(timelineAxisThicknessSpinner, "0 'pt'");
+        JSpinner.NumberEditor thicknessEditor = new JSpinner.NumberEditor(timelineAxisThicknessSpinner, "0");
         timelineAxisThicknessSpinner.setEditor(thicknessEditor);
         thicknessEditor.getTextField().setHorizontalAlignment(JTextField.LEFT);
         timelineAxisThicknessSpinner.addChangeListener(e -> {
@@ -5174,8 +5233,117 @@ public class Timeline2 extends JFrame {
 
             timelineDisplayPanel.updateTimeline(startDate, endDate, events, tasks, milestones);
             layersPanel.refreshLayers();
+            updateSpreadsheet();
         } catch (Exception e) {
             showWarning("Please enter valid dates in YYYY-MM-DD format.");
+        }
+    }
+
+    private void toggleSpreadsheetPanel() {
+        if (spreadsheetVisible) {
+            updateSpreadsheet();
+            centerSplitPane.setDividerLocation(250);
+        } else {
+            centerSplitPane.setDividerLocation(0);
+        }
+    }
+
+    private void updateSpreadsheet() {
+        if (spreadsheetTableModel == null) return;
+        
+        // Save current data from table to map
+        saveSpreadsheetData();
+        
+        spreadsheetTableModel.setRowCount(0);
+        
+        // Create list of items with their Y positions for sorting
+        java.util.List<Object[]> itemsWithY = new java.util.ArrayList<>();
+        
+        for (int i = 0; i < layerOrder.size(); i++) {
+            Object item = layerOrder.get(i);
+            int yPos = 0;
+            
+            if (item instanceof TimelineTask) {
+                TimelineTask task = (TimelineTask) item;
+                if (task.yPosition >= 0) {
+                    yPos = task.yPosition;
+                } else {
+                    yPos = "Top".equals(timelineAxisPosition) ? 100 : 45;
+                    for (int j = layerOrder.size() - 1; j > i; j--) {
+                        Object other = layerOrder.get(j);
+                        if (other instanceof TimelineTask && ((TimelineTask) other).yPosition < 0) {
+                            yPos += ((TimelineTask) other).height + 5;
+                        }
+                    }
+                }
+            } else if (item instanceof TimelineMilestone) {
+                TimelineMilestone ms = (TimelineMilestone) item;
+                yPos = ms.yPosition >= 0 ? ms.yPosition : 45;
+            }
+            
+            itemsWithY.add(new Object[]{yPos, item});
+        }
+        
+        // Sort by Y position (top to bottom)
+        itemsWithY.sort((a, b) -> Integer.compare((Integer) a[0], (Integer) b[0]));
+        
+        // Add sorted items to table with preserved data
+        for (Object[] entry : itemsWithY) {
+            Object item = entry[1];
+            String name = "";
+            if (item instanceof TimelineTask) {
+                name = ((TimelineTask) item).name;
+            } else if (item instanceof TimelineMilestone) {
+                name = ((TimelineMilestone) item).name;
+            }
+            
+            String[] savedData = spreadsheetData.get(item);
+            if (savedData != null) {
+                spreadsheetTableModel.addRow(new Object[]{name, savedData[0], savedData[1], savedData[2], savedData[3]});
+            } else {
+                spreadsheetTableModel.addRow(new Object[]{name, "", "", "", ""});
+            }
+        }
+    }
+    
+    private void saveSpreadsheetData() {
+        if (spreadsheetTableModel == null) return;
+        
+        // Build current order of items sorted by Y
+        java.util.List<Object> currentOrder = new java.util.ArrayList<>();
+        for (int i = 0; i < layerOrder.size(); i++) {
+            Object item = layerOrder.get(i);
+            int yPos = 0;
+            if (item instanceof TimelineTask) {
+                TimelineTask task = (TimelineTask) item;
+                if (task.yPosition >= 0) {
+                    yPos = task.yPosition;
+                } else {
+                    yPos = "Top".equals(timelineAxisPosition) ? 100 : 45;
+                    for (int j = layerOrder.size() - 1; j > i; j--) {
+                        Object other = layerOrder.get(j);
+                        if (other instanceof TimelineTask && ((TimelineTask) other).yPosition < 0) {
+                            yPos += ((TimelineTask) other).height + 5;
+                        }
+                    }
+                }
+            } else if (item instanceof TimelineMilestone) {
+                TimelineMilestone ms = (TimelineMilestone) item;
+                yPos = ms.yPosition >= 0 ? ms.yPosition : 45;
+            }
+            currentOrder.add(new Object[]{yPos, item});
+        }
+        currentOrder.sort((a, b) -> Integer.compare((Integer)((Object[])a)[0], (Integer)((Object[])b)[0]));
+        
+        // Save data for each row
+        for (int row = 0; row < spreadsheetTableModel.getRowCount() && row < currentOrder.size(); row++) {
+            Object item = ((Object[]) currentOrder.get(row))[1];
+            String[] data = new String[4];
+            for (int col = 1; col < 5; col++) {
+                Object val = spreadsheetTableModel.getValueAt(row, col);
+                data[col - 1] = val != null ? val.toString() : "";
+            }
+            spreadsheetData.put(item, data);
         }
     }
 
@@ -8030,6 +8198,7 @@ public class Timeline2 extends JFrame {
                 int[] counts = importFromSheets(sheets, replaceAll);
 
                 layersPanel.refreshLayers();
+            updateSpreadsheet();
                 refreshTimeline();
 
                 JOptionPane.showMessageDialog(this,
@@ -9927,6 +10096,7 @@ public class Timeline2 extends JFrame {
 
             updateFormatPanelForSelection();
             layersPanel.refreshLayers();
+            updateSpreadsheet();
             repaint();
         }
 
@@ -9946,6 +10116,7 @@ public class Timeline2 extends JFrame {
 
             updateFormatPanelForSelection();
             layersPanel.refreshLayers();
+            updateSpreadsheet();
             repaint();
         }
 
@@ -9991,6 +10162,7 @@ public class Timeline2 extends JFrame {
 
             clearFormatFields();
             layersPanel.refreshLayers();
+            updateSpreadsheet();
             repaint();
         }
 
@@ -10812,6 +10984,7 @@ public class Timeline2 extends JFrame {
             if (totalDays <= 0) totalDays = 1;
 
             // Draw "today" arrow at top
+            if (showTodayMark) {
             LocalDate today = LocalDate.now();
             if (!today.isBefore(startDate) && !today.isAfter(endDate)) {
                 long todayOffset = ChronoUnit.DAYS.between(startDate, today);
@@ -10829,6 +11002,7 @@ public class Timeline2 extends JFrame {
                 int[] xPoints = {todayX - arrowSize, todayX + arrowSize, todayX};
                 int[] yPoints = {arrowY, arrowY, arrowY + arrowSize + 4};
                 g2d.fillPolygon(xPoints, yPoints, 3);
+            }
             }
 
             // Draw extended ticks behind tasks and milestones
