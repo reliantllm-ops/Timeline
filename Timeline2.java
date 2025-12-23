@@ -33,116 +33,116 @@ public class Timeline2 extends JFrame {
     private int selectedMilestoneIndex = -1;
     private Set<Integer> selectedMilestoneIndices = new HashSet<>(); // Multi-select for milestones
 
-    // Panel colors - Settings
-    private Color settingsInteriorColor = new Color(250, 250, 250);
-    private Color settingsInteriorColor2 = new Color(250, 250, 250);
+    // Panel colors - Settings (Timeline Tab)
+    private Color settingsInteriorColor = Color.WHITE; // #FFFFFF
+    private Color settingsInteriorColor2 = Color.WHITE; // #FFFFFF
     private boolean settingsUseGradient = false;
     private String settingsGradientDir = "Vertical";
-    private double settingsGradientAngle = 90.0; // 0=right, 90=down, 180=left, 270=up
+    private double settingsGradientAngle = 90.0;
     private ArrayList<float[]> settingsGradientStops = new ArrayList<>();
-    private Color settingsOutlineColor = new Color(200, 200, 200);
+    private Color settingsOutlineColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
     private boolean settingsBorderVisible = true;
-    private Color settingsHeaderColor = new Color(70, 130, 180);
-    private Color settingsHeaderColor2 = new Color(70, 130, 180);
+    private Color settingsHeaderColor = new Color(0x46, 0x82, 0xB4); // #4682B4
+    private Color settingsHeaderColor2 = new Color(0x46, 0x82, 0xB4); // #4682B4
     private boolean settingsHeaderUseGradient = false;
     private String settingsHeaderGradientDir = "Horizontal";
-    private double settingsHeaderGradientAngle = 0.0; // 0=right, 90=down, 180=left, 270=up
+    private double settingsHeaderGradientAngle = 0.0;
     private ArrayList<float[]> settingsHeaderGradientStops = new ArrayList<>();
-    private Color settingsHeaderTextColor = Color.WHITE;
-    private Color settingsLabelColor = Color.BLACK;
-    private Color settingsFieldBgColor = Color.WHITE;
-    private Color settingsButtonBgColor = new Color(230, 230, 230);
-    private Color settingsButtonTextColor = Color.BLACK;
+    private Color settingsHeaderTextColor = Color.WHITE; // #FFFFFF
+    private Color settingsLabelColor = Color.BLACK; // #000000
+    private Color settingsFieldBgColor = Color.WHITE; // #FFFFFF
+    private Color settingsButtonBgColor = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
+    private Color settingsButtonTextColor = Color.BLACK; // #000000
     // Panel colors - Timeline
-    private Color timelineInteriorColor = Color.WHITE;
-    private Color timelineInteriorColor2 = new Color(230, 230, 230);
+    private Color timelineInteriorColor = Color.WHITE; // #FFFFFF
+    private Color timelineInteriorColor2 = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
     private boolean timelineUseGradient = false;
     private String timelineGradientDir = "Vertical";
-    private double timelineGradientAngle = 90.0; // 0=right, 90=down, 180=left, 270=up
+    private double timelineGradientAngle = 90.0;
     private ArrayList<float[]> timelineGradientStops = new ArrayList<>();
-    private Color timelineOutlineColor = new Color(200, 200, 200);
-    private Color timelineLineColor = new Color(70, 130, 180);
-    private Color timelineDateTextColor = Color.BLACK;
-    private Color timelineGridColor = new Color(220, 220, 220);
-    private Color timelineEventColor = new Color(220, 53, 69);
+    private Color timelineOutlineColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
+    private Color timelineLineColor = new Color(0x46, 0x82, 0xB4); // #4682B4
+    private Color timelineDateTextColor = Color.BLACK; // #000000
+    private Color timelineGridColor = new Color(0xDC, 0xDC, 0xDC); // #DCDCDC
+    private Color timelineEventColor = new Color(0xDC, 0x35, 0x45); // #DC3545
     // Panel colors - Layers
-    private Color layersInteriorColor = new Color(250, 250, 250);
-    private Color layersInteriorColor2 = new Color(250, 250, 250);
+    private Color layersInteriorColor = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
+    private Color layersInteriorColor2 = new Color(0xFA, 0xFA, 0xFA); // #FAFAFA
     private boolean layersUseGradient = false;
     private double layersGradientAngle = 90.0;
     private ArrayList<float[]> layersGradientStops = new ArrayList<>();
-    private Color layersOutlineColor = new Color(200, 200, 200);
+    private Color layersOutlineColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
     private boolean layersBorderVisible = true;
-    private Color layersHeaderColor = new Color(70, 130, 180);
-    private Color layersHeaderColor2 = new Color(70, 130, 180);
+    private Color layersHeaderColor = new Color(0xCC, 0xCC, 0xCC); // #CCCCCC
+    private Color layersHeaderColor2 = new Color(0x46, 0x82, 0xB4); // #4682B4
     private boolean layersHeaderUseGradient = false;
     private double layersHeaderGradientAngle = 0.0;
     private ArrayList<float[]> layersHeaderGradientStops = new ArrayList<>();
-    private Color layersHeaderTextColor = Color.WHITE;
-    private Color layersListBgColor = Color.WHITE;
-    private Color layersListBgColor2 = Color.WHITE;
+    private Color layersHeaderTextColor = Color.WHITE; // #FFFFFF
+    private Color layersListBgColor = Color.WHITE; // #FFFFFF
+    private Color layersListBgColor2 = Color.WHITE; // #FFFFFF
     private boolean layersListBgUseGradient = false;
     private double layersListBgGradientAngle = 90.0;
     private ArrayList<float[]> layersListBgGradientStops = new ArrayList<>();
-    private Color layersItemTextColor = Color.BLACK;
-    private Color layersSelectedBgColor = new Color(200, 200, 200);
-    private Color layersDragHandleColor = new Color(150, 150, 150);
-    private Color layersTaskColor = new Color(230, 230, 230);
-    private Color layersTaskColor2 = new Color(230, 230, 230);
+    private Color layersItemTextColor = Color.BLACK; // #000000
+    private Color layersSelectedBgColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
+    private Color layersDragHandleColor = new Color(0x96, 0x96, 0x96); // #969696
+    private Color layersTaskColor = new Color(0xF0, 0xF0, 0xF0); // #F0F0F0
+    private Color layersTaskColor2 = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
     private boolean layersTaskUseGradient = false;
     private double layersTaskGradientAngle = 90.0;
     private ArrayList<float[]> layersTaskGradientStops = new ArrayList<>();
     // Panel colors - Format
-    private Color formatInteriorColor = new Color(250, 250, 250);
-    private Color formatInteriorColor2 = new Color(250, 250, 250);
+    private Color formatInteriorColor = new Color(0xFA, 0xFA, 0xFA); // #FAFAFA
+    private Color formatInteriorColor2 = new Color(0xFA, 0xFA, 0xFA); // #FAFAFA
     private boolean formatUseGradient = false;
     private double formatGradientAngle = 90.0;
     private ArrayList<float[]> formatGradientStops = new ArrayList<>();
-    private Color formatOutlineColor = new Color(200, 200, 200);
-    private Color formatHeaderColor = new Color(70, 130, 180);
-    private Color formatHeaderColor2 = new Color(70, 130, 180);
+    private Color formatOutlineColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
+    private Color formatHeaderColor = new Color(0x46, 0x82, 0xB4); // #4682B4
+    private Color formatHeaderColor2 = new Color(0x46, 0x82, 0xB4); // #4682B4
     private boolean formatHeaderUseGradient = false;
     private double formatHeaderGradientAngle = 0.0;
     private ArrayList<float[]> formatHeaderGradientStops = new ArrayList<>();
-// Panel colors - Toolbar
-    private Color toolbarBgColor = new Color(230, 230, 230);
-    private Color toolbarBgColor2 = new Color(230, 230, 230);
+    // Panel colors - Toolbar
+    private Color toolbarBgColor = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
+    private Color toolbarBgColor2 = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
     private boolean toolbarUseGradient = false;
     private double toolbarGradientAngle = 90.0;
     private ArrayList<float[]> toolbarGradientStops = new ArrayList<>();
     private JPanel toolbarPanel;
-    private Color formatLabelColor = Color.BLACK;
-    private Color formatSeparatorColor = new Color(200, 200, 200);
+    private Color formatLabelColor = Color.BLACK; // #000000
+    private Color formatSeparatorColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
     // Panel colors - Right Tabbed Pane
-    private Color rightTabbedBgColor = new Color(240, 240, 240);
-    private Color rightTabbedFgColor = Color.BLACK;
-    private Color rightTabbedSelectedBgColor = new Color(70, 130, 180);
-    private Color rightTabbedSelectedFgColor = Color.WHITE;
-    private Color rightTabbedBorderColor = new Color(150, 150, 150);
-    private boolean rightTabbedBorderVisible = true;
-    private Color rightTabbedUnderlineColor = new Color(70, 130, 180);
-    private boolean rightTabbedUnderlineVisible = false;
+    private Color rightTabbedBgColor = new Color(0xF0, 0xF0, 0xF0); // #F0F0F0
+    private Color rightTabbedFgColor = Color.BLACK; // #000000
+    private Color rightTabbedSelectedBgColor = new Color(0x46, 0x82, 0xB4); // #4682B4
+    private Color rightTabbedSelectedFgColor = Color.WHITE; // #FFFFFF
+    private Color rightTabbedBorderColor = new Color(0x96, 0x96, 0x96); // #969696
+    private boolean rightTabbedBorderVisible = false;
+    private Color rightTabbedUnderlineColor = new Color(0x46, 0x82, 0xB4); // #4682B4
+    private boolean rightTabbedUnderlineVisible = true;
     // Panel colors - General Tab
-    private Color generalInteriorColor = new Color(230, 230, 230);
-    private Color generalInteriorColor2 = new Color(230, 230, 230);
+    private Color generalInteriorColor = Color.WHITE; // #FFFFFF
+    private Color generalInteriorColor2 = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
     private boolean generalUseGradient = false;
     private double generalGradientAngle = 90.0;
     private ArrayList<float[]> generalGradientStops = new ArrayList<>();
-    private Color generalOutlineColor = new Color(200, 200, 200);
+    private Color generalOutlineColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
     private boolean generalBorderVisible = true;
-    private Color formatResizeHandleColor = new Color(230, 230, 230);
-    private Color formatTabColor = new Color(220, 220, 220);
-    private Color formatTabColor2 = new Color(220, 220, 220);
+    private Color formatResizeHandleColor = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
+    private Color formatTabColor = new Color(0xDC, 0xDC, 0xDC); // #DCDCDC
+    private Color formatTabColor2 = new Color(0xDC, 0xDC, 0xDC); // #DCDCDC
     private boolean formatTabUseGradient = false;
     private double formatTabGradientAngle = 90.0;
     private ArrayList<float[]> formatTabGradientStops = new ArrayList<>();
-    private Color formatSelectedTabColor = new Color(255, 255, 255);
-    private Color formatSelectedTabColor2 = new Color(255, 255, 255);
+    private Color formatSelectedTabColor = Color.WHITE; // #FFFFFF
+    private Color formatSelectedTabColor2 = Color.WHITE; // #FFFFFF
     private boolean formatSelectedTabUseGradient = false;
     private double formatSelectedTabGradientAngle = 90.0;
     private ArrayList<float[]> formatSelectedTabGradientStops = new ArrayList<>();
-    private Color formatTabContentColor = new Color(230, 230, 230);
-    private Color formatTabContentColor2 = new Color(230, 230, 230);
+    private Color formatTabContentColor = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
+    private Color formatTabContentColor2 = new Color(0xE6, 0xE6, 0xE6); // #E6E6E6
     private boolean formatTabContentUseGradient = false;
     private double formatTabContentGradientAngle = 90.0;
     private ArrayList<float[]> formatTabContentGradientStops = new ArrayList<>();
@@ -153,6 +153,8 @@ public class Timeline2 extends JFrame {
     private CollapsiblePanel rightPanel;
     private LayersPanel layersPanel;
     private JTabbedPane rightTabbedPane;
+    private JScrollPane generalScrollPane;
+    private JScrollPane settingsScrollPane;
     private JPanel settingsPanel;
     private JPanel generalPanel;
     private JPanel formatPanel;
@@ -161,6 +163,7 @@ public class Timeline2 extends JFrame {
     private JTextField taskNameField, taskStartField, taskEndField;
     private JLabel formatTitleLabel;
     private JButton duplicateTaskBtn;
+    private JButton deleteTaskBtn;
     private JButton fillColorBtn, outlineColorBtn, textColorBtn;
     // Notes tab fields
     private JTextArea note1Area, note2Area, note3Area, note4Area, note5Area;
@@ -228,7 +231,7 @@ public class Timeline2 extends JFrame {
     private JSpinner timelineAxisThicknessSpinner;
     private String timelineAxisPosition = "Bottom";
     private JComboBox<String> timelineAxisPositionCombo;
-    private Color timelineAxisTickColor = Color.BLACK;
+    private Color timelineAxisTickColor = new Color(70, 130, 180);
     private int timelineAxisTickWidth = 1;
     private int timelineAxisTickHeight = 15;
     private JPanel axisLineColorRow;
@@ -284,6 +287,8 @@ public class Timeline2 extends JFrame {
 
     public static void main(String[] args) {
         try {
+            // Disable FlatLaf native library to avoid Java warning
+            System.setProperty("flatlaf.useNativeLibrary", "false");
             UIManager.setLookAndFeel(new FlatLightLaf());
             UIManager.put("TabbedPane.showContentSeparator", false);
             UIManager.put("TabbedPane.contentBorderInsets", new java.awt.Insets(0, 0, 0, 0));
@@ -386,6 +391,11 @@ public class Timeline2 extends JFrame {
         duplicateTaskBtn.setToolTipText("Duplicate selected task(s)");
         duplicateTaskBtn.addActionListener(e -> duplicateSelectedTasks());
         toolbarPanel.add(duplicateTaskBtn);
+        deleteTaskBtn = new JButton("Delete");
+        deleteTaskBtn.setEnabled(false);
+        deleteTaskBtn.setToolTipText("Delete selected task(s) or milestone");
+        deleteTaskBtn.addActionListener(e -> deleteSelectedItems());
+        toolbarPanel.add(deleteTaskBtn);
         JButton clearAllBtn = new JButton("Clear All");
         clearAllBtn.addActionListener(e -> clearAll());
         toolbarPanel.add(clearAllBtn);
@@ -416,10 +426,18 @@ public class Timeline2 extends JFrame {
 
         generalPanel = createGeneralPanel();
         rightTabbedPane = new JTabbedPane();
+
+        // Create scroll panes with borders for tab content
+        generalScrollPane = new JScrollPane(generalPanel);
+        settingsScrollPane = new JScrollPane(settingsPanel);
+
         rightTabbedPane.addTab("Layers", layersPanel);
-        rightTabbedPane.addTab("General", new JScrollPane(generalPanel));
-        rightTabbedPane.addTab("Time Axis", new JScrollPane(settingsPanel));
-        rightTabbedPane.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(150, 150, 150)), BorderFactory.createEmptyBorder(10, 0, 0, 0)));
+        rightTabbedPane.addTab("General", generalScrollPane);
+        rightTabbedPane.addTab("Time Axis", settingsScrollPane);
+
+        // Apply initial border and color settings
+        applyTabContentBorders();
+        applyRightTabbedPaneColors();
 
         JPanel rightTabbedWrapper = new JPanel(new BorderLayout());
         rightTabbedWrapper.add(timelineRangePanel, BorderLayout.NORTH);
@@ -3628,6 +3646,7 @@ public class Timeline2 extends JFrame {
             formatTitleLabel.setText("No task selected");
             formatTitleLabel.setForeground(Color.BLACK);
             duplicateTaskBtn.setEnabled(false);
+            deleteTaskBtn.setEnabled(false);
             setFormatFieldsEnabled(false);
             clearFormatFields();
         } else if (selectedTaskIndices.size() == 1) {
@@ -3641,6 +3660,7 @@ public class Timeline2 extends JFrame {
             formatTitleLabel.setText("Selected: " + task.name);
             formatTitleLabel.setForeground(fillColor.darker());
             duplicateTaskBtn.setEnabled(true);
+            deleteTaskBtn.setEnabled(true);
             taskNameField.setText(task.name);
             taskStartField.setText(task.startDate);
             taskEndField.setText(task.endDate);
@@ -3720,6 +3740,7 @@ public class Timeline2 extends JFrame {
             formatTitleLabel.setText(selectedTaskIndices.size() + " tasks selected");
             formatTitleLabel.setForeground(Color.BLUE);
             duplicateTaskBtn.setEnabled(true);
+            deleteTaskBtn.setEnabled(true);
 
             // Clear text fields but keep them enabled for batch input
             taskNameField.setText("");
@@ -4112,6 +4133,10 @@ public class Timeline2 extends JFrame {
         refreshTimeline();
     }
 
+    private void deleteSelectedItems() {
+        timelineDisplayPanel.deleteSelectedItem();
+    }
+
     private void updateSelectedTaskName() {
         if (selectedTaskIndices.size() == 1) {
             int index = selectedTaskIndices.iterator().next();
@@ -4374,14 +4399,13 @@ public class Timeline2 extends JFrame {
 
         panel.add(dateContainer);
 
-        // Dual-handle range slider for date range - starts and ends on Jan 1st of years
-        int endYearOffset = LocalDate.now().getMonthValue() > 6 ? 3 : 2;  // 3 years ahead if in last half of year
-        int[] sliderYears = {LocalDate.now().getYear() - 2, LocalDate.now().getYear() + endYearOffset};  // [startYear, endYear]
+        // Dual-handle range slider for date range - 2 years before and 3 years after today
+        LocalDate sliderMinDate = LocalDate.now().minusYears(2);
+        LocalDate sliderMaxDate = LocalDate.now().plusYears(3);
 
         // Helper to calculate slider base date and total days
-        java.util.function.Supplier<LocalDate> getSliderBaseDate = () -> LocalDate.of(sliderYears[0], 1, 1);
-        java.util.function.Supplier<Integer> getTotalDays = () -> (int) java.time.temporal.ChronoUnit.DAYS.between(
-            LocalDate.of(sliderYears[0], 1, 1), LocalDate.of(sliderYears[1], 1, 1));
+        java.util.function.Supplier<LocalDate> getSliderBaseDate = () -> sliderMinDate;
+        java.util.function.Supplier<Integer> getTotalDays = () -> (int) java.time.temporal.ChronoUnit.DAYS.between(sliderMinDate, sliderMaxDate);
 
         int startDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), LocalDate.now().withDayOfMonth(1));
         int endDayOffset = (int) java.time.temporal.ChronoUnit.DAYS.between(getSliderBaseDate.get(), LocalDate.now().plusYears(1).withDayOfMonth(1).plusMonths(1).minusDays(1));
@@ -4420,7 +4444,7 @@ public class Timeline2 extends JFrame {
         panel.add(rangeSlider);
 
         // Button row for Set to tasks buttons
-        JPanel setToTasksBtnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        JPanel setToTasksBtnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
         setToTasksBtnRow.setOpaque(false);
         setToTasksBtnRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -6237,8 +6261,21 @@ public class Timeline2 extends JFrame {
 
         dialog.add(tabbedPane, BorderLayout.CENTER);
 
-        // OK/Cancel buttons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Button panel with Export/Import on left, OK/Cancel on right
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+
+        // Left side - Export/Import buttons
+        JPanel leftButtons = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton exportBtn = new JButton("Export...");
+        exportBtn.addActionListener(e -> exportSkinsSettings(dialog));
+        JButton importBtn = new JButton("Import...");
+        importBtn.addActionListener(e -> importSkinsSettings(dialog));
+        leftButtons.add(exportBtn);
+        leftButtons.add(importBtn);
+        buttonPanel.add(leftButtons, BorderLayout.WEST);
+
+        // Right side - OK/Cancel buttons
+        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton okBtn = new JButton("OK");
         okBtn.addActionListener(e -> {
             if (settingsPanel != null) settingsPanel.repaint();
@@ -6246,11 +6283,367 @@ public class Timeline2 extends JFrame {
         });
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.addActionListener(e -> dialog.dispose());
-        buttonPanel.add(okBtn);
-        buttonPanel.add(cancelBtn);
+        rightButtons.add(okBtn);
+        rightButtons.add(cancelBtn);
+        buttonPanel.add(rightButtons, BorderLayout.EAST);
+
         dialog.add(buttonPanel, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
+    }
+
+    private void exportSkinsSettings(JDialog parent) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export Skins Settings");
+        fileChooser.setSelectedFile(new java.io.File("skins_settings.txt"));
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Text Files", "txt"));
+
+        if (fileChooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION) {
+            java.io.File file = fileChooser.getSelectedFile();
+            if (!file.getName().toLowerCase().endsWith(".txt")) {
+                file = new java.io.File(file.getAbsolutePath() + ".txt");
+            }
+            try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
+                writer.println("# Timeline Skins Settings Export");
+                writer.println("# Generated: " + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()));
+                writer.println();
+
+                // Settings Panel
+                writer.println("# Settings Panel (Timeline Tab)");
+                writer.println("settingsInteriorColor=" + colorToHex(settingsInteriorColor));
+                writer.println("settingsInteriorColor2=" + colorToHex(settingsInteriorColor2));
+                writer.println("settingsUseGradient=" + settingsUseGradient);
+                writer.println("settingsGradientAngle=" + settingsGradientAngle);
+                writeGradientStops(writer, "settingsGradientStops", settingsGradientStops);
+                writer.println("settingsOutlineColor=" + colorToHex(settingsOutlineColor));
+                writer.println("settingsBorderVisible=" + settingsBorderVisible);
+                writer.println("settingsHeaderColor=" + colorToHex(settingsHeaderColor));
+                writer.println("settingsHeaderColor2=" + colorToHex(settingsHeaderColor2));
+                writer.println("settingsHeaderUseGradient=" + settingsHeaderUseGradient);
+                writer.println("settingsHeaderGradientAngle=" + settingsHeaderGradientAngle);
+                writeGradientStops(writer, "settingsHeaderGradientStops", settingsHeaderGradientStops);
+                writer.println("settingsHeaderTextColor=" + colorToHex(settingsHeaderTextColor));
+                writer.println("settingsLabelColor=" + colorToHex(settingsLabelColor));
+                writer.println("settingsFieldBgColor=" + colorToHex(settingsFieldBgColor));
+                writer.println("settingsButtonBgColor=" + colorToHex(settingsButtonBgColor));
+                writer.println("settingsButtonTextColor=" + colorToHex(settingsButtonTextColor));
+                writer.println();
+
+                // Timeline Panel
+                writer.println("# Timeline Panel");
+                writer.println("timelineInteriorColor=" + colorToHex(timelineInteriorColor));
+                writer.println("timelineInteriorColor2=" + colorToHex(timelineInteriorColor2));
+                writer.println("timelineUseGradient=" + timelineUseGradient);
+                writer.println("timelineGradientAngle=" + timelineGradientAngle);
+                writeGradientStops(writer, "timelineGradientStops", timelineGradientStops);
+                writer.println("timelineOutlineColor=" + colorToHex(timelineOutlineColor));
+                writer.println("timelineLineColor=" + colorToHex(timelineLineColor));
+                writer.println("timelineDateTextColor=" + colorToHex(timelineDateTextColor));
+                writer.println("timelineGridColor=" + colorToHex(timelineGridColor));
+                writer.println("timelineEventColor=" + colorToHex(timelineEventColor));
+                writer.println();
+
+                // Layers Panel
+                writer.println("# Layers Panel");
+                writer.println("layersInteriorColor=" + colorToHex(layersInteriorColor));
+                writer.println("layersInteriorColor2=" + colorToHex(layersInteriorColor2));
+                writer.println("layersUseGradient=" + layersUseGradient);
+                writer.println("layersGradientAngle=" + layersGradientAngle);
+                writeGradientStops(writer, "layersGradientStops", layersGradientStops);
+                writer.println("layersOutlineColor=" + colorToHex(layersOutlineColor));
+                writer.println("layersBorderVisible=" + layersBorderVisible);
+                writer.println("layersHeaderColor=" + colorToHex(layersHeaderColor));
+                writer.println("layersHeaderColor2=" + colorToHex(layersHeaderColor2));
+                writer.println("layersHeaderUseGradient=" + layersHeaderUseGradient);
+                writer.println("layersHeaderGradientAngle=" + layersHeaderGradientAngle);
+                writeGradientStops(writer, "layersHeaderGradientStops", layersHeaderGradientStops);
+                writer.println("layersHeaderTextColor=" + colorToHex(layersHeaderTextColor));
+                writer.println("layersListBgColor=" + colorToHex(layersListBgColor));
+                writer.println("layersListBgColor2=" + colorToHex(layersListBgColor2));
+                writer.println("layersListBgUseGradient=" + layersListBgUseGradient);
+                writer.println("layersListBgGradientAngle=" + layersListBgGradientAngle);
+                writeGradientStops(writer, "layersListBgGradientStops", layersListBgGradientStops);
+                writer.println("layersItemTextColor=" + colorToHex(layersItemTextColor));
+                writer.println("layersSelectedBgColor=" + colorToHex(layersSelectedBgColor));
+                writer.println("layersDragHandleColor=" + colorToHex(layersDragHandleColor));
+                writer.println("layersTaskColor=" + colorToHex(layersTaskColor));
+                writer.println("layersTaskColor2=" + colorToHex(layersTaskColor2));
+                writer.println("layersTaskUseGradient=" + layersTaskUseGradient);
+                writer.println("layersTaskGradientAngle=" + layersTaskGradientAngle);
+                writeGradientStops(writer, "layersTaskGradientStops", layersTaskGradientStops);
+                writer.println();
+
+                // Format Panel
+                writer.println("# Format Panel");
+                writer.println("formatInteriorColor=" + colorToHex(formatInteriorColor));
+                writer.println("formatInteriorColor2=" + colorToHex(formatInteriorColor2));
+                writer.println("formatUseGradient=" + formatUseGradient);
+                writer.println("formatGradientAngle=" + formatGradientAngle);
+                writeGradientStops(writer, "formatGradientStops", formatGradientStops);
+                writer.println("formatOutlineColor=" + colorToHex(formatOutlineColor));
+                writer.println("formatHeaderColor=" + colorToHex(formatHeaderColor));
+                writer.println("formatHeaderColor2=" + colorToHex(formatHeaderColor2));
+                writer.println("formatHeaderUseGradient=" + formatHeaderUseGradient);
+                writer.println("formatHeaderGradientAngle=" + formatHeaderGradientAngle);
+                writeGradientStops(writer, "formatHeaderGradientStops", formatHeaderGradientStops);
+                writer.println("formatLabelColor=" + colorToHex(formatLabelColor));
+                writer.println("formatSeparatorColor=" + colorToHex(formatSeparatorColor));
+                writer.println("formatResizeHandleColor=" + colorToHex(formatResizeHandleColor));
+                writer.println("formatTabColor=" + colorToHex(formatTabColor));
+                writer.println("formatTabColor2=" + colorToHex(formatTabColor2));
+                writer.println("formatTabUseGradient=" + formatTabUseGradient);
+                writer.println("formatTabGradientAngle=" + formatTabGradientAngle);
+                writeGradientStops(writer, "formatTabGradientStops", formatTabGradientStops);
+                writer.println("formatSelectedTabColor=" + colorToHex(formatSelectedTabColor));
+                writer.println("formatSelectedTabColor2=" + colorToHex(formatSelectedTabColor2));
+                writer.println("formatSelectedTabUseGradient=" + formatSelectedTabUseGradient);
+                writer.println("formatSelectedTabGradientAngle=" + formatSelectedTabGradientAngle);
+                writeGradientStops(writer, "formatSelectedTabGradientStops", formatSelectedTabGradientStops);
+                writer.println("formatTabContentColor=" + colorToHex(formatTabContentColor));
+                writer.println("formatTabContentColor2=" + colorToHex(formatTabContentColor2));
+                writer.println("formatTabContentUseGradient=" + formatTabContentUseGradient);
+                writer.println("formatTabContentGradientAngle=" + formatTabContentGradientAngle);
+                writeGradientStops(writer, "formatTabContentGradientStops", formatTabContentGradientStops);
+                writer.println();
+
+                // Toolbar
+                writer.println("# Toolbar");
+                writer.println("toolbarBgColor=" + colorToHex(toolbarBgColor));
+                writer.println("toolbarBgColor2=" + colorToHex(toolbarBgColor2));
+                writer.println("toolbarUseGradient=" + toolbarUseGradient);
+                writer.println("toolbarGradientAngle=" + toolbarGradientAngle);
+                writeGradientStops(writer, "toolbarGradientStops", toolbarGradientStops);
+                writer.println();
+
+                // Right Tabbed Pane
+                writer.println("# Right Tabbed Pane");
+                writer.println("rightTabbedBgColor=" + colorToHex(rightTabbedBgColor));
+                writer.println("rightTabbedFgColor=" + colorToHex(rightTabbedFgColor));
+                writer.println("rightTabbedSelectedBgColor=" + colorToHex(rightTabbedSelectedBgColor));
+                writer.println("rightTabbedSelectedFgColor=" + colorToHex(rightTabbedSelectedFgColor));
+                writer.println("rightTabbedBorderColor=" + colorToHex(rightTabbedBorderColor));
+                writer.println("rightTabbedBorderVisible=" + rightTabbedBorderVisible);
+                writer.println("rightTabbedUnderlineColor=" + colorToHex(rightTabbedUnderlineColor));
+                writer.println("rightTabbedUnderlineVisible=" + rightTabbedUnderlineVisible);
+                writer.println();
+
+                // General Tab
+                writer.println("# General Tab");
+                writer.println("generalInteriorColor=" + colorToHex(generalInteriorColor));
+                writer.println("generalInteriorColor2=" + colorToHex(generalInteriorColor2));
+                writer.println("generalUseGradient=" + generalUseGradient);
+                writer.println("generalGradientAngle=" + generalGradientAngle);
+                writeGradientStops(writer, "generalGradientStops", generalGradientStops);
+                writer.println("generalOutlineColor=" + colorToHex(generalOutlineColor));
+                writer.println("generalBorderVisible=" + generalBorderVisible);
+
+                JOptionPane.showMessageDialog(parent, "Skins settings exported to:\n" + file.getAbsolutePath(),
+                    "Export Successful", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(parent, "Error exporting settings: " + ex.getMessage(),
+                    "Export Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void writeGradientStops(java.io.PrintWriter writer, String name, ArrayList<float[]> stops) {
+        if (stops.isEmpty()) {
+            writer.println(name + "=");
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < stops.size(); i++) {
+                float[] stop = stops.get(i);
+                if (i > 0) sb.append(";");
+                sb.append(String.format("%.3f,%.0f,%.0f,%.0f,%.0f", stop[0], stop[1], stop[2], stop[3], stop[4]));
+            }
+            writer.println(name + "=" + sb.toString());
+        }
+    }
+
+    private void importSkinsSettings(JDialog parent) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Import Skins Settings");
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Text Files", "txt"));
+
+        if (fileChooser.showOpenDialog(parent) == JFileChooser.APPROVE_OPTION) {
+            java.io.File file = fileChooser.getSelectedFile();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty() || line.startsWith("#")) continue;
+
+                    int eqIndex = line.indexOf('=');
+                    if (eqIndex > 0) {
+                        String key = line.substring(0, eqIndex).trim();
+                        String value = line.substring(eqIndex + 1).trim();
+                        applySkinsSettingFromFile(key, value);
+                    }
+                }
+
+                // Apply all changes
+                applySettingsPanelColors();
+                applyLayersPanelColors();
+                applyGeneralPanelColors();
+                applyRightTabbedPaneColors();
+                if (toolbarPanel != null) toolbarPanel.repaint();
+                if (timelineDisplayPanel != null) timelineDisplayPanel.repaint();
+
+                JOptionPane.showMessageDialog(parent, "Skins settings imported successfully!\nClose and reopen Skins dialog to see updated color buttons.",
+                    "Import Successful", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(parent, "Error importing settings: " + ex.getMessage(),
+                    "Import Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void applySkinsSettingFromFile(String key, String value) {
+        try {
+            switch (key) {
+                // Settings Panel
+                case "settingsInteriorColor": settingsInteriorColor = hexToColor(value); break;
+                case "settingsInteriorColor2": settingsInteriorColor2 = hexToColor(value); break;
+                case "settingsUseGradient": settingsUseGradient = Boolean.parseBoolean(value); break;
+                case "settingsGradientAngle": settingsGradientAngle = Double.parseDouble(value); break;
+                case "settingsGradientStops": settingsGradientStops = parseGradientStops(value); break;
+                case "settingsOutlineColor": settingsOutlineColor = hexToColor(value); break;
+                case "settingsBorderVisible": settingsBorderVisible = Boolean.parseBoolean(value); break;
+                case "settingsHeaderColor": settingsHeaderColor = hexToColor(value); break;
+                case "settingsHeaderColor2": settingsHeaderColor2 = hexToColor(value); break;
+                case "settingsHeaderUseGradient": settingsHeaderUseGradient = Boolean.parseBoolean(value); break;
+                case "settingsHeaderGradientAngle": settingsHeaderGradientAngle = Double.parseDouble(value); break;
+                case "settingsHeaderGradientStops": settingsHeaderGradientStops = parseGradientStops(value); break;
+                case "settingsHeaderTextColor": settingsHeaderTextColor = hexToColor(value); break;
+                case "settingsLabelColor": settingsLabelColor = hexToColor(value); break;
+                case "settingsFieldBgColor": settingsFieldBgColor = hexToColor(value); break;
+                case "settingsButtonBgColor": settingsButtonBgColor = hexToColor(value); break;
+                case "settingsButtonTextColor": settingsButtonTextColor = hexToColor(value); break;
+
+                // Timeline Panel
+                case "timelineInteriorColor": timelineInteriorColor = hexToColor(value); break;
+                case "timelineInteriorColor2": timelineInteriorColor2 = hexToColor(value); break;
+                case "timelineUseGradient": timelineUseGradient = Boolean.parseBoolean(value); break;
+                case "timelineGradientAngle": timelineGradientAngle = Double.parseDouble(value); break;
+                case "timelineGradientStops": timelineGradientStops = parseGradientStops(value); break;
+                case "timelineOutlineColor": timelineOutlineColor = hexToColor(value); break;
+                case "timelineLineColor": timelineLineColor = hexToColor(value); break;
+                case "timelineDateTextColor": timelineDateTextColor = hexToColor(value); break;
+                case "timelineGridColor": timelineGridColor = hexToColor(value); break;
+                case "timelineEventColor": timelineEventColor = hexToColor(value); break;
+
+                // Layers Panel
+                case "layersInteriorColor": layersInteriorColor = hexToColor(value); break;
+                case "layersInteriorColor2": layersInteriorColor2 = hexToColor(value); break;
+                case "layersUseGradient": layersUseGradient = Boolean.parseBoolean(value); break;
+                case "layersGradientAngle": layersGradientAngle = Double.parseDouble(value); break;
+                case "layersGradientStops": layersGradientStops = parseGradientStops(value); break;
+                case "layersOutlineColor": layersOutlineColor = hexToColor(value); break;
+                case "layersBorderVisible": layersBorderVisible = Boolean.parseBoolean(value); break;
+                case "layersHeaderColor": layersHeaderColor = hexToColor(value); break;
+                case "layersHeaderColor2": layersHeaderColor2 = hexToColor(value); break;
+                case "layersHeaderUseGradient": layersHeaderUseGradient = Boolean.parseBoolean(value); break;
+                case "layersHeaderGradientAngle": layersHeaderGradientAngle = Double.parseDouble(value); break;
+                case "layersHeaderGradientStops": layersHeaderGradientStops = parseGradientStops(value); break;
+                case "layersHeaderTextColor": layersHeaderTextColor = hexToColor(value); break;
+                case "layersListBgColor": layersListBgColor = hexToColor(value); break;
+                case "layersListBgColor2": layersListBgColor2 = hexToColor(value); break;
+                case "layersListBgUseGradient": layersListBgUseGradient = Boolean.parseBoolean(value); break;
+                case "layersListBgGradientAngle": layersListBgGradientAngle = Double.parseDouble(value); break;
+                case "layersListBgGradientStops": layersListBgGradientStops = parseGradientStops(value); break;
+                case "layersItemTextColor": layersItemTextColor = hexToColor(value); break;
+                case "layersSelectedBgColor": layersSelectedBgColor = hexToColor(value); break;
+                case "layersDragHandleColor": layersDragHandleColor = hexToColor(value); break;
+                case "layersTaskColor": layersTaskColor = hexToColor(value); break;
+                case "layersTaskColor2": layersTaskColor2 = hexToColor(value); break;
+                case "layersTaskUseGradient": layersTaskUseGradient = Boolean.parseBoolean(value); break;
+                case "layersTaskGradientAngle": layersTaskGradientAngle = Double.parseDouble(value); break;
+                case "layersTaskGradientStops": layersTaskGradientStops = parseGradientStops(value); break;
+
+                // Format Panel
+                case "formatInteriorColor": formatInteriorColor = hexToColor(value); break;
+                case "formatInteriorColor2": formatInteriorColor2 = hexToColor(value); break;
+                case "formatUseGradient": formatUseGradient = Boolean.parseBoolean(value); break;
+                case "formatGradientAngle": formatGradientAngle = Double.parseDouble(value); break;
+                case "formatGradientStops": formatGradientStops = parseGradientStops(value); break;
+                case "formatOutlineColor": formatOutlineColor = hexToColor(value); break;
+                case "formatHeaderColor": formatHeaderColor = hexToColor(value); break;
+                case "formatHeaderColor2": formatHeaderColor2 = hexToColor(value); break;
+                case "formatHeaderUseGradient": formatHeaderUseGradient = Boolean.parseBoolean(value); break;
+                case "formatHeaderGradientAngle": formatHeaderGradientAngle = Double.parseDouble(value); break;
+                case "formatHeaderGradientStops": formatHeaderGradientStops = parseGradientStops(value); break;
+                case "formatLabelColor": formatLabelColor = hexToColor(value); break;
+                case "formatSeparatorColor": formatSeparatorColor = hexToColor(value); break;
+                case "formatResizeHandleColor": formatResizeHandleColor = hexToColor(value); break;
+                case "formatTabColor": formatTabColor = hexToColor(value); break;
+                case "formatTabColor2": formatTabColor2 = hexToColor(value); break;
+                case "formatTabUseGradient": formatTabUseGradient = Boolean.parseBoolean(value); break;
+                case "formatTabGradientAngle": formatTabGradientAngle = Double.parseDouble(value); break;
+                case "formatTabGradientStops": formatTabGradientStops = parseGradientStops(value); break;
+                case "formatSelectedTabColor": formatSelectedTabColor = hexToColor(value); break;
+                case "formatSelectedTabColor2": formatSelectedTabColor2 = hexToColor(value); break;
+                case "formatSelectedTabUseGradient": formatSelectedTabUseGradient = Boolean.parseBoolean(value); break;
+                case "formatSelectedTabGradientAngle": formatSelectedTabGradientAngle = Double.parseDouble(value); break;
+                case "formatSelectedTabGradientStops": formatSelectedTabGradientStops = parseGradientStops(value); break;
+                case "formatTabContentColor": formatTabContentColor = hexToColor(value); break;
+                case "formatTabContentColor2": formatTabContentColor2 = hexToColor(value); break;
+                case "formatTabContentUseGradient": formatTabContentUseGradient = Boolean.parseBoolean(value); break;
+                case "formatTabContentGradientAngle": formatTabContentGradientAngle = Double.parseDouble(value); break;
+                case "formatTabContentGradientStops": formatTabContentGradientStops = parseGradientStops(value); break;
+
+                // Toolbar
+                case "toolbarBgColor": toolbarBgColor = hexToColor(value); break;
+                case "toolbarBgColor2": toolbarBgColor2 = hexToColor(value); break;
+                case "toolbarUseGradient": toolbarUseGradient = Boolean.parseBoolean(value); break;
+                case "toolbarGradientAngle": toolbarGradientAngle = Double.parseDouble(value); break;
+                case "toolbarGradientStops": toolbarGradientStops = parseGradientStops(value); break;
+
+                // Right Tabbed Pane
+                case "rightTabbedBgColor": rightTabbedBgColor = hexToColor(value); break;
+                case "rightTabbedFgColor": rightTabbedFgColor = hexToColor(value); break;
+                case "rightTabbedSelectedBgColor": rightTabbedSelectedBgColor = hexToColor(value); break;
+                case "rightTabbedSelectedFgColor": rightTabbedSelectedFgColor = hexToColor(value); break;
+                case "rightTabbedBorderColor": rightTabbedBorderColor = hexToColor(value); break;
+                case "rightTabbedBorderVisible": rightTabbedBorderVisible = Boolean.parseBoolean(value); break;
+                case "rightTabbedUnderlineColor": rightTabbedUnderlineColor = hexToColor(value); break;
+                case "rightTabbedUnderlineVisible": rightTabbedUnderlineVisible = Boolean.parseBoolean(value); break;
+
+                // General Tab
+                case "generalInteriorColor": generalInteriorColor = hexToColor(value); break;
+                case "generalInteriorColor2": generalInteriorColor2 = hexToColor(value); break;
+                case "generalUseGradient": generalUseGradient = Boolean.parseBoolean(value); break;
+                case "generalGradientAngle": generalGradientAngle = Double.parseDouble(value); break;
+                case "generalGradientStops": generalGradientStops = parseGradientStops(value); break;
+                case "generalOutlineColor": generalOutlineColor = hexToColor(value); break;
+                case "generalBorderVisible": generalBorderVisible = Boolean.parseBoolean(value); break;
+            }
+        } catch (Exception e) {
+            // Silently ignore parse errors for individual settings
+        }
+    }
+
+    private ArrayList<float[]> parseGradientStops(String value) {
+        ArrayList<float[]> stops = new ArrayList<>();
+        if (value == null || value.isEmpty()) return stops;
+
+        String[] parts = value.split(";");
+        for (String part : parts) {
+            String[] values = part.split(",");
+            if (values.length == 5) {
+                try {
+                    float[] stop = new float[5];
+                    stop[0] = Float.parseFloat(values[0]);
+                    stop[1] = Float.parseFloat(values[1]);
+                    stop[2] = Float.parseFloat(values[2]);
+                    stop[3] = Float.parseFloat(values[3]);
+                    stop[4] = Float.parseFloat(values[4]);
+                    stops.add(stop);
+                } catch (NumberFormatException e) {
+                    // Skip invalid entries
+                }
+            }
+        }
+        return stops;
     }
 
     private void showPreferencesDialog() {
@@ -6826,6 +7219,39 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void applyTabContentBorders() {
+        // Apply borders to all tab content in rightTabbedPane
+        Color borderColor = settingsOutlineColor; // Use unified border color
+        boolean visible = settingsBorderVisible;
+
+        // Layers tab - direct panel
+        if (layersPanel != null) {
+            if (visible) {
+                layersPanel.setBorder(BorderFactory.createLineBorder(borderColor));
+            } else {
+                layersPanel.setBorder(null);
+            }
+        }
+
+        // General tab - scroll pane
+        if (generalScrollPane != null) {
+            if (visible) {
+                generalScrollPane.setBorder(BorderFactory.createLineBorder(borderColor));
+            } else {
+                generalScrollPane.setBorder(null);
+            }
+        }
+
+        // Time Axis tab - scroll pane
+        if (settingsScrollPane != null) {
+            if (visible) {
+                settingsScrollPane.setBorder(BorderFactory.createLineBorder(borderColor));
+            } else {
+                settingsScrollPane.setBorder(null);
+            }
+        }
+    }
+
     private void applyLayersPanelColors() {
         applyRightPanelColors();
         applyLayersListColors();
@@ -6834,12 +7260,6 @@ public class Timeline2 extends JFrame {
     private void applyRightPanelColors() {
         if (rightPanel != null) {
             rightPanel.applyColors(layersInteriorColor, layersOutlineColor, layersHeaderColor, layersHeaderTextColor);
-            // Override border based on visibility
-            if (layersBorderVisible) {
-                rightPanel.setBorder(BorderFactory.createLineBorder(layersOutlineColor));
-            } else {
-                rightPanel.setBorder(null);
-            }
             rightPanel.repaint();
         }
     }
@@ -6847,45 +7267,33 @@ public class Timeline2 extends JFrame {
     private void applyLayersListColors() {
         if (layersPanel != null) {
             layersPanel.setListBackground(layersListBgColor);
-            // Apply border based on visibility
-            if (layersBorderVisible) {
-                layersPanel.setBorder(BorderFactory.createLineBorder(layersOutlineColor));
-            } else {
-                layersPanel.setBorder(null);
-            }
             layersPanel.refreshList();
             layersPanel.repaint();
         }
+        // Apply tab content borders (includes layers panel)
+        applyTabContentBorders();
     }
 
     private void applySettingsPanelColors() {
         if (settingsPanel != null) {
             settingsPanel.setBackground(settingsInteriorColor);
-            // Apply border based on visibility
-            if (settingsBorderVisible) {
-                settingsPanel.setBorder(BorderFactory.createLineBorder(settingsOutlineColor));
-            } else {
-                settingsPanel.setBorder(null);
-            }
             // Apply to all child components
             applyColorToChildren(settingsPanel, settingsInteriorColor);
             settingsPanel.repaint();
         }
+        // Apply tab content borders (includes settings scroll pane)
+        applyTabContentBorders();
     }
 
     private void applyGeneralPanelColors() {
         if (generalPanel != null) {
             generalPanel.setBackground(generalInteriorColor);
-            // Apply border based on visibility
-            if (generalBorderVisible) {
-                generalPanel.setBorder(BorderFactory.createLineBorder(generalOutlineColor));
-            } else {
-                generalPanel.setBorder(null);
-            }
             // Apply to all child components
             applyColorToChildren(generalPanel, generalInteriorColor);
             generalPanel.repaint();
         }
+        // Apply tab content borders (includes general scroll pane)
+        applyTabContentBorders();
     }
 
     private void applyRightTabbedPaneColors() {
@@ -8794,13 +9202,25 @@ public class Timeline2 extends JFrame {
             for (Object item : layerOrder) {
                 if (item instanceof TimelineTask) {
                     TimelineTask task = (TimelineTask) item;
-                    // Show center text if it exists, otherwise show task name
-                    String displayName = (task.centerText != null && !task.centerText.isEmpty()) ? task.centerText : task.name;
+                    // Show task name with center text in parenthesis if it exists (limit to 10 chars)
+                    String displayName = task.name;
+                    if (task.centerText != null && !task.centerText.isEmpty()) {
+                        String truncatedText = task.centerText.length() > 10
+                            ? task.centerText.substring(0, 10) + "..."
+                            : task.centerText;
+                        displayName += " (" + truncatedText + ")";
+                    }
                     listModel.addElement(displayName);
                 } else if (item instanceof TimelineMilestone) {
                     TimelineMilestone m = (TimelineMilestone) item;
-                    // Show label text if it exists, otherwise show milestone name
-                    String displayName = (m.labelText != null && !m.labelText.isEmpty()) ? m.labelText : m.name;
+                    // Show milestone name with label text in parenthesis if it exists (limit to 10 chars)
+                    String displayName = m.name;
+                    if (m.labelText != null && !m.labelText.isEmpty()) {
+                        String truncatedText = m.labelText.length() > 10
+                            ? m.labelText.substring(0, 10) + "..."
+                            : m.labelText;
+                        displayName += " (" + truncatedText + ")";
+                    }
                     listModel.addElement("\u25C6 " + displayName); // Diamond prefix for milestones
                 }
             }
@@ -9209,7 +9629,7 @@ public class Timeline2 extends JFrame {
         String note5 = "";
         TimelineTask(String name, String startDate, String endDate) {
             this.name = name;
-            this.centerText = name; // default center text to name
+            this.centerText = ""; // leave center text blank by default
             this.startDate = startDate;
             this.endDate = endDate;
         }
@@ -9295,8 +9715,8 @@ public class Timeline2 extends JFrame {
 
         TimelineMilestone(String name, String date, String shape) {
             this.name = name;
-            this.centerText = name;
-            this.labelText = name; // legacy support
+            this.centerText = ""; // leave center text blank by default
+            this.labelText = ""; // leave label text blank by default
             this.date = date;
             this.shape = shape;
         }
@@ -9529,7 +9949,7 @@ public class Timeline2 extends JFrame {
             repaint();
         }
 
-        private void deleteSelectedItem() {
+        void deleteSelectedItem() {
             if (selectedTaskIndices.isEmpty() && selectedMilestoneIndex < 0 && selectedMilestoneIndices.isEmpty()) return;
 
             saveState();
