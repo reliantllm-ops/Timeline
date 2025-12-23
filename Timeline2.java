@@ -116,6 +116,13 @@ public class Timeline2 extends JFrame {
     private JTable spreadsheetTable;
     private javax.swing.table.DefaultTableModel spreadsheetTableModel;
     private java.util.Map<Object, String[]> spreadsheetData = new java.util.HashMap<>();
+    private java.util.Map<Object, Integer> spreadsheetRowHeights = new java.util.HashMap<>();
+    private java.util.Set<String> spreadsheetWordWrapCells = new java.util.HashSet<>(); // Tracks cells with word wrap enabled (key: "rowItem.hashCode()_col")
+    private java.util.List<Object> spreadsheetRowOrder = new java.util.ArrayList<>();
+    private Color spreadsheetSelectionColor = new Color(173, 216, 230); // Light blue highlight
+    private Color spreadsheetSelectionTextColor = Color.BLACK; // Selected text color
+    private Color spreadsheetUnselectedTextColor = Color.BLACK; // Unselected text color
+    private Color spreadsheetUnselectedBgColor = Color.WHITE; // Unselected background color
     private JSplitPane centerSplitPane;
     private boolean spreadsheetVisible = false;
     private Color formatLabelColor = Color.BLACK; // #000000
@@ -446,6 +453,305 @@ public class Timeline2 extends JFrame {
         spreadsheetTable.setShowGrid(true);
         spreadsheetTable.setGridColor(new Color(200, 200, 200));
         spreadsheetTable.setIntercellSpacing(new Dimension(1, 1));
+        spreadsheetTable.setCellSelectionEnabled(true);
+        spreadsheetTable.setRowSelectionAllowed(false);
+        spreadsheetTable.setColumnSelectionAllowed(false);
+        spreadsheetTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+
+        // Custom cell renderer to highlight selected tasks/milestones and support word wrap
+        spreadsheetTable.setDefaultRenderer(Object.class, new javax.swing.table.TableCellRenderer() {
+            private final javax.swing.table.DefaultTableCellRenderer defaultRenderer = new javax.swing.table.DefaultTableCellRenderer();
+            private final JTextArea wrapRenderer = new JTextArea();
+            {
+                wrapRenderer.setLineWrap(true);
+                wrapRenderer.setWrapStyleWord(true);
+                wrapRenderer.setOpaque(true);
+                wrapRenderer.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+            }
+
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+
+                // Determine colors based on selection state
+                Color bgColor = spreadsheetUnselectedBgColor;
+                Color fgColor = spreadsheetUnselectedTextColor;
+                if (row < spreadsheetRowOrder.size()) {
+                    Object item = spreadsheetRowOrder.get(row);
+                    boolean isItemSelected = false;
+                    if (item instanceof TimelineTask) {
+                        int taskIndex = tasks.indexOf(item);
+                        isItemSelected = selectedTaskIndices.contains(taskIndex);
+                    } else if (item instanceof TimelineMilestone) {
+                        int msIndex = milestones.indexOf(item);
+                        isItemSelected = selectedMilestoneIndices.contains(msIndex) || msIndex == selectedMilestoneIndex;
+                    }
+                    if (isItemSelected) {
+                        bgColor = spreadsheetSelectionColor;
+                        fgColor = spreadsheetSelectionTextColor;
+                    }
+                }
+                if (isSelected) {
+                    bgColor = table.getSelectionBackground();
+                    fgColor = table.getSelectionForeground();
+                }
+
+                // Check if word wrap is enabled for this cell
+                String cellKey = row < spreadsheetRowOrder.size() ?
+                    System.identityHashCode(spreadsheetRowOrder.get(row)) + "_" + column : "";
+                boolean wordWrapEnabled = spreadsheetWordWrapCells.contains(cellKey);
+
+                if (wordWrapEnabled) {
+                    wrapRenderer.setText(value != null ? value.toString() : "");
+                    wrapRenderer.setBackground(bgColor);
+                    wrapRenderer.setForeground(fgColor);
+                    wrapRenderer.setFont(table.getFont());
+
+                    // Add focus border when cell is selected
+                    if (hasFocus) {
+                        wrapRenderer.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(Color.BLACK, 1),
+                            BorderFactory.createEmptyBorder(1, 1, 1, 1)));
+                    } else {
+                        wrapRenderer.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+                    }
+
+                    // Calculate preferred height for word wrap
+                    int colWidth = table.getColumnModel().getColumn(column).getWidth();
+                    wrapRenderer.setSize(colWidth, Short.MAX_VALUE);
+                    int preferredHeight = wrapRenderer.getPreferredSize().height + 4;
+                    if (table.getRowHeight(row) < preferredHeight) {
+                        table.setRowHeight(row, preferredHeight);
+                    }
+                    return wrapRenderer;
+                } else {
+                    Component c = defaultRenderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    c.setBackground(bgColor);
+                    c.setForeground(fgColor);
+                    return c;
+                }
+            }
+        });
+
+        // Custom cell editor using Metal L&F for visible cursor
+        JTextField metalTextField = new JTextField();
+        try {
+            metalTextField.setUI(new javax.swing.plaf.metal.MetalTextFieldUI());
+        } catch (Exception ex) {}
+        metalTextField.setCaretColor(Color.BLACK);
+        metalTextField.getCaret().setBlinkRate(500);
+        metalTextField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+
+        javax.swing.DefaultCellEditor metalEditor = new javax.swing.DefaultCellEditor(metalTextField) {
+            @Override
+            public Component getTableCellEditorComponent(JTable table, Object value,
+                    boolean isSelected, int row, int column) {
+                JTextField tf = (JTextField) super.getTableCellEditorComponent(table, value, isSelected, row, column);
+                try {
+                    tf.setUI(new javax.swing.plaf.metal.MetalTextFieldUI());
+                } catch (Exception ex) {}
+                tf.setCaretColor(Color.BLACK);
+                tf.getCaret().setBlinkRate(500);
+                tf.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+                SwingUtilities.invokeLater(() -> {
+                    tf.getCaret().setVisible(true);
+                });
+                return tf;
+            }
+        };
+        spreadsheetTable.setDefaultEditor(Object.class, metalEditor);
+
+        // Add row and column resizing functionality
+        final int[] resizingRow = {-1};
+        final int[] startY = {0};
+        final int[] startHeight = {0};
+        final int[] resizingCol = {-1};
+        final int[] startX = {0};
+        final int[] startWidth = {0};
+        final int RESIZE_MARGIN = 5;
+
+        spreadsheetTable.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(java.awt.event.MouseEvent e) {
+                int row = spreadsheetTable.rowAtPoint(e.getPoint());
+                int col = spreadsheetTable.columnAtPoint(e.getPoint());
+
+                // Check for column border first (right edge of current column or left edge detection)
+                if (col >= 0) {
+                    Rectangle colRect = spreadsheetTable.getCellRect(0, col, true);
+                    int rightX = colRect.x + colRect.width;
+                    if (Math.abs(e.getX() - rightX) <= RESIZE_MARGIN) {
+                        spreadsheetTable.setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
+                        return;
+                    } else if (col > 0) {
+                        Rectangle prevColRect = spreadsheetTable.getCellRect(0, col - 1, true);
+                        int prevRightX = prevColRect.x + prevColRect.width;
+                        if (Math.abs(e.getX() - prevRightX) <= RESIZE_MARGIN) {
+                            spreadsheetTable.setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
+                            return;
+                        }
+                    }
+                }
+
+                // Check for row border
+                if (row >= 0) {
+                    Rectangle rect = spreadsheetTable.getCellRect(row, 0, true);
+                    int bottomY = rect.y + rect.height;
+                    if (Math.abs(e.getY() - bottomY) <= RESIZE_MARGIN) {
+                        spreadsheetTable.setCursor(Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR));
+                    } else if (row > 0) {
+                        Rectangle prevRect = spreadsheetTable.getCellRect(row - 1, 0, true);
+                        int prevBottomY = prevRect.y + prevRect.height;
+                        if (Math.abs(e.getY() - prevBottomY) <= RESIZE_MARGIN) {
+                            spreadsheetTable.setCursor(Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR));
+                        } else {
+                            spreadsheetTable.setCursor(Cursor.getDefaultCursor());
+                        }
+                    } else {
+                        spreadsheetTable.setCursor(Cursor.getDefaultCursor());
+                    }
+                } else {
+                    spreadsheetTable.setCursor(Cursor.getDefaultCursor());
+                }
+            }
+
+            @Override
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (resizingCol[0] >= 0) {
+                    int newWidth = startWidth[0] + (e.getX() - startX[0]);
+                    if (newWidth >= 20) {
+                        spreadsheetTable.getColumnModel().getColumn(resizingCol[0]).setPreferredWidth(newWidth);
+                    }
+                } else if (resizingRow[0] >= 0) {
+                    int newHeight = startHeight[0] + (e.getY() - startY[0]);
+                    if (newHeight >= 16) {
+                        spreadsheetTable.setRowHeight(resizingRow[0], newHeight);
+                    }
+                }
+            }
+        });
+
+        spreadsheetTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                int row = spreadsheetTable.rowAtPoint(e.getPoint());
+                int col = spreadsheetTable.columnAtPoint(e.getPoint());
+
+                // Check for column border first
+                if (col >= 0) {
+                    Rectangle colRect = spreadsheetTable.getCellRect(0, col, true);
+                    int rightX = colRect.x + colRect.width;
+                    if (Math.abs(e.getX() - rightX) <= RESIZE_MARGIN) {
+                        resizingCol[0] = col;
+                        startX[0] = e.getX();
+                        startWidth[0] = spreadsheetTable.getColumnModel().getColumn(col).getWidth();
+                        return;
+                    } else if (col > 0) {
+                        Rectangle prevColRect = spreadsheetTable.getCellRect(0, col - 1, true);
+                        int prevRightX = prevColRect.x + prevColRect.width;
+                        if (Math.abs(e.getX() - prevRightX) <= RESIZE_MARGIN) {
+                            resizingCol[0] = col - 1;
+                            startX[0] = e.getX();
+                            startWidth[0] = spreadsheetTable.getColumnModel().getColumn(col - 1).getWidth();
+                            return;
+                        }
+                    }
+                }
+
+                // Check for row border
+                if (row >= 0) {
+                    Rectangle rect = spreadsheetTable.getCellRect(row, 0, true);
+                    int bottomY = rect.y + rect.height;
+                    if (Math.abs(e.getY() - bottomY) <= RESIZE_MARGIN) {
+                        resizingRow[0] = row;
+                        startY[0] = e.getY();
+                        startHeight[0] = spreadsheetTable.getRowHeight(row);
+                    } else if (row > 0) {
+                        Rectangle prevRect = spreadsheetTable.getCellRect(row - 1, 0, true);
+                        int prevBottomY = prevRect.y + prevRect.height;
+                        if (Math.abs(e.getY() - prevBottomY) <= RESIZE_MARGIN) {
+                            resizingRow[0] = row - 1;
+                            startY[0] = e.getY();
+                            startHeight[0] = spreadsheetTable.getRowHeight(row - 1);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                resizingRow[0] = -1;
+                resizingCol[0] = -1;
+                spreadsheetTable.setCursor(Cursor.getDefaultCursor());
+            }
+        });
+
+        // Deselect spreadsheet entirely when clicking off it (even when editing a cell)
+        spreadsheetTable.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                // Stop any cell editing in progress
+                if (spreadsheetTable.isEditing()) {
+                    spreadsheetTable.getCellEditor().stopCellEditing();
+                }
+                // Clear the selection
+                spreadsheetTable.clearSelection();
+            }
+        });
+
+        // Right-click context menu for word wrap toggle
+        JPopupMenu cellPopupMenu = new JPopupMenu();
+        JCheckBoxMenuItem wordWrapItem = new JCheckBoxMenuItem("Word Wrap");
+        cellPopupMenu.add(wordWrapItem);
+
+        final int[] popupRow = {-1};
+        final int[] popupCol = {-1};
+
+        wordWrapItem.addActionListener(e -> {
+            if (popupRow[0] >= 0 && popupRow[0] < spreadsheetRowOrder.size() && popupCol[0] >= 0) {
+                Object item = spreadsheetRowOrder.get(popupRow[0]);
+                String cellKey = System.identityHashCode(item) + "_" + popupCol[0];
+                if (wordWrapItem.isSelected()) {
+                    spreadsheetWordWrapCells.add(cellKey);
+                } else {
+                    spreadsheetWordWrapCells.remove(cellKey);
+                    // Reset row height to default when word wrap is disabled
+                    spreadsheetTable.setRowHeight(popupRow[0], 22);
+                }
+                spreadsheetTable.repaint();
+            }
+        });
+
+        spreadsheetTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showCellPopup(e);
+                }
+            }
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showCellPopup(e);
+                }
+            }
+            private void showCellPopup(java.awt.event.MouseEvent e) {
+                int row = spreadsheetTable.rowAtPoint(e.getPoint());
+                int col = spreadsheetTable.columnAtPoint(e.getPoint());
+                if (row >= 0 && col >= 0) {
+                    popupRow[0] = row;
+                    popupCol[0] = col;
+                    // Update checkbox state
+                    if (row < spreadsheetRowOrder.size()) {
+                        Object item = spreadsheetRowOrder.get(row);
+                        String cellKey = System.identityHashCode(item) + "_" + col;
+                        wordWrapItem.setSelected(spreadsheetWordWrapCells.contains(cellKey));
+                    }
+                    cellPopupMenu.show(spreadsheetTable, e.getX(), e.getY());
+                }
+            }
+        });
+
         JScrollPane tableScrollPane = new JScrollPane(spreadsheetTable);
         spreadsheetPanel.add(tableScrollPane, BorderLayout.CENTER);
 
@@ -3660,6 +3966,7 @@ public class Timeline2 extends JFrame {
 
         updateFormatPanelForSelection();
         timelineDisplayPanel.repaint();
+        if (spreadsheetTable != null) spreadsheetTable.repaint();
         if (layersPanel != null) {
             // For layers panel, show the first selected task
             if (!selectedTaskIndices.isEmpty()) {
@@ -4064,6 +4371,7 @@ public class Timeline2 extends JFrame {
             row1CardLayout.show(row1Container, "task");
         }
         timelineDisplayPanel.repaint();
+        if (spreadsheetTable != null) spreadsheetTable.repaint();
         if (layersPanel != null) {
             // Find the correct index in layerOrder for this milestone
             if (index >= 0 && index < milestones.size()) {
@@ -5255,6 +5563,7 @@ public class Timeline2 extends JFrame {
         saveSpreadsheetData();
         
         spreadsheetTableModel.setRowCount(0);
+        spreadsheetRowOrder.clear();
         
         // Create list of items with their Y positions for sorting
         java.util.List<Object[]> itemsWithY = new java.util.ArrayList<>();
@@ -5297,6 +5606,7 @@ public class Timeline2 extends JFrame {
                 name = ((TimelineMilestone) item).name;
             }
             
+            spreadsheetRowOrder.add(item);
             String[] savedData = spreadsheetData.get(item);
             if (savedData != null) {
                 spreadsheetTableModel.addRow(new Object[]{name, savedData[0], savedData[1], savedData[2], savedData[3]});
@@ -5304,46 +5614,30 @@ public class Timeline2 extends JFrame {
                 spreadsheetTableModel.addRow(new Object[]{name, "", "", "", ""});
             }
         }
+
+        // Restore row heights
+        for (int row = 0; row < spreadsheetRowOrder.size(); row++) {
+            Object item = spreadsheetRowOrder.get(row);
+            Integer savedHeight = spreadsheetRowHeights.get(item);
+            if (savedHeight != null) {
+                spreadsheetTable.setRowHeight(row, savedHeight);
+            }
+        }
     }
     
     private void saveSpreadsheetData() {
         if (spreadsheetTableModel == null) return;
         
-        // Build current order of items sorted by Y
-        java.util.List<Object> currentOrder = new java.util.ArrayList<>();
-        for (int i = 0; i < layerOrder.size(); i++) {
-            Object item = layerOrder.get(i);
-            int yPos = 0;
-            if (item instanceof TimelineTask) {
-                TimelineTask task = (TimelineTask) item;
-                if (task.yPosition >= 0) {
-                    yPos = task.yPosition;
-                } else {
-                    yPos = "Top".equals(timelineAxisPosition) ? 100 : 45;
-                    for (int j = layerOrder.size() - 1; j > i; j--) {
-                        Object other = layerOrder.get(j);
-                        if (other instanceof TimelineTask && ((TimelineTask) other).yPosition < 0) {
-                            yPos += ((TimelineTask) other).height + 5;
-                        }
-                    }
-                }
-            } else if (item instanceof TimelineMilestone) {
-                TimelineMilestone ms = (TimelineMilestone) item;
-                yPos = ms.yPosition >= 0 ? ms.yPosition : 45;
-            }
-            currentOrder.add(new Object[]{yPos, item});
-        }
-        currentOrder.sort((a, b) -> Integer.compare((Integer)((Object[])a)[0], (Integer)((Object[])b)[0]));
-        
-        // Save data for each row
-        for (int row = 0; row < spreadsheetTableModel.getRowCount() && row < currentOrder.size(); row++) {
-            Object item = ((Object[]) currentOrder.get(row))[1];
+        // Save data for each row using the current spreadsheetRowOrder
+        for (int row = 0; row < spreadsheetTableModel.getRowCount() && row < spreadsheetRowOrder.size(); row++) {
+            Object item = spreadsheetRowOrder.get(row);
             String[] data = new String[4];
             for (int col = 1; col < 5; col++) {
                 Object val = spreadsheetTableModel.getValueAt(row, col);
                 data[col - 1] = val != null ? val.toString() : "";
             }
             spreadsheetData.put(item, data);
+            spreadsheetRowHeights.put(item, spreadsheetTable.getRowHeight(row));
         }
     }
 
@@ -6339,6 +6633,118 @@ public class Timeline2 extends JFrame {
         rightTabbedSkinsTab.add(new JPanel(), rtgbc);
 
         // === GENERAL TAB ===
+
+        // === SPREADSHEET TAB ===
+        JPanel spreadsheetSkinsTab = new JPanel(new GridBagLayout());
+        spreadsheetSkinsTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints ssgbc = new GridBagConstraints();
+        ssgbc.insets = new Insets(8, 8, 8, 8);
+        ssgbc.anchor = GridBagConstraints.WEST;
+        ssgbc.fill = GridBagConstraints.NONE;
+
+        // Selection Background row
+        ssgbc.gridx = 0; ssgbc.gridy = 0;
+        spreadsheetSkinsTab.add(new JLabel("Selected Background:"), ssgbc);
+        JButton spreadsheetSelectionBtn = new JButton();
+        spreadsheetSelectionBtn.setPreferredSize(new Dimension(60, 25));
+        spreadsheetSelectionBtn.setBackground(spreadsheetSelectionColor);
+        final JButton finalSpreadsheetSelectionBtn = spreadsheetSelectionBtn;
+        spreadsheetSelectionBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Selected Background Color", spreadsheetSelectionColor, color -> {
+                spreadsheetSelectionColor = color;
+                finalSpreadsheetSelectionBtn.setBackground(color);
+                finalSpreadsheetSelectionBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            });
+            if (newColor != null) {
+                spreadsheetSelectionColor = newColor;
+                finalSpreadsheetSelectionBtn.setBackground(newColor);
+                finalSpreadsheetSelectionBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            }
+        });
+        ssgbc.gridx = 1;
+        spreadsheetSkinsTab.add(spreadsheetSelectionBtn, ssgbc);
+
+        // Selection Text Color row
+        ssgbc.gridx = 0; ssgbc.gridy = 1;
+        spreadsheetSkinsTab.add(new JLabel("Selected Text:"), ssgbc);
+        JButton spreadsheetTextColorBtn = new JButton();
+        spreadsheetTextColorBtn.setPreferredSize(new Dimension(60, 25));
+        spreadsheetTextColorBtn.setBackground(spreadsheetSelectionTextColor);
+        final JButton finalSpreadsheetTextColorBtn = spreadsheetTextColorBtn;
+        spreadsheetTextColorBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Selected Text Color", spreadsheetSelectionTextColor, color -> {
+                spreadsheetSelectionTextColor = color;
+                finalSpreadsheetTextColorBtn.setBackground(color);
+                finalSpreadsheetTextColorBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            });
+            if (newColor != null) {
+                spreadsheetSelectionTextColor = newColor;
+                finalSpreadsheetTextColorBtn.setBackground(newColor);
+                finalSpreadsheetTextColorBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            }
+        });
+        ssgbc.gridx = 1;
+        spreadsheetSkinsTab.add(spreadsheetTextColorBtn, ssgbc);
+
+        // Unselected Background Color row
+        ssgbc.gridx = 0; ssgbc.gridy = 2;
+        spreadsheetSkinsTab.add(new JLabel("Unselected Background:"), ssgbc);
+        JButton spreadsheetUnselectedBgBtn = new JButton();
+        spreadsheetUnselectedBgBtn.setPreferredSize(new Dimension(60, 25));
+        spreadsheetUnselectedBgBtn.setBackground(spreadsheetUnselectedBgColor);
+        final JButton finalSpreadsheetUnselectedBgBtn = spreadsheetUnselectedBgBtn;
+        spreadsheetUnselectedBgBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Unselected Background Color", spreadsheetUnselectedBgColor, color -> {
+                spreadsheetUnselectedBgColor = color;
+                finalSpreadsheetUnselectedBgBtn.setBackground(color);
+                finalSpreadsheetUnselectedBgBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            });
+            if (newColor != null) {
+                spreadsheetUnselectedBgColor = newColor;
+                finalSpreadsheetUnselectedBgBtn.setBackground(newColor);
+                finalSpreadsheetUnselectedBgBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            }
+        });
+        ssgbc.gridx = 1;
+        spreadsheetSkinsTab.add(spreadsheetUnselectedBgBtn, ssgbc);
+
+        // Unselected Text Color row
+        ssgbc.gridx = 0; ssgbc.gridy = 3;
+        spreadsheetSkinsTab.add(new JLabel("Unselected Text:"), ssgbc);
+        JButton spreadsheetUnselectedTextBtn = new JButton();
+        spreadsheetUnselectedTextBtn.setPreferredSize(new Dimension(60, 25));
+        spreadsheetUnselectedTextBtn.setBackground(spreadsheetUnselectedTextColor);
+        final JButton finalSpreadsheetUnselectedTextBtn = spreadsheetUnselectedTextBtn;
+        spreadsheetUnselectedTextBtn.addActionListener(e -> {
+            Color newColor = showColorChooserWithAlpha("Choose Unselected Text Color", spreadsheetUnselectedTextColor, color -> {
+                spreadsheetUnselectedTextColor = color;
+                finalSpreadsheetUnselectedTextBtn.setBackground(color);
+                finalSpreadsheetUnselectedTextBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            });
+            if (newColor != null) {
+                spreadsheetUnselectedTextColor = newColor;
+                finalSpreadsheetUnselectedTextBtn.setBackground(newColor);
+                finalSpreadsheetUnselectedTextBtn.repaint();
+                if (spreadsheetTable != null) spreadsheetTable.repaint();
+            }
+        });
+        ssgbc.gridx = 1;
+        spreadsheetSkinsTab.add(spreadsheetUnselectedTextBtn, ssgbc);
+
+        // Filler
+        ssgbc.gridx = 0; ssgbc.gridy = 4;
+        ssgbc.gridwidth = 2;
+        ssgbc.weighty = 1.0;
+        ssgbc.fill = GridBagConstraints.BOTH;
+        spreadsheetSkinsTab.add(new JPanel(), ssgbc);
+
         JPanel generalSkinsTab = new JPanel(new GridBagLayout());
         generalSkinsTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         GridBagConstraints ggbc = new GridBagConstraints();
@@ -6426,6 +6832,7 @@ public class Timeline2 extends JFrame {
         tabbedPane.addTab("Layers", skinsLayersTab);
         tabbedPane.addTab("Timeline", timeAxisSkinsTab);
         tabbedPane.addTab("General", generalSkinsTab);
+        tabbedPane.addTab("Spreadsheet", spreadsheetSkinsTab);
 
         dialog.add(tabbedPane, BorderLayout.CENTER);
 
