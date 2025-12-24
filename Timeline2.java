@@ -340,6 +340,10 @@ public class Timeline2 extends JFrame {
         exportGraphicItem.addActionListener(e -> exportGraphic());
         fileMenu.add(exportGraphicItem);
         fileMenu.addSeparator();
+        JMenuItem changeLogItem = new JMenuItem("Change Log");
+        changeLogItem.addActionListener(e -> showChangeLog());
+        fileMenu.add(changeLogItem);
+        fileMenu.addSeparator();
         JMenuItem restartItem = new JMenuItem("Restart Program");
         restartItem.addActionListener(e -> restartProgram());
         fileMenu.add(restartItem);
@@ -433,8 +437,20 @@ public class Timeline2 extends JFrame {
         redoBtn.setToolTipText("Redo last undone action (Ctrl+Y)");
         redoBtn.addActionListener(e -> redo());
         toolbarPanel.add(redoBtn);
+
+        // Version label on the right
+        JLabel versionLabel = new JLabel("v4.8  ");
+        versionLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        versionLabel.setForeground(Color.GRAY);
+
+        // Wrapper panel to hold toolbar on left and version on right
+        JPanel toolbarWrapper = new JPanel(new BorderLayout());
+        toolbarWrapper.setBackground(toolbarBgColor);
+        toolbarWrapper.add(toolbarPanel, BorderLayout.CENTER);
+        toolbarWrapper.add(versionLabel, BorderLayout.EAST);
+
         // Toolbar at top spanning full width
-        add(toolbarPanel, BorderLayout.NORTH);
+        add(toolbarWrapper, BorderLayout.NORTH);
 
         timelineDisplayPanel = new TimelineDisplayPanel();
         JScrollPane scrollPane = new JScrollPane(timelineDisplayPanel);
@@ -534,13 +550,46 @@ public class Timeline2 extends JFrame {
         });
 
         // Custom cell editor using Metal L&F for visible cursor
+        final boolean[] isEditing = {false};
+
+        // Add key listener to table to intercept arrow keys during editing
+        spreadsheetTable.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (spreadsheetTable.isEditing()) {
+                    int key = e.getKeyCode();
+                    if (key == java.awt.event.KeyEvent.VK_LEFT ||
+                        key == java.awt.event.KeyEvent.VK_RIGHT ||
+                        key == java.awt.event.KeyEvent.VK_HOME ||
+                        key == java.awt.event.KeyEvent.VK_END) {
+
+                        Component editor = spreadsheetTable.getEditorComponent();
+                        if (editor instanceof JTextField) {
+                            JTextField tf = (JTextField) editor;
+                            int pos = tf.getCaretPosition();
+                            if (key == java.awt.event.KeyEvent.VK_LEFT && pos > 0) {
+                                tf.setCaretPosition(pos - 1);
+                            } else if (key == java.awt.event.KeyEvent.VK_RIGHT && pos < tf.getText().length()) {
+                                tf.setCaretPosition(pos + 1);
+                            } else if (key == java.awt.event.KeyEvent.VK_HOME) {
+                                tf.setCaretPosition(0);
+                            } else if (key == java.awt.event.KeyEvent.VK_END) {
+                                tf.setCaretPosition(tf.getText().length());
+                            }
+                            e.consume();
+                        }
+                    }
+                }
+            }
+        });
+
         JTextField metalTextField = new JTextField();
         try {
             metalTextField.setUI(new javax.swing.plaf.metal.MetalTextFieldUI());
         } catch (Exception ex) {}
         metalTextField.setCaretColor(Color.BLACK);
         metalTextField.getCaret().setBlinkRate(500);
-        metalTextField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        metalTextField.setBorder(BorderFactory.createLineBorder(new Color(70, 130, 180), 3)); // Steel blue border for edit mode
 
         javax.swing.DefaultCellEditor metalEditor = new javax.swing.DefaultCellEditor(metalTextField) {
             @Override
@@ -552,13 +601,15 @@ public class Timeline2 extends JFrame {
                 } catch (Exception ex) {}
                 tf.setCaretColor(Color.BLACK);
                 tf.getCaret().setBlinkRate(500);
-                tf.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+                tf.setBorder(BorderFactory.createLineBorder(new Color(70, 130, 180), 3)); // Steel blue border for edit mode
                 SwingUtilities.invokeLater(() -> {
+                    tf.setCaretPosition(tf.getText().length()); // Start at end of text
                     tf.getCaret().setVisible(true);
                 });
                 return tf;
             }
         };
+        metalEditor.setClickCountToStart(2); // Double-click to edit
         spreadsheetTable.setDefaultEditor(Object.class, metalEditor);
 
         // Add row and column resizing functionality
@@ -7219,6 +7270,195 @@ public class Timeline2 extends JFrame {
             }
         }
         return stops;
+    }
+
+    private void showChangeLog() {
+        JDialog dialog = new JDialog(this, "Change Log", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setSize(500, 400);
+        dialog.setLocationRelativeTo(this);
+
+        String changeLog = """
+            SPREADSHEET CHANGE LOG
+            ======================
+
+            Version 4 (Current)
+            -------------------
+            - Steel blue border around cell when in edit mode
+
+            Version 3
+            ---------
+            - Simplified change log view with detailed option
+
+            Version 2
+            ---------
+            - Added Change Log menu item in File menu
+            - Added version label in top right of toolbar
+
+            Version 1
+            ---------
+            - Double-click places cursor at clicked position in text
+            - Single click selects cell, arrow keys navigate spreadsheet
+            - Double click enters edit mode, arrow keys move cursor in text
+            - Arrow keys move cursor within text when editing
+            - Metal L&F text field editor for visible cursor
+            - Disabled row/column selection highlighting
+            - Right-click context menu with Word Wrap toggle
+            - Word wrap cells auto-expand row height
+            - Column resizing from anywhere in spreadsheet
+            - Click outside spreadsheet stops editing and clears selection
+            """;
+
+        JTextArea textArea = new JTextArea(changeLog);
+        textArea.setEditable(false);
+        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        textArea.setCaretPosition(0);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+
+        // Top panel with detailed button
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton detailedBtn = new JButton("Detailed Change Log");
+        detailedBtn.addActionListener(e -> showDetailedChangeLog());
+        topPanel.add(detailedBtn);
+        dialog.add(topPanel, BorderLayout.NORTH);
+
+        JButton closeBtn = new JButton("Close");
+        closeBtn.addActionListener(e -> dialog.dispose());
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.add(closeBtn);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+    }
+
+    private void showDetailedChangeLog() {
+        JDialog dialog = new JDialog(this, "Detailed Change Log", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setSize(700, 600);
+        dialog.setLocationRelativeTo(this);
+
+        String changeLog = """
+            DETAILED SPREADSHEET CHANGE LOG
+            ===============================
+
+            Version 4.6 (Current)
+            ---------------------
+            Prompt: "keep trying to find a way to get into edit mode on double click"
+            Changes:
+            - Switched to mouseClicked instead of mousePressed
+            - Simplified double-click handler
+
+            Version 4.5
+            -----------
+            Prompt: "do a character then a backspace to trigger edit mode on double click try the letter 'a' then backspace"
+            Changes:
+            - Tried Document.insertString("a") then remove(1) - did not work
+
+            Version 4.4
+            -----------
+            Prompt: "keep trying to find a way to get into edit mode on double click. what about space than backspace?"
+            Changes:
+            - Tried dispatching synthetic key events - did not work
+
+            Version 4.3
+            -----------
+            Prompt: "keep trying to find a way to get into edit mode on double click. what about space than backspace?"
+            Changes:
+            - Tried setText with space then original text - did not work
+
+            Version 4.2
+            -----------
+            Prompt: "can you make it thicker"
+            Changes:
+            - Increased edit mode border from 2px to 3px
+
+            Version 4.1
+            -----------
+            Prompt: "can you make the box have a different color outline in edit mode"
+            Changes:
+            - Added steel blue border around cell when in edit mode
+
+            Version 4
+            ---------
+            - Steel blue border (3px) around cell when in edit mode
+
+            Version 3
+            ---------
+            Prompt: "make the change log window only list the changes that were made. Have a button at the top of this window called detailed change log that takes you to the detail you have in the current version."
+            Changes:
+            - Simplified main change log to show only changes
+            - Added Detailed Change Log button for full details with prompts
+
+            Version 2
+            ---------
+            Prompt: "make an option on the file window called change log. when you click on that open a window that describes the changes that were made and what my prompt to claude was that created those changes"
+            Changes:
+            - Added Change Log menu item in File menu
+            - Created this change log dialog window
+
+            Prompt: "can you make a version appear in the top right of the toolbar that increments each time we make a change. you can start with version 1"
+            Changes:
+            - Added version label (v1) in top right of toolbar
+
+            Version 1
+            ---------
+            Prompt: "there was a version that would had the following functionality I think. when I double clicked it would place the cursor in that part of the text string I clicked on"
+            Changes:
+            - Double-click now places cursor at clicked position in text
+
+            Prompt: "It works now, but the arrow keys no longer navigate the spreadsheet. When you mouse click a cell the first time it should select a cell but not the text in the cell, at this point the arrows should move you right left up down on the spreadsheet. if you click on a cell twice thats when your editing text and the arrows should move you back and forth in the text."
+            Changes:
+            - Single click selects cell, arrow keys navigate spreadsheet
+            - Double click enters edit mode, arrow keys move cursor in text
+
+            Prompt: "yes. but we still need to tweak some things" / "when editing text, if I hit the arrow key to move the cursor back in the text it moves to the next cell instead"
+            Changes:
+            - Arrow keys now move cursor within text when editing
+
+            Prompt: "can you try again make a cursor visible when cell text is being edited"
+            Changes:
+            - Used Metal L&F for text field editor to show visible cursor
+
+            Prompt: "can you get rid of the blue highlighting that goes across a whole line when you click on a cell"
+            Changes:
+            - Disabled row/column selection highlighting
+            - Set to single cell selection mode only
+
+            Prompt: "can you make it so I right click on a cell and it give me to turn word wrap on and off for that cell"
+            Changes:
+            - Added right-click context menu with Word Wrap toggle
+            - Word wrap cells auto-expand row height
+            - Word wrapped cells show focus border when selected
+
+            Prompt: "can you make it so you can resize columns from anywhere like you can with row"
+            Changes:
+            - Added column resizing from anywhere in spreadsheet
+            - Hover near column border shows resize cursor
+            - Minimum column width: 20 pixels
+
+            Prompt: "When you click off the spreadsheet deselect it entirely even if your editing a cell"
+            Changes:
+            - Added FocusListener to spreadsheet table
+            - Clicking outside spreadsheet stops editing and clears selection
+            """;
+
+        JTextArea textArea = new JTextArea(changeLog);
+        textArea.setEditable(false);
+        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        textArea.setCaretPosition(0);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+
+        JButton closeBtn = new JButton("Close");
+        closeBtn.addActionListener(e -> dialog.dispose());
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.add(closeBtn);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
     }
 
     private void showPreferencesDialog() {
