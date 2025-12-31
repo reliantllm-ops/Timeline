@@ -119,12 +119,16 @@ public class Timeline2 extends JFrame {
     private java.util.Map<Object, Integer> spreadsheetRowHeights = new java.util.HashMap<>();
     private java.util.Set<String> spreadsheetWordWrapCells = new java.util.HashSet<>(); // Tracks cells with word wrap enabled (key: "rowItem.hashCode()_col")
     private java.util.List<Object> spreadsheetRowOrder = new java.util.ArrayList<>();
-    private Color spreadsheetSelectionColor = new Color(173, 216, 230); // Light blue highlight
-    private Color spreadsheetSelectionTextColor = Color.BLACK; // Selected text color
+    private Color spreadsheetSelectionColor = new Color(70, 130, 180); // Light blue highlight
+    private Color spreadsheetSelectionTextColor = Color.WHITE; // Selected text color
     private Color spreadsheetUnselectedTextColor = Color.BLACK; // Unselected text color
     private Color spreadsheetUnselectedBgColor = Color.WHITE; // Unselected background color
     private JSplitPane centerSplitPane;
     private boolean spreadsheetVisible = false;
+    private int lastSpreadsheetDividerLocation = 250;
+    private int lastRightPanelWidth = 290;
+    private boolean rightPanelCollapsed = false;
+    private int spreadsheetPanelWidth = 300;
     private Color formatLabelColor = Color.BLACK; // #000000
     private Color formatSeparatorColor = new Color(0xC8, 0xC8, 0xC8); // #C8C8C8
     // Panel colors - Right Tabbed Pane
@@ -414,6 +418,10 @@ public class Timeline2 extends JFrame {
         JButton newMilestoneBtn = new JButton("+ New Milestone");
         newMilestoneBtn.addActionListener(e -> showMilestoneShapeMenu(newMilestoneBtn));
         toolbarPanel.add(newMilestoneBtn);
+
+        JButton addShapesBtn = new JButton("+ Add Shapes");
+        addShapesBtn.addActionListener(e -> showShapesMenu(addShapesBtn));
+        toolbarPanel.add(addShapesBtn);
         duplicateTaskBtn = new JButton("Duplicate");
         duplicateTaskBtn.setEnabled(false);
         duplicateTaskBtn.setToolTipText("Duplicate selected task(s)");
@@ -460,8 +468,9 @@ public class Timeline2 extends JFrame {
         spreadsheetPanel = new JPanel(new BorderLayout());
         spreadsheetPanel.setBackground(Color.WHITE);
         spreadsheetPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        spreadsheetPanel.setPreferredSize(new Dimension(spreadsheetPanelWidth, 0));
         
-        String[] columnNames = {"Name", "", "", "", ""};
+        String[] columnNames = {"Name", "Start Date", "End Date", "", "", "", "", "", "", "", "", "", "", "", ""};
         spreadsheetTableModel = new javax.swing.table.DefaultTableModel(columnNames, 0);
         spreadsheetTable = new JTable(spreadsheetTableModel);
         spreadsheetTable.setRowHeight(22);
@@ -473,6 +482,18 @@ public class Timeline2 extends JFrame {
         spreadsheetTable.setRowSelectionAllowed(false);
         spreadsheetTable.setColumnSelectionAllowed(false);
         spreadsheetTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        spreadsheetTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        // Auto-fit columns to header text width
+        FontMetrics fm = spreadsheetTable.getFontMetrics(spreadsheetTable.getFont());
+        int nameWidth = fm.stringWidth("Name") + 20;
+        int startDateWidth = fm.stringWidth("Start Date") + 16;
+        int endDateWidth = fm.stringWidth("End Date") + 16;
+        spreadsheetTable.getColumnModel().getColumn(0).setPreferredWidth(nameWidth);
+        spreadsheetTable.getColumnModel().getColumn(1).setPreferredWidth(startDateWidth);
+        spreadsheetTable.getColumnModel().getColumn(2).setPreferredWidth(endDateWidth);
+        for (int i = 3; i < spreadsheetTable.getColumnCount(); i++) {
+            spreadsheetTable.getColumnModel().getColumn(i).setPreferredWidth(100);
+        }
 
         // Custom cell renderer to highlight selected tasks/milestones and support word wrap
         spreadsheetTable.setDefaultRenderer(Object.class, new javax.swing.table.TableCellRenderer() {
@@ -804,13 +825,282 @@ public class Timeline2 extends JFrame {
         });
 
         JScrollPane tableScrollPane = new JScrollPane(spreadsheetTable);
+        
+        // Add toolbar at top of spreadsheet with Select Columns button
+        JPanel spreadsheetToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
+        spreadsheetToolbar.setBackground(new Color(240, 240, 240));
+        JButton selectColumnsBtn = new JButton("Select Columns");
+        selectColumnsBtn.setMargin(new Insets(2, 8, 2, 8));
+        
+
+        selectColumnsBtn.addActionListener(e -> {
+            JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(spreadsheetPanel), "Select Column Types", true);
+            dlg.setLayout(new BorderLayout());
+            JPanel colsPanel = new JPanel(new GridLayout(0, 2, 10, 8));
+            colsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            String[] opts = {"(none)", "Name", "Start Date", "End Date", "Duration", "Center Text", "Above Text", "Underneath Text", "Front Text", "Behind Text"};
+            int colCount = spreadsheetTable.getColumnCount();
+            JComboBox[] cbs = new JComboBox[colCount];
+            for (int c = 0; c < colCount; c++) {
+                colsPanel.add(new JLabel("Column " + (c + 1) + ":"));
+                cbs[c] = new JComboBox<>(opts);
+                String hdr = spreadsheetTable.getColumnModel().getColumn(c).getHeaderValue().toString();
+                for (String o : opts) if (o.equals(hdr)) cbs[c].setSelectedItem(o);
+                colsPanel.add(cbs[c]);
+            }
+            JScrollPane scrollP = new JScrollPane(colsPanel);
+            scrollP.setPreferredSize(new Dimension(300, 400));
+            scrollP.getVerticalScrollBar().setUnitIncrement(16);
+            dlg.add(scrollP, BorderLayout.CENTER);
+            JPanel btnPnl = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton applyB = new JButton("Apply");
+            applyB.addActionListener(ev -> {
+                for (int c = 0; c < cbs.length; c++) {
+                    String sel = (String) cbs[c].getSelectedItem();
+                    if (sel == null || "(none)".equals(sel)) continue;
+                    spreadsheetTable.getColumnModel().getColumn(c).setHeaderValue(sel);
+                    for (int r = 0; r < spreadsheetTableModel.getRowCount(); r++) {
+                        if (r < spreadsheetRowOrder.size()) {
+                            Object item = spreadsheetRowOrder.get(r);
+                            String val = "";
+                            if ("Name".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).name;
+                                else if (item instanceof TimelineMilestone) val = ((TimelineMilestone) item).name;
+                            } else if ("Start Date".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).startDate;
+                                else if (item instanceof TimelineMilestone) val = ((TimelineMilestone) item).date;
+                            } else if ("End Date".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).endDate;
+                            } else if ("Duration".equals(sel)) {
+                                if (item instanceof TimelineTask) {
+                                    try {
+                                        LocalDate start = LocalDate.parse(((TimelineTask) item).startDate, DATE_FORMAT);
+                                        LocalDate end = LocalDate.parse(((TimelineTask) item).endDate, DATE_FORMAT);
+                                        val = String.valueOf(java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1);
+                                    } catch (Exception ex) { val = ""; }
+                                } else { val = "1"; }
+                            } else if ("Center Text".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).centerText;
+                                else if (item instanceof TimelineMilestone) val = ((TimelineMilestone) item).centerText;
+                            } else if ("Above Text".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).aboveText;
+                                else if (item instanceof TimelineMilestone) val = ((TimelineMilestone) item).aboveText;
+                            } else if ("Underneath Text".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).underneathText;
+                                else if (item instanceof TimelineMilestone) val = ((TimelineMilestone) item).underneathText;
+                            } else if ("Front Text".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).frontText;
+                                else if (item instanceof TimelineMilestone) val = ((TimelineMilestone) item).frontText;
+                            } else if ("Behind Text".equals(sel)) {
+                                if (item instanceof TimelineTask) val = ((TimelineTask) item).behindText;
+                                else if (item instanceof TimelineMilestone) val = ((TimelineMilestone) item).behindText;
+                            }
+                            spreadsheetTableModel.setValueAt(val, r, c);
+                        }
+                    }
+                    if ("Center Text".equals(sel)) {
+                        javax.swing.table.DefaultTableCellRenderer cr = new javax.swing.table.DefaultTableCellRenderer();
+                        cr.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                        spreadsheetTable.getColumnModel().getColumn(c).setCellRenderer(cr);
+                    }
+                }
+                spreadsheetTable.getTableHeader().repaint();
+                spreadsheetTable.repaint();
+                dlg.dispose();
+            });
+            btnPnl.add(applyB);
+            JButton canB = new JButton("Cancel");
+            canB.addActionListener(ev -> dlg.dispose());
+            btnPnl.add(canB);
+            dlg.add(btnPnl, BorderLayout.SOUTH);
+            dlg.pack();
+            dlg.setLocationRelativeTo(spreadsheetPanel);
+            dlg.setVisible(true);
+        });
+        spreadsheetToolbar.add(selectColumnsBtn);
+
+        // Export button
+        JButton exportBtn = new JButton("Export");
+        exportBtn.setMargin(new Insets(2, 8, 2, 8));
+        exportBtn.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            fc.setDialogTitle("Export Spreadsheet");
+            fc.setSelectedFile(new java.io.File("spreadsheet.csv"));
+            fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+            if (fc.showSaveDialog(spreadsheetPanel) == JFileChooser.APPROVE_OPTION) {
+                try (java.io.PrintWriter pw = new java.io.PrintWriter(fc.getSelectedFile())) {
+                    // Write headers
+                    StringBuilder header = new StringBuilder();
+                    for (int c = 0; c < spreadsheetTable.getColumnCount(); c++) {
+                        if (c > 0) header.append(",");
+                        String h = spreadsheetTable.getColumnModel().getColumn(c).getHeaderValue().toString();
+                        header.append("\"").append(h.replace("\"", "\"\"")).append("\"");
+                    }
+                    pw.println(header);
+                    // Write data
+                    for (int r = 0; r < spreadsheetTableModel.getRowCount(); r++) {
+                        StringBuilder row = new StringBuilder();
+                        for (int c = 0; c < spreadsheetTableModel.getColumnCount(); c++) {
+                            if (c > 0) row.append(",");
+                            Object val = spreadsheetTableModel.getValueAt(r, c);
+                            String s = val != null ? val.toString() : "";
+                            row.append("\"").append(s.replace("\"", "\"\"")).append("\"");
+                        }
+                        pw.println(row);
+                    }
+                    JOptionPane.showMessageDialog(spreadsheetPanel, "Exported successfully!", "Export", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(spreadsheetPanel, "Export failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        spreadsheetToolbar.add(exportBtn);
+
+        // Import button
+        JButton importBtn = new JButton("Import");
+        importBtn.setMargin(new Insets(2, 8, 2, 8));
+        importBtn.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            fc.setDialogTitle("Import Spreadsheet");
+            fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
+            if (fc.showOpenDialog(spreadsheetPanel) == JFileChooser.APPROVE_OPTION) {
+                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(fc.getSelectedFile()))) {
+                    String line;
+                    int rowIdx = 0;
+                    boolean firstLine = true;
+                    while ((line = br.readLine()) != null) {
+                        java.util.List<String> values = new java.util.ArrayList<>();
+                        StringBuilder current = new StringBuilder();
+                        boolean inQuotes = false;
+                        for (int i = 0; i < line.length(); i++) {
+                            char ch = line.charAt(i);
+                            if (ch == '"') {
+                                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                                    current.append('"');
+                                    i++;
+                                } else {
+                                    inQuotes = !inQuotes;
+                                }
+                            } else if (ch == ',' && !inQuotes) {
+                                values.add(current.toString());
+                                current = new StringBuilder();
+                            } else {
+                                current.append(ch);
+                            }
+                        }
+                        values.add(current.toString());
+
+                        if (firstLine) {
+                            // Set column headers
+                            for (int c = 0; c < Math.min(values.size(), spreadsheetTable.getColumnCount()); c++) {
+                                spreadsheetTable.getColumnModel().getColumn(c).setHeaderValue(values.get(c));
+                            }
+                            spreadsheetTable.getTableHeader().repaint();
+                            firstLine = false;
+                        } else {
+                            // Set row data
+                            if (rowIdx < spreadsheetTableModel.getRowCount()) {
+                                for (int c = 0; c < Math.min(values.size(), spreadsheetTableModel.getColumnCount()); c++) {
+                                    spreadsheetTableModel.setValueAt(values.get(c), rowIdx, c);
+                                }
+                            }
+                            rowIdx++;
+                        }
+                    }
+                    spreadsheetTable.repaint();
+                    JOptionPane.showMessageDialog(spreadsheetPanel, "Imported successfully!", "Import", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(spreadsheetPanel, "Import failed: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        spreadsheetToolbar.add(importBtn);
+
+        spreadsheetPanel.add(spreadsheetToolbar, BorderLayout.NORTH);
+
         spreadsheetPanel.add(tableScrollPane, BorderLayout.CENTER);
 
         // Create split pane with spreadsheet on left, timeline on right
         centerSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, spreadsheetPanel, scrollPane);
         centerSplitPane.setDividerLocation(0);
-        centerSplitPane.setDividerSize(5);
+        centerSplitPane.setDividerSize(8);
         centerSplitPane.setContinuousLayout(true);
+
+        // Custom UI for the divider with 3 dots and click-to-collapse
+        centerSplitPane.setUI(new javax.swing.plaf.basic.BasicSplitPaneUI() {
+            @Override
+            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
+                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
+                    private boolean isHovered = false;
+
+                    @Override
+                    public void paint(Graphics g) {
+                        Graphics2D g2d = (Graphics2D) g;
+                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                        int w = getWidth();
+                        int h = getHeight();
+
+                        // Draw background with hover effect
+                        if (isHovered) {
+                            g2d.setColor(new Color(200, 200, 200));
+                        } else {
+                            g2d.setColor(new Color(235, 235, 235));
+                        }
+                        g2d.fillRect(0, 0, w, h);
+
+                        // Draw 3 dots
+                        int dotSize = 3;
+                        int spacing = 5;
+                        int totalHeight = dotSize * 3 + spacing * 2;
+                        int startY = (h - totalHeight) / 2;
+
+                        g2d.setColor(new Color(120, 120, 120));
+                        for (int i = 0; i < 3; i++) {
+                            int y = startY + i * (dotSize + spacing);
+                            int x = (w - dotSize) / 2;
+                            g2d.fillOval(x, y, dotSize, dotSize);
+                        }
+                    }
+
+                    {
+                        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+                        // Add mouse listener for click-to-collapse and hover effect
+                        addMouseListener(new java.awt.event.MouseAdapter() {
+                            @Override
+                            public void mouseClicked(java.awt.event.MouseEvent e) {
+                                // Single click toggles
+                                if (centerSplitPane.getDividerLocation() <= 5) {
+                                    // Currently collapsed - expand
+                                    spreadsheetVisible = true;
+                                    centerSplitPane.setDividerLocation(lastSpreadsheetDividerLocation > 50 ? lastSpreadsheetDividerLocation : 250);
+                                    updateSpreadsheet();
+                                } else {
+                                    // Currently expanded - collapse
+                                    lastSpreadsheetDividerLocation = centerSplitPane.getDividerLocation();
+                                    spreadsheetVisible = false;
+                                    centerSplitPane.setDividerLocation(0);
+                                }
+                            }
+
+                            @Override
+                            public void mouseEntered(java.awt.event.MouseEvent e) {
+                                isHovered = true;
+                                repaint();
+                            }
+
+                            @Override
+                            public void mouseExited(java.awt.event.MouseEvent e) {
+                                isHovered = false;
+                                repaint();
+                            }
+                        });
+                    }
+                };
+            }
+        });
+
         centerPanel.add(centerSplitPane, BorderLayout.CENTER);
 
         add(centerPanel, BorderLayout.CENTER);
@@ -842,138 +1132,73 @@ public class Timeline2 extends JFrame {
         rightPanel = new CollapsiblePanel("Right Panel", rightTabbedWrapper, false);
         rightPanel.setHeaderVisible(false);
 
-        // Create collapse button with beveled left edge, no right border
-        JButton rightPanelCollapseBtn = new JButton("\u25B6") {
-            private Color bgColor = new Color(220, 220, 220);
-
+        // Create a divider panel with 3 dots for the right panel
+        JPanel rightDividerPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
-                Graphics2D g2d = (Graphics2D) g.create();
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
                 int w = getWidth();
                 int h = getHeight();
-                int arc = 10;
+                int dotSize = 3;
+                int spacing = 5;
+                int totalHeight = dotSize * 3 + spacing * 2;
+                int startY = (h - totalHeight) / 2;
 
-                // Create shape with rounded left edge only
-                java.awt.geom.GeneralPath path = new java.awt.geom.GeneralPath();
-                path.moveTo(arc, 0);
-                path.lineTo(w, 0);
-                path.lineTo(w, h);
-                path.lineTo(arc, h);
-                path.quadTo(0, h, 0, h - arc);
-                path.lineTo(0, arc);
-                path.quadTo(0, 0, arc, 0);
-                path.closePath();
-
-                // Fill background
-                g2d.setColor(bgColor);
-                g2d.fill(path);
-
-                // Draw border on left, top, bottom
-                g2d.setColor(new Color(150, 150, 150));
-                g2d.drawLine(arc, 0, w - 1, 0);  // top
-                g2d.drawLine(arc, h - 1, w - 1, h - 1);  // bottom
-                // Left curved edge
-                g2d.draw(new java.awt.geom.QuadCurve2D.Float(arc, 0, 0, 0, 0, arc));
-                g2d.drawLine(0, arc, 0, h - arc);
-                g2d.draw(new java.awt.geom.QuadCurve2D.Float(0, h - arc, 0, h, arc, h - 1));
-                // Right border - same color as right panel border
-                g2d.setColor(new Color(200, 200, 200));
-                g2d.drawLine(w - 1, 0, w - 1, h - 1);
-
-                // Draw arrow
-                g2d.setColor(getForeground());
-                FontMetrics fm = g2d.getFontMetrics();
-                String text = getText();
-                int textX = (w - fm.stringWidth(text)) / 2;
-                int textY = (h + fm.getAscent() - fm.getDescent()) / 2;
-                g2d.drawString(text, textX, textY);
-
-                g2d.dispose();
-            }
-
-            @Override
-            public void setBackground(Color c) {
-                super.setBackground(c);
-                this.bgColor = c;
-                repaint();
-            }
-        };
-        rightPanelCollapseBtn.setPreferredSize(new Dimension(20, 60));
-        rightPanelCollapseBtn.setBounds(270, 5, 20, 60);
-        rightPanelCollapseBtn.setBackground(new Color(220, 220, 220));
-        rightPanelCollapseBtn.setForeground(Color.DARK_GRAY);
-        rightPanelCollapseBtn.setBorderPainted(false);
-        rightPanelCollapseBtn.setContentAreaFilled(false);
-        rightPanelCollapseBtn.setFocusPainted(false);
-        rightPanelCollapseBtn.setToolTipText("Collapse Panel");
-        rightPanelCollapseBtn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                rightPanelCollapseBtn.setBackground(new Color(180, 180, 180));
-            }
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                rightPanelCollapseBtn.setBackground(new Color(220, 220, 220));
-            }
-        });
-
-        // Wrapper panel to hold rightPanel and manage sizing
-        JPanel rightPanelWrapper = new JPanel(new BorderLayout());
-        rightPanelWrapper.setPreferredSize(new Dimension(290, 600));
-        rightPanelWrapper.add(rightPanel, BorderLayout.CENTER);
-
-        // Use JLayeredPane to overlay the button on top of the right panel
-        JLayeredPane rightLayeredPane = new JLayeredPane() {
-            @Override
-            public Dimension getPreferredSize() {
-                return rightPanelWrapper.getPreferredSize();
-            }
-        };
-        rightLayeredPane.setLayout(null);  // Use absolute positioning
-
-        // Add wrapper to the default layer
-        rightPanelWrapper.setBounds(0, 0, 290, 600);
-        rightLayeredPane.add(rightPanelWrapper, JLayeredPane.DEFAULT_LAYER);
-
-        // Add button to a higher layer so it appears on top
-        rightLayeredPane.add(rightPanelCollapseBtn, JLayeredPane.PALETTE_LAYER);
-
-        rightPanelCollapseBtn.addActionListener(e -> {
-            rightPanel.toggleCollapse();
-            // Update button arrow direction and wrapper size based on collapsed state
-            if (rightPanel.isCollapsed()) {
-                rightPanelCollapseBtn.setText("\u25C0");  // Left arrow when collapsed (to expand)
-                rightPanelCollapseBtn.setToolTipText("Expand Panel");
-                rightPanelWrapper.setPreferredSize(new Dimension(30, 600));
-                rightPanelWrapper.setBounds(0, 0, 30, rightLayeredPane.getHeight());
-                rightPanelCollapseBtn.setBounds(5, 5, 20, 60);
-            } else {
-                rightPanelCollapseBtn.setText("\u25B6");  // Right arrow when expanded (to collapse)
-                rightPanelCollapseBtn.setToolTipText("Collapse Panel");
-                rightPanelWrapper.setPreferredSize(new Dimension(290, 600));
-                rightPanelWrapper.setBounds(0, 0, 290, rightLayeredPane.getHeight());
-                rightPanelCollapseBtn.setBounds(269, 5, 20, 60);
-            }
-            rightPanelWrapper.revalidate();
-            rightLayeredPane.revalidate();
-            Timeline2.this.revalidate();
-            Timeline2.this.repaint();
-        });
-
-        // Listen for resize to update bounds
-        rightLayeredPane.addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                rightPanelWrapper.setBounds(0, 0, rightLayeredPane.getWidth(), rightLayeredPane.getHeight());
-                // Keep button at top right inside the panel
-                if (!rightPanel.isCollapsed()) {
-                    rightPanelCollapseBtn.setBounds(rightLayeredPane.getWidth() - 21, 5, 20, 60);
-                } else {
-                    rightPanelCollapseBtn.setBounds(5, 5, 20, 60);
+                g2d.setColor(new Color(120, 120, 120));
+                for (int i = 0; i < 3; i++) {
+                    int y = startY + i * (dotSize + spacing);
+                    int x = (w - dotSize) / 2;
+                    g2d.fillOval(x, y, dotSize, dotSize);
                 }
             }
+        };
+        rightDividerPanel.setPreferredSize(new Dimension(8, 0));
+        rightDividerPanel.setBackground(new Color(235, 235, 235));
+        rightDividerPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        rightDividerPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                // Save current left panel state before toggle
+                int savedDividerLocation = centerSplitPane.getDividerLocation();
+
+                if (rightPanelCollapsed) {
+                    // Expand
+                    rightPanelCollapsed = false;
+                    rightPanel.setVisible(true);
+                    rightPanel.setPreferredSize(new Dimension(lastRightPanelWidth, 0));
+                } else {
+                    // Collapse
+                    lastRightPanelWidth = rightPanel.getWidth();
+                    rightPanelCollapsed = true;
+                    rightPanel.setVisible(false);
+                }
+                Timeline2.this.revalidate();
+                Timeline2.this.repaint();
+
+                // Restore left panel state after revalidate
+                centerSplitPane.setDividerLocation(savedDividerLocation);
+            }
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                rightDividerPanel.setBackground(new Color(200, 200, 200));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                rightDividerPanel.setBackground(new Color(235, 235, 235));
+            }
         });
 
-        add(rightLayeredPane, BorderLayout.EAST);
+        // Wrapper panel to hold divider and rightPanel
+        JPanel rightPanelWrapper = new JPanel(new BorderLayout());
+        rightPanelWrapper.add(rightDividerPanel, BorderLayout.WEST);
+        rightPanelWrapper.add(rightPanel, BorderLayout.CENTER);
+
+        add(rightPanelWrapper, BorderLayout.EAST);
 
         // Bottom - Format panel
         formatPanel = createFormatPanel();
@@ -2342,6 +2567,7 @@ public class Timeline2 extends JFrame {
             milestones.get(selectedMilestoneIndex).centerText = text;
         }
         refreshTimeline();
+        updateSpreadsheet();
     }
 
     private void updateFontFamily() {
@@ -3992,10 +4218,12 @@ public class Timeline2 extends JFrame {
     }
 
     void selectTask(int index, boolean ctrlDown) {
-        // Deselect milestone when task is selected
-        if (index >= 0) {
+        // Only deselect milestones when NOT using Ctrl (allows mixed selection)
+        if (index >= 0 && !ctrlDown) {
             selectedMilestoneIndex = -1;
             selectedMilestoneIndices.clear();
+        }
+        if (index >= 0) {
             row1CardLayout.show(row1Container, "task");
         }
 
@@ -4332,11 +4560,31 @@ public class Timeline2 extends JFrame {
         note5Area.setText("");
     }
 
-    void selectMilestone(int index) {
-        selectedMilestoneIndex = index;
-        // Deselect tasks when milestone is selected and switch to milestone row view
+    void selectMilestone(int index, boolean ctrlDown) {
+        // Handle multi-select with Ctrl key
+        if (ctrlDown && index >= 0) {
+            // Toggle selection in multi-select set
+            if (selectedMilestoneIndices.contains(index)) {
+                selectedMilestoneIndices.remove(index);
+                if (selectedMilestoneIndex == index) {
+                    selectedMilestoneIndex = selectedMilestoneIndices.isEmpty() ? -1 : selectedMilestoneIndices.iterator().next();
+                }
+            } else {
+                selectedMilestoneIndices.add(index);
+                selectedMilestoneIndex = index;
+            }
+            // Don't clear task selection when Ctrl is held
+        } else {
+            // Single select
+            selectedMilestoneIndex = index;
+            selectedMilestoneIndices.clear();
+            if (index >= 0) {
+                selectedMilestoneIndices.add(index);
+                // Only deselect tasks when NOT using Ctrl
+                selectedTaskIndices.clear();
+            }
+        }
         if (index >= 0) {
-            selectedTaskIndices.clear();
             row1CardLayout.show(row1Container, "milestone");
         }
 
@@ -4433,6 +4681,11 @@ public class Timeline2 extends JFrame {
                 layersPanel.setSelectedLayer(-1);
             }
         }
+    }
+
+    // Overload for calls without ctrlDown parameter
+    void selectMilestone(int index) {
+        selectMilestone(index, false);
     }
 
     private void duplicateSelectedTasks() {
@@ -4544,6 +4797,7 @@ public class Timeline2 extends JFrame {
                 tasks.get(index).name = newName;
                 formatTitleLabel.setText("Selected: " + newName);
                 refreshTimeline();
+                updateSpreadsheet();
             }
         }
     }
@@ -4562,6 +4816,7 @@ public class Timeline2 extends JFrame {
                 task.endDate = newEnd;
             }
             refreshTimeline();
+            updateSpreadsheet();
         } catch (Exception ex) {
             // Invalid date, revert for single selection
             if (selectedTaskIndices.size() == 1) {
@@ -4627,6 +4882,56 @@ public class Timeline2 extends JFrame {
         popup.show(button, 0, button.getHeight());
     }
 
+    private void showShapesMenu(JButton button) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)));
+
+        String[] shapes = {"Rectangle", "Oval", "Arrow Right", "Arrow Left", "Arrow Up", "Arrow Down", "Pentagon", "Cross", "Heart", "Crescent"};
+        int buttonWidth = button.getWidth();
+
+        for (String shape : shapes) {
+            JMenuItem item = new JMenuItem(shape) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    int cy = getHeight() / 2;
+                    int size = 10;
+                    g2d.setColor(new Color(80, 80, 80));
+                    drawMilestoneShape(g2d, shape.toLowerCase().replace(" ", "_"), 20, cy, size, size, true);
+                    g2d.setColor(Color.BLACK);
+                    drawMilestoneShape(g2d, shape.toLowerCase().replace(" ", "_"), 20, cy, size, size, false);
+                }
+            };
+            item.setPreferredSize(new Dimension(buttonWidth, 28));
+            item.setBorder(BorderFactory.createEmptyBorder(4, 35, 4, 10));
+            item.addActionListener(e -> addNewShape(shape.toLowerCase().replace(" ", "_")));
+            popup.add(item);
+        }
+
+        popup.show(button, 0, button.getHeight());
+    }
+
+    private void addNewShape(String shape) {
+        saveState();
+        int shapeIndex = milestones.size();
+        String name = "Shape " + (shapeIndex + 1);
+        LocalDate timelineStart;
+        try {
+            timelineStart = LocalDate.parse(startDateField.getText().trim(), DATE_FORMAT);
+        } catch (Exception e) {
+            timelineStart = LocalDate.now();
+        }
+        String date = timelineStart.format(DATE_FORMAT);
+
+        TimelineMilestone shapeObj = new TimelineMilestone(name, date, shape);
+        shapeObj.fillColor = TASK_COLORS[(shapeIndex + 5) % TASK_COLORS.length];
+        milestones.add(shapeObj);
+        layerOrder.add(0, shapeObj);
+        refreshTimeline();
+    }
+
     private void addNewMilestone(String shape) {
         saveState();
         int milestoneIndex = milestones.size();
@@ -4679,6 +4984,71 @@ public class Timeline2 extends JFrame {
                 yPoints = new int[]{cy, cy - h, cy - h, cy, cy + h, cy + h};
                 if (fill) g2d.fillPolygon(xPoints, yPoints, 6);
                 else g2d.drawPolygon(xPoints, yPoints, 6);
+                break;
+            case "rectangle":
+                if (fill) g2d.fillRect(cx - w, cy - h, w * 2, h * 2);
+                else g2d.drawRect(cx - w, cy - h, w * 2, h * 2);
+                break;
+            case "oval":
+                if (fill) g2d.fillOval(cx - w, cy - h, w * 2, h * 2);
+                else g2d.drawOval(cx - w, cy - h, w * 2, h * 2);
+                break;
+            case "arrow_right":
+                xPoints = new int[]{cx - w, cx + w, cx - w};
+                yPoints = new int[]{cy - h, cy, cy + h};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                else g2d.drawPolygon(xPoints, yPoints, 3);
+                break;
+            case "arrow_left":
+                xPoints = new int[]{cx + w, cx - w, cx + w};
+                yPoints = new int[]{cy - h, cy, cy + h};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                else g2d.drawPolygon(xPoints, yPoints, 3);
+                break;
+            case "arrow_up":
+                xPoints = new int[]{cx - w, cx, cx + w};
+                yPoints = new int[]{cy + h, cy - h, cy + h};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                else g2d.drawPolygon(xPoints, yPoints, 3);
+                break;
+            case "arrow_down":
+                xPoints = new int[]{cx - w, cx, cx + w};
+                yPoints = new int[]{cy - h, cy + h, cy - h};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                else g2d.drawPolygon(xPoints, yPoints, 3);
+                break;
+            case "pentagon":
+                xPoints = new int[5];
+                yPoints = new int[5];
+                for (int i = 0; i < 5; i++) {
+                    xPoints[i] = cx + (int)(w * Math.cos(-Math.PI/2 + i * 2 * Math.PI / 5));
+                    yPoints[i] = cy + (int)(h * Math.sin(-Math.PI/2 + i * 2 * Math.PI / 5));
+                }
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 5);
+                else g2d.drawPolygon(xPoints, yPoints, 5);
+                break;
+            case "cross":
+                int cw = w / 3;
+                int ch = h / 3;
+                xPoints = new int[]{cx - cw, cx + cw, cx + cw, cx + w, cx + w, cx + cw, cx + cw, cx - cw, cx - cw, cx - w, cx - w, cx - cw};
+                yPoints = new int[]{cy - h, cy - h, cy - ch, cy - ch, cy + ch, cy + ch, cy + h, cy + h, cy + ch, cy + ch, cy - ch, cy - ch};
+                if (fill) g2d.fillPolygon(xPoints, yPoints, 12);
+                else g2d.drawPolygon(xPoints, yPoints, 12);
+                break;
+            case "heart":
+                java.awt.geom.Path2D.Double heart = new java.awt.geom.Path2D.Double();
+                heart.moveTo(cx, cy + h);
+                heart.curveTo(cx - w * 2, cy - h/2, cx - w, cy - h, cx, cy - h/3);
+                heart.curveTo(cx + w, cy - h, cx + w * 2, cy - h/2, cx, cy + h);
+                if (fill) g2d.fill(heart);
+                else g2d.draw(heart);
+                break;
+            case "crescent":
+                java.awt.geom.Area outer = new java.awt.geom.Area(new java.awt.geom.Ellipse2D.Double(cx - w, cy - h, w * 2, h * 2));
+                java.awt.geom.Area inner = new java.awt.geom.Area(new java.awt.geom.Ellipse2D.Double(cx - w/2, cy - h, w * 2, h * 2));
+                outer.subtract(inner);
+                if (fill) g2d.fill(outer);
+                else g2d.draw(outer);
                 break;
         }
     }
@@ -4959,6 +5329,9 @@ public class Timeline2 extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 0));
         panel.setMinimumSize(new Dimension(250, 400));
 
+
+        // Add spacer row above Appearance header
+        panel.add(Box.createVerticalStrut(15));
 
         // Appearance Section
         addSectionHeader(panel, "Appearance");
@@ -5601,8 +5974,11 @@ public class Timeline2 extends JFrame {
     private void toggleSpreadsheetPanel() {
         if (spreadsheetVisible) {
             updateSpreadsheet();
-            centerSplitPane.setDividerLocation(250);
+            centerSplitPane.setDividerLocation(lastSpreadsheetDividerLocation > 50 ? lastSpreadsheetDividerLocation : 250);
         } else {
+            if (centerSplitPane.getDividerLocation() > 50) {
+                lastSpreadsheetDividerLocation = centerSplitPane.getDividerLocation();
+            }
             centerSplitPane.setDividerLocation(0);
         }
     }
@@ -5658,12 +6034,58 @@ public class Timeline2 extends JFrame {
             }
             
             spreadsheetRowOrder.add(item);
+            // Build row data based on column headers
+            Object[] rowData = new Object[spreadsheetTable.getColumnCount()];
             String[] savedData = spreadsheetData.get(item);
-            if (savedData != null) {
-                spreadsheetTableModel.addRow(new Object[]{name, savedData[0], savedData[1], savedData[2], savedData[3]});
-            } else {
-                spreadsheetTableModel.addRow(new Object[]{name, "", "", "", ""});
+            for (int col = 0; col < spreadsheetTable.getColumnCount(); col++) {
+                String header = spreadsheetTable.getColumnModel().getColumn(col).getHeaderValue().toString();
+                if ("Name".equals(header)) {
+                    rowData[col] = name;
+                } else if ("Start Date".equals(header)) {
+                    if (item instanceof TimelineTask) rowData[col] = ((TimelineTask) item).startDate;
+                    else if (item instanceof TimelineMilestone) rowData[col] = ((TimelineMilestone) item).date;
+                    else rowData[col] = "";
+                } else if ("End Date".equals(header)) {
+                    if (item instanceof TimelineTask) rowData[col] = ((TimelineTask) item).endDate;
+                    else rowData[col] = "";
+                } else if ("Duration".equals(header)) {
+                    if (item instanceof TimelineTask) {
+                        try {
+                            LocalDate start = LocalDate.parse(((TimelineTask) item).startDate, DATE_FORMAT);
+                            LocalDate end = LocalDate.parse(((TimelineTask) item).endDate, DATE_FORMAT);
+                            rowData[col] = String.valueOf(java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1);
+                        } catch (Exception ex) { rowData[col] = ""; }
+                    } else { rowData[col] = "1"; }
+                } else if ("Center Text".equals(header)) {
+                    if (item instanceof TimelineTask) rowData[col] = ((TimelineTask) item).centerText;
+                    else if (item instanceof TimelineMilestone) rowData[col] = ((TimelineMilestone) item).centerText;
+                    else rowData[col] = "";
+                } else if ("Above Text".equals(header)) {
+                    if (item instanceof TimelineTask) rowData[col] = ((TimelineTask) item).aboveText;
+                    else if (item instanceof TimelineMilestone) rowData[col] = ((TimelineMilestone) item).aboveText;
+                    else rowData[col] = "";
+                } else if ("Underneath Text".equals(header)) {
+                    if (item instanceof TimelineTask) rowData[col] = ((TimelineTask) item).underneathText;
+                    else if (item instanceof TimelineMilestone) rowData[col] = ((TimelineMilestone) item).underneathText;
+                    else rowData[col] = "";
+                } else if ("Front Text".equals(header)) {
+                    if (item instanceof TimelineTask) rowData[col] = ((TimelineTask) item).frontText;
+                    else if (item instanceof TimelineMilestone) rowData[col] = ((TimelineMilestone) item).frontText;
+                    else rowData[col] = "";
+                } else if ("Behind Text".equals(header)) {
+                    if (item instanceof TimelineTask) rowData[col] = ((TimelineTask) item).behindText;
+                    else if (item instanceof TimelineMilestone) rowData[col] = ((TimelineMilestone) item).behindText;
+                    else rowData[col] = "";
+                } else {
+                    // Use saved data for other columns
+                    if (savedData != null && col > 0 && col <= savedData.length) {
+                        rowData[col] = savedData[col - 1];
+                    } else {
+                        rowData[col] = "";
+                    }
+                }
             }
+            spreadsheetTableModel.addRow(rowData);
         }
 
         // Restore row heights
@@ -5673,6 +6095,22 @@ public class Timeline2 extends JFrame {
             if (savedHeight != null) {
                 spreadsheetTable.setRowHeight(row, savedHeight);
             }
+        }
+
+        // Auto-fit first 3 columns to content width
+        FontMetrics fm = spreadsheetTable.getFontMetrics(spreadsheetTable.getFont());
+        String[] headers = {"Name", "Start Date", "End Date"};
+        int[] padding = {20, 16, 16};
+        for (int col = 0; col < 3; col++) {
+            int maxWidth = fm.stringWidth(headers[col]) + padding[col];
+            for (int row = 0; row < spreadsheetTableModel.getRowCount(); row++) {
+                Object val = spreadsheetTableModel.getValueAt(row, col);
+                if (val != null) {
+                    int width = fm.stringWidth(val.toString()) + padding[col];
+                    if (width > maxWidth) maxWidth = width;
+                }
+            }
+            spreadsheetTable.getColumnModel().getColumn(col).setPreferredWidth(maxWidth);
         }
     }
     
@@ -6789,8 +7227,28 @@ public class Timeline2 extends JFrame {
         ssgbc.gridx = 1;
         spreadsheetSkinsTab.add(spreadsheetUnselectedTextBtn, ssgbc);
 
-        // Filler
+        // Panel Width
         ssgbc.gridx = 0; ssgbc.gridy = 4;
+        ssgbc.gridwidth = 1;
+        ssgbc.weighty = 0;
+        ssgbc.fill = GridBagConstraints.NONE;
+        spreadsheetSkinsTab.add(new JLabel("Panel Width (px):"), ssgbc);
+        ssgbc.gridx = 1;
+        JTextField panelWidthField = new JTextField(String.valueOf(spreadsheetPanelWidth), 6);
+        panelWidthField.addActionListener(e -> {
+            try {
+                int newWidth = Integer.parseInt(panelWidthField.getText());
+                if (newWidth > 50 && newWidth < 2000) {
+                    spreadsheetPanelWidth = newWidth;
+                    spreadsheetPanel.setPreferredSize(new Dimension(spreadsheetPanelWidth, 0));
+                    centerSplitPane.resetToPreferredSizes();
+                }
+            } catch (NumberFormatException ex) {}
+        });
+        spreadsheetSkinsTab.add(panelWidthField, ssgbc);
+
+        // Filler
+        ssgbc.gridx = 0; ssgbc.gridy = 5;
         ssgbc.gridwidth = 2;
         ssgbc.weighty = 1.0;
         ssgbc.fill = GridBagConstraints.BOTH;
@@ -6803,8 +7261,14 @@ public class Timeline2 extends JFrame {
         ggbc.anchor = GridBagConstraints.WEST;
         ggbc.fill = GridBagConstraints.NONE;
 
-        // Interior row
+        // Spacer row
         ggbc.gridx = 0; ggbc.gridy = 0;
+        ggbc.gridwidth = 3;
+        generalSkinsTab.add(new JPanel(), ggbc);
+        ggbc.gridwidth = 1;
+
+        // Interior row
+        ggbc.gridx = 0; ggbc.gridy = 1;
         generalSkinsTab.add(new JLabel("Interior:"), ggbc);
         JButton generalInteriorBtn = new JButton() {
             @Override
@@ -6869,7 +7333,7 @@ public class Timeline2 extends JFrame {
         generalSkinsTab.add(generalInteriorGradientBtn, ggbc);
 
         // Filler
-        ggbc.gridx = 0; ggbc.gridy = 1;
+        ggbc.gridx = 0; ggbc.gridy = 2;
         ggbc.gridwidth = 3;
         ggbc.weighty = 1.0;
         ggbc.fill = GridBagConstraints.BOTH;
@@ -10555,6 +11019,14 @@ public class Timeline2 extends JFrame {
 
         // Free movement dragging (move entire task)
         private boolean isMoveDragging = false;
+        private boolean isMultiDragging = false;
+        private int multiDragStartX = 0;
+        private int multiDragStartY = 0;
+        private java.util.Map<Integer, String> multiDragTaskOriginalStarts = new java.util.HashMap<>();
+        private java.util.Map<Integer, String> multiDragTaskOriginalEnds = new java.util.HashMap<>();
+        private java.util.Map<Integer, Integer> multiDragTaskOriginalY = new java.util.HashMap<>();
+        private java.util.Map<Integer, String> multiDragMilestoneOriginalDates = new java.util.HashMap<>();
+        private java.util.Map<Integer, Integer> multiDragMilestoneOriginalY = new java.util.HashMap<>();
         private int moveDragTaskIndex = -1;
         private int moveDragStartX = -1;
         private int moveDragStartY = -1;
@@ -10967,13 +11439,38 @@ public class Timeline2 extends JFrame {
             MouseAdapter adapter = new MouseAdapter() {
                 public void mousePressed(MouseEvent e) {
                     requestFocusInWindow();
+                    // Skip selection handling on right-click to preserve multi-selection
+                    if (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e)) {
+                        return;
+                    }
                     handleMousePressed(e.getX(), e.getY(), e.isControlDown());
                 }
                 public void mouseReleased(MouseEvent e) {
+                    // Check for right-click on multi-selection
+                    if (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e)) {
+                        int totalSelected = selectedTaskIndices.size() + selectedMilestoneIndices.size();
+                        if (selectedMilestoneIndex >= 0 && !selectedMilestoneIndices.contains(selectedMilestoneIndex)) {
+                            totalSelected++;
+                        }
+                        if (totalSelected > 1) {
+                            showAlignmentPopup(e.getX(), e.getY());
+                            return;
+                        }
+                    }
                     if (isDragging) {
                         isDragging = false;
                         draggingTaskIndex = -1;
                         setCursor(Cursor.getDefaultCursor());
+                    }
+                    if (isMultiDragging) {
+                        isMultiDragging = false;
+                        multiDragTaskOriginalStarts.clear();
+                        multiDragTaskOriginalEnds.clear();
+                        multiDragTaskOriginalY.clear();
+                        multiDragMilestoneOriginalDates.clear();
+                        multiDragMilestoneOriginalY.clear();
+                        setCursor(Cursor.getDefaultCursor());
+                        refreshTimeline();
                     }
                     if (isMoveDragging) {
                         isMoveDragging = false;
@@ -11014,7 +11511,7 @@ public class Timeline2 extends JFrame {
                 }
                 public void mouseDragged(MouseEvent e) {
                     // Save state once at start of any drag
-                    if (!dragStateSaved && (isDragging || isMoveDragging || isHeightDragging || isMilestoneDragging || isMilestoneResizing)) {
+                    if (!dragStateSaved && (isDragging || isMoveDragging || isHeightDragging || isMilestoneDragging || isMilestoneResizing || isMultiDragging)) {
                         saveState();
                         // Lock all task positions before moving so other tasks don't shift
                         if (isMoveDragging) {
@@ -11024,6 +11521,9 @@ public class Timeline2 extends JFrame {
                     }
                     if (isDragging && draggingTaskIndex >= 0) {
                         handleDrag(e.getX());
+                    }
+                    if (isMultiDragging) {
+                        handleMultiDrag(e.getX(), e.getY());
                     }
                     if (isMoveDragging) {
                         handleMoveDrag(e.getX(), e.getY());
@@ -11121,6 +11621,20 @@ public class Timeline2 extends JFrame {
                                 return;
                             }
                             if (x >= x1 && x <= x1 + barWidth) {
+                                // Check if we're clicking on an already-selected item with multi-selection
+                                int totalSelected = selectedTaskIndices.size() + selectedMilestoneIndices.size();
+                                if (selectedMilestoneIndex >= 0 && !selectedMilestoneIndices.contains(selectedMilestoneIndex)) {
+                                    totalSelected++;
+                                }
+                                boolean isAlreadySelected = selectedTaskIndices.contains(taskIdx);
+
+                                if (totalSelected > 1 && isAlreadySelected && !ctrlDown) {
+                                    // Start multi-drag
+                                    startMultiDrag(x, y);
+                                    setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                                    return;
+                                }
+
                                 selectTask(taskIdx, ctrlDown);
                                 isMoveDragging = true;
                                 moveDragTaskIndex = taskIdx;
@@ -11179,7 +11693,21 @@ public class Timeline2 extends JFrame {
 
                         if (x >= mx - halfW - boxPadding && x <= mx + halfW + boxPadding &&
                             y >= my - halfH - boxPadding && y <= my + halfH + boxPadding) {
-                            selectMilestone(milestoneIdx);
+                            // Check if we're clicking on an already-selected item with multi-selection
+                            int totalSelected = selectedTaskIndices.size() + selectedMilestoneIndices.size();
+                            if (selectedMilestoneIndex >= 0 && !selectedMilestoneIndices.contains(selectedMilestoneIndex)) {
+                                totalSelected++;
+                            }
+                            boolean isAlreadySelected = selectedMilestoneIndices.contains(milestoneIdx) || milestoneIdx == selectedMilestoneIndex;
+
+                            if (totalSelected > 1 && isAlreadySelected && !ctrlDown) {
+                                // Start multi-drag
+                                startMultiDrag(x, y);
+                                setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                                return;
+                            }
+
+                            selectMilestone(milestoneIdx, ctrlDown);
                             isMilestoneDragging = true;
                             milestoneDragIndex = milestoneIdx;
                             milestoneDragStartX = x;
@@ -11198,7 +11726,9 @@ public class Timeline2 extends JFrame {
                 // Clear selection when starting a new selection box (unless Ctrl is held)
                 selectedTaskIndices.clear();
                 selectedMilestoneIndices.clear();
+                selectedMilestoneIndex = -1;
                 selectTask(-1);
+                repaint();
             }
             isSelectionBoxDragging = true;
             selectionBoxStartX = x;
@@ -11324,6 +11854,320 @@ public class Timeline2 extends JFrame {
             }
         }
 
+        private void showAlignmentPopup(int x, int y) {
+            JPopupMenu popup = new JPopupMenu();
+
+            JMenuItem alignLeft = new JMenuItem("Align Left");
+            alignLeft.addActionListener(e -> alignSelectedObjects("left"));
+            popup.add(alignLeft);
+
+            JMenuItem alignRight = new JMenuItem("Align Right");
+            alignRight.addActionListener(e -> alignSelectedObjects("right"));
+            popup.add(alignRight);
+
+            JMenuItem alignTop = new JMenuItem("Align Top");
+            alignTop.addActionListener(e -> alignSelectedObjects("top"));
+            popup.add(alignTop);
+
+            JMenuItem alignBottom = new JMenuItem("Align Bottom");
+            alignBottom.addActionListener(e -> alignSelectedObjects("bottom"));
+            popup.add(alignBottom);
+
+            JMenuItem alignCenter = new JMenuItem("Align Center");
+            alignCenter.addActionListener(e -> alignSelectedObjects("center"));
+            popup.add(alignCenter);
+
+            popup.addSeparator();
+
+            JMenuItem distHoriz = new JMenuItem("Distribute Horizontally");
+            distHoriz.addActionListener(e -> alignSelectedObjects("distribute_h"));
+            popup.add(distHoriz);
+
+            JMenuItem distVert = new JMenuItem("Distribute Vertically");
+            distVert.addActionListener(e -> alignSelectedObjects("distribute_v"));
+            popup.add(distVert);
+
+            popup.show(this, x, y);
+        }
+
+        private void alignSelectedObjects(String alignment) {
+            saveState();
+
+            // Gather all selected objects with their bounds
+            java.util.List<Object> selectedObjects = new java.util.ArrayList<>();
+            java.util.List<int[]> bounds = new java.util.ArrayList<>(); // [x, y, width, height]
+
+            // Add selected tasks
+            for (int idx : selectedTaskIndices) {
+                if (idx >= 0 && idx < tasks.size()) {
+                    TimelineTask task = tasks.get(idx);
+                    selectedObjects.add(task);
+                    try {
+                        LocalDate taskStart = LocalDate.parse(task.startDate, DATE_FORMAT);
+                        LocalDate taskEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+                        int timelineX = MARGIN_LEFT;
+                        int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+                        long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+                        int x1 = getXForDate(taskStart, timelineX, timelineWidth, totalDays);
+                        int x2 = getXForDate(taskEnd, timelineX, timelineWidth, totalDays);
+                        int y = task.yPosition >= 0 ? task.yPosition : 100;
+                        bounds.add(new int[]{x1, y, x2 - x1, task.height});
+                    } catch (Exception ex) {}
+                }
+            }
+
+            // Add selected milestones
+            for (int idx : selectedMilestoneIndices) {
+                if (idx >= 0 && idx < milestones.size()) {
+                    TimelineMilestone ms = milestones.get(idx);
+                    selectedObjects.add(ms);
+                    try {
+                        LocalDate msDate = LocalDate.parse(ms.date, DATE_FORMAT);
+                        int timelineX = MARGIN_LEFT;
+                        int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+                        long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+                        int mx = getXForDate(msDate, timelineX, timelineWidth, totalDays);
+                        int my = ms.yPosition >= 0 ? ms.yPosition : 100;
+                        bounds.add(new int[]{mx - ms.width/2, my - ms.height/2, ms.width, ms.height});
+                    } catch (Exception ex) {}
+                }
+            }
+
+            // Also add primary selected milestone if not in the set
+            if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()
+                && !selectedMilestoneIndices.contains(selectedMilestoneIndex)) {
+                TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+                selectedObjects.add(ms);
+                try {
+                    LocalDate msDate = LocalDate.parse(ms.date, DATE_FORMAT);
+                    int timelineX = MARGIN_LEFT;
+                    int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+                    long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+                    int mx = getXForDate(msDate, timelineX, timelineWidth, totalDays);
+                    int my = ms.yPosition >= 0 ? ms.yPosition : 100;
+                    bounds.add(new int[]{mx - ms.width/2, my - ms.height/2, ms.width, ms.height});
+                } catch (Exception ex) {}
+            }
+
+            if (bounds.size() < 2) return;
+
+            // Find alignment target based on alignment type
+            int targetValue = 0;
+            switch (alignment) {
+                case "left":
+                    targetValue = Integer.MAX_VALUE;
+                    for (int[] b : bounds) targetValue = Math.min(targetValue, b[0]);
+                    break;
+                case "right":
+                    targetValue = Integer.MIN_VALUE;
+                    for (int[] b : bounds) targetValue = Math.max(targetValue, b[0] + b[2]);
+                    break;
+                case "top":
+                    targetValue = Integer.MAX_VALUE;
+                    for (int[] b : bounds) targetValue = Math.min(targetValue, b[1]);
+                    break;
+                case "bottom":
+                    targetValue = Integer.MIN_VALUE;
+                    for (int[] b : bounds) targetValue = Math.max(targetValue, b[1] + b[3]);
+                    break;
+                case "center":
+                    // Find average center X
+                    int sumCenterX = 0;
+                    for (int[] b : bounds) sumCenterX += b[0] + b[2] / 2;
+                    targetValue = sumCenterX / bounds.size();
+                    break;
+                case "distribute_h":
+                case "distribute_v":
+                    // Handle distribution separately
+                    distributeSelectedObjects(alignment.equals("distribute_h"), selectedObjects, bounds);
+                    return;
+            }
+
+            // Apply alignment
+            int timelineX = MARGIN_LEFT;
+            int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+            long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+
+            for (int i = 0; i < selectedObjects.size(); i++) {
+                Object obj = selectedObjects.get(i);
+                int[] b = bounds.get(i);
+
+                if (obj instanceof TimelineTask) {
+                    TimelineTask task = (TimelineTask) obj;
+                    switch (alignment) {
+                        case "left":
+                            // Move task so its left edge is at targetValue
+                            LocalDate newStart = getDateForX(targetValue, timelineX, timelineWidth, totalDays);
+                            if (newStart != null) {
+                                try {
+                                    LocalDate oldStart = LocalDate.parse(task.startDate, DATE_FORMAT);
+                                    LocalDate oldEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+                                    long duration = ChronoUnit.DAYS.between(oldStart, oldEnd);
+                                    task.startDate = newStart.format(DATE_FORMAT);
+                                    task.endDate = newStart.plusDays(duration).format(DATE_FORMAT);
+                                } catch (Exception ex) {}
+                            }
+                            break;
+                        case "right":
+                            // Move task so its right edge is at targetValue
+                            LocalDate newEnd = getDateForX(targetValue, timelineX, timelineWidth, totalDays);
+                            if (newEnd != null) {
+                                try {
+                                    LocalDate oldStart = LocalDate.parse(task.startDate, DATE_FORMAT);
+                                    LocalDate oldEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+                                    long duration = ChronoUnit.DAYS.between(oldStart, oldEnd);
+                                    task.endDate = newEnd.format(DATE_FORMAT);
+                                    task.startDate = newEnd.minusDays(duration).format(DATE_FORMAT);
+                                } catch (Exception ex) {}
+                            }
+                            break;
+                        case "top":
+                            task.yPosition = targetValue;
+                            break;
+                        case "bottom":
+                            task.yPosition = targetValue - task.height;
+                            break;
+                        case "center":
+                            // Move task so its center is at targetValue
+                            try {
+                                LocalDate oldStart = LocalDate.parse(task.startDate, DATE_FORMAT);
+                                LocalDate oldEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+                                long duration = ChronoUnit.DAYS.between(oldStart, oldEnd);
+                                int taskWidth = b[2];
+                                LocalDate newCenter = getDateForX(targetValue, timelineX, timelineWidth, totalDays);
+                                if (newCenter != null) {
+                                    LocalDate newStartDate = getDateForX(targetValue - taskWidth/2, timelineX, timelineWidth, totalDays);
+                                    if (newStartDate != null) {
+                                        task.startDate = newStartDate.format(DATE_FORMAT);
+                                        task.endDate = newStartDate.plusDays(duration).format(DATE_FORMAT);
+                                    }
+                                }
+                            } catch (Exception ex) {}
+                            break;
+                    }
+                } else if (obj instanceof TimelineMilestone) {
+                    TimelineMilestone ms = (TimelineMilestone) obj;
+                    switch (alignment) {
+                        case "left":
+                            // Move milestone so its left edge is at targetValue
+                            LocalDate newDate = getDateForX(targetValue + ms.width/2, timelineX, timelineWidth, totalDays);
+                            if (newDate != null) {
+                                ms.date = newDate.format(DATE_FORMAT);
+                            }
+                            break;
+                        case "right":
+                            // Move milestone so its right edge is at targetValue
+                            newDate = getDateForX(targetValue - ms.width/2, timelineX, timelineWidth, totalDays);
+                            if (newDate != null) {
+                                ms.date = newDate.format(DATE_FORMAT);
+                            }
+                            break;
+                        case "top":
+                            ms.yPosition = targetValue + ms.height/2;
+                            break;
+                        case "bottom":
+                            ms.yPosition = targetValue - ms.height/2;
+                            break;
+                        case "center":
+                            // Move milestone so its center is at targetValue
+                            newDate = getDateForX(targetValue, timelineX, timelineWidth, totalDays);
+                            if (newDate != null) {
+                                ms.date = newDate.format(DATE_FORMAT);
+                            }
+                            break;
+                    }
+                }
+            }
+
+            refreshTimeline();
+        }
+
+        private void distributeSelectedObjects(boolean horizontal, java.util.List<Object> objects, java.util.List<int[]> bounds) {
+            if (objects.size() < 3) return; // Need at least 3 items to distribute
+
+            int timelineX = MARGIN_LEFT;
+            int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+            long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+
+            // Sort objects by position
+            java.util.List<Integer> indices = new java.util.ArrayList<>();
+            for (int i = 0; i < objects.size(); i++) indices.add(i);
+
+            if (horizontal) {
+                // Sort by X position (center)
+                indices.sort((a, b) -> {
+                    int centerA = bounds.get(a)[0] + bounds.get(a)[2] / 2;
+                    int centerB = bounds.get(b)[0] + bounds.get(b)[2] / 2;
+                    return Integer.compare(centerA, centerB);
+                });
+
+                // Get first and last center positions
+                int firstCenter = bounds.get(indices.get(0))[0] + bounds.get(indices.get(0))[2] / 2;
+                int lastCenter = bounds.get(indices.get(indices.size() - 1))[0] + bounds.get(indices.get(indices.size() - 1))[2] / 2;
+                int totalSpan = lastCenter - firstCenter;
+                int spacing = totalSpan / (indices.size() - 1);
+
+                // Distribute middle items
+                for (int i = 1; i < indices.size() - 1; i++) {
+                    int idx = indices.get(i);
+                    Object obj = objects.get(idx);
+                    int[] b = bounds.get(idx);
+                    int newCenterX = firstCenter + spacing * i;
+
+                    if (obj instanceof TimelineTask) {
+                        TimelineTask task = (TimelineTask) obj;
+                        try {
+                            LocalDate oldStart = LocalDate.parse(task.startDate, DATE_FORMAT);
+                            LocalDate oldEnd = LocalDate.parse(task.endDate, DATE_FORMAT);
+                            long duration = ChronoUnit.DAYS.between(oldStart, oldEnd);
+                            LocalDate newStart = getDateForX(newCenterX - b[2] / 2, timelineX, timelineWidth, totalDays);
+                            if (newStart != null) {
+                                task.startDate = newStart.format(DATE_FORMAT);
+                                task.endDate = newStart.plusDays(duration).format(DATE_FORMAT);
+                            }
+                        } catch (Exception ex) {}
+                    } else if (obj instanceof TimelineMilestone) {
+                        TimelineMilestone ms = (TimelineMilestone) obj;
+                        LocalDate newDate = getDateForX(newCenterX, timelineX, timelineWidth, totalDays);
+                        if (newDate != null) {
+                            ms.date = newDate.format(DATE_FORMAT);
+                        }
+                    }
+                }
+            } else {
+                // Sort by Y position (center)
+                indices.sort((a, b) -> {
+                    int centerA = bounds.get(a)[1] + bounds.get(a)[3] / 2;
+                    int centerB = bounds.get(b)[1] + bounds.get(b)[3] / 2;
+                    return Integer.compare(centerA, centerB);
+                });
+
+                // Get first and last center positions
+                int firstCenter = bounds.get(indices.get(0))[1] + bounds.get(indices.get(0))[3] / 2;
+                int lastCenter = bounds.get(indices.get(indices.size() - 1))[1] + bounds.get(indices.get(indices.size() - 1))[3] / 2;
+                int totalSpan = lastCenter - firstCenter;
+                int spacing = totalSpan / (indices.size() - 1);
+
+                // Distribute middle items
+                for (int i = 1; i < indices.size() - 1; i++) {
+                    int idx = indices.get(i);
+                    Object obj = objects.get(idx);
+                    int[] b = bounds.get(idx);
+                    int newCenterY = firstCenter + spacing * i;
+
+                    if (obj instanceof TimelineTask) {
+                        TimelineTask task = (TimelineTask) obj;
+                        task.yPosition = newCenterY - task.height / 2;
+                    } else if (obj instanceof TimelineMilestone) {
+                        TimelineMilestone ms = (TimelineMilestone) obj;
+                        ms.yPosition = newCenterY;
+                    }
+                }
+            }
+
+            refreshTimeline();
+        }
+
         private void handleDrag(int x) {
             if (draggingTaskIndex < 0 || draggingTaskIndex >= tasks.size()) return;
 
@@ -11350,6 +12194,96 @@ public class Timeline2 extends JFrame {
                     repaint();
                 }
             } catch (Exception ex) {}
+        }
+
+        private void startMultiDrag(int x, int y) {
+            isMultiDragging = true;
+            multiDragStartX = x;
+            multiDragStartY = y;
+
+            // Store original positions for all selected tasks
+            multiDragTaskOriginalStarts.clear();
+            multiDragTaskOriginalEnds.clear();
+            multiDragTaskOriginalY.clear();
+            for (int idx : selectedTaskIndices) {
+                if (idx >= 0 && idx < tasks.size()) {
+                    TimelineTask task = tasks.get(idx);
+                    multiDragTaskOriginalStarts.put(idx, task.startDate);
+                    multiDragTaskOriginalEnds.put(idx, task.endDate);
+                    multiDragTaskOriginalY.put(idx, task.yPosition >= 0 ? task.yPosition : 100);
+                }
+            }
+
+            // Store original positions for all selected milestones
+            multiDragMilestoneOriginalDates.clear();
+            multiDragMilestoneOriginalY.clear();
+            for (int idx : selectedMilestoneIndices) {
+                if (idx >= 0 && idx < milestones.size()) {
+                    TimelineMilestone ms = milestones.get(idx);
+                    multiDragMilestoneOriginalDates.put(idx, ms.date);
+                    multiDragMilestoneOriginalY.put(idx, ms.yPosition >= 0 ? ms.yPosition : 100);
+                }
+            }
+            // Also include primary selected milestone if not in the set
+            if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()
+                && !selectedMilestoneIndices.contains(selectedMilestoneIndex)) {
+                TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+                multiDragMilestoneOriginalDates.put(selectedMilestoneIndex, ms.date);
+                multiDragMilestoneOriginalY.put(selectedMilestoneIndex, ms.yPosition >= 0 ? ms.yPosition : 100);
+            }
+        }
+
+        private void handleMultiDrag(int x, int y) {
+            int timelineX = MARGIN_LEFT;
+            int timelineWidth = getWidth() - MARGIN_LEFT - MARGIN_RIGHT;
+            long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+            if (totalDays <= 0) return;
+
+            int deltaX = x - multiDragStartX;
+            int deltaY = y - multiDragStartY;
+            double daysPerPixel = (double) totalDays / timelineWidth;
+            long daysDelta = Math.round(deltaX * daysPerPixel);
+
+            // Move all selected tasks
+            for (java.util.Map.Entry<Integer, String> entry : multiDragTaskOriginalStarts.entrySet()) {
+                int idx = entry.getKey();
+                if (idx >= 0 && idx < tasks.size()) {
+                    TimelineTask task = tasks.get(idx);
+                    try {
+                        LocalDate origStart = LocalDate.parse(entry.getValue(), DATE_FORMAT);
+                        LocalDate origEnd = LocalDate.parse(multiDragTaskOriginalEnds.get(idx), DATE_FORMAT);
+                        task.startDate = origStart.plusDays(daysDelta).format(DATE_FORMAT);
+                        task.endDate = origEnd.plusDays(daysDelta).format(DATE_FORMAT);
+                    } catch (Exception ex) {}
+
+                    Integer origY = multiDragTaskOriginalY.get(idx);
+                    if (origY != null) {
+                        task.yPosition = Math.max(35, origY + deltaY);
+                    }
+                }
+            }
+
+            // Move all selected milestones
+            for (java.util.Map.Entry<Integer, String> entry : multiDragMilestoneOriginalDates.entrySet()) {
+                int idx = entry.getKey();
+                if (idx >= 0 && idx < milestones.size()) {
+                    TimelineMilestone ms = milestones.get(idx);
+                    try {
+                        LocalDate origDate = LocalDate.parse(entry.getValue(), DATE_FORMAT);
+                        LocalDate newDate = origDate.plusDays(daysDelta);
+                        if (newDate.isBefore(startDate)) newDate = startDate;
+                        if (newDate.isAfter(endDate)) newDate = endDate;
+                        ms.date = newDate.format(DATE_FORMAT);
+                    } catch (Exception ex) {}
+
+                    Integer origY = multiDragMilestoneOriginalY.get(idx);
+                    if (origY != null) {
+                        ms.yPosition = Math.max(35, origY + deltaY);
+                    }
+                }
+            }
+
+            repaint();
         }
 
         private void handleMoveDrag(int x, int y) {
@@ -12311,6 +13245,71 @@ public class Timeline2 extends JFrame {
                     yPoints = new int[]{cy - hexH, cy - hexH, cy, cy + hexH, cy + hexH, cy};
                     if (fill) g2d.fillPolygon(xPoints, yPoints, 6);
                     else g2d.drawPolygon(xPoints, yPoints, 6);
+                    break;
+                case "rectangle":
+                    if (fill) g2d.fillRect(cx - halfW, cy - halfH, halfW * 2, halfH * 2);
+                    else g2d.drawRect(cx - halfW, cy - halfH, halfW * 2, halfH * 2);
+                    break;
+                case "oval":
+                    if (fill) g2d.fillOval(cx - halfW, cy - halfH, halfW * 2, halfH * 2);
+                    else g2d.drawOval(cx - halfW, cy - halfH, halfW * 2, halfH * 2);
+                    break;
+                case "arrow_right":
+                    xPoints = new int[]{cx - halfW, cx + halfW, cx - halfW};
+                    yPoints = new int[]{cy - halfH, cy, cy + halfH};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                    else g2d.drawPolygon(xPoints, yPoints, 3);
+                    break;
+                case "arrow_left":
+                    xPoints = new int[]{cx + halfW, cx - halfW, cx + halfW};
+                    yPoints = new int[]{cy - halfH, cy, cy + halfH};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                    else g2d.drawPolygon(xPoints, yPoints, 3);
+                    break;
+                case "arrow_up":
+                    xPoints = new int[]{cx - halfW, cx, cx + halfW};
+                    yPoints = new int[]{cy + halfH, cy - halfH, cy + halfH};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                    else g2d.drawPolygon(xPoints, yPoints, 3);
+                    break;
+                case "arrow_down":
+                    xPoints = new int[]{cx - halfW, cx, cx + halfW};
+                    yPoints = new int[]{cy - halfH, cy + halfH, cy - halfH};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 3);
+                    else g2d.drawPolygon(xPoints, yPoints, 3);
+                    break;
+                case "pentagon":
+                    xPoints = new int[5];
+                    yPoints = new int[5];
+                    for (int i = 0; i < 5; i++) {
+                        xPoints[i] = cx + (int)(halfW * Math.cos(-Math.PI/2 + i * 2 * Math.PI / 5));
+                        yPoints[i] = cy + (int)(halfH * Math.sin(-Math.PI/2 + i * 2 * Math.PI / 5));
+                    }
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 5);
+                    else g2d.drawPolygon(xPoints, yPoints, 5);
+                    break;
+                case "cross":
+                    int crossW = halfW / 3;
+                    int crossH = halfH / 3;
+                    xPoints = new int[]{cx - crossW, cx + crossW, cx + crossW, cx + halfW, cx + halfW, cx + crossW, cx + crossW, cx - crossW, cx - crossW, cx - halfW, cx - halfW, cx - crossW};
+                    yPoints = new int[]{cy - halfH, cy - halfH, cy - crossH, cy - crossH, cy + crossH, cy + crossH, cy + halfH, cy + halfH, cy + crossH, cy + crossH, cy - crossH, cy - crossH};
+                    if (fill) g2d.fillPolygon(xPoints, yPoints, 12);
+                    else g2d.drawPolygon(xPoints, yPoints, 12);
+                    break;
+                case "heart":
+                    java.awt.geom.Path2D.Double heartShape = new java.awt.geom.Path2D.Double();
+                    heartShape.moveTo(cx, cy + halfH);
+                    heartShape.curveTo(cx - halfW * 2, cy - halfH/2, cx - halfW, cy - halfH, cx, cy - halfH/3);
+                    heartShape.curveTo(cx + halfW, cy - halfH, cx + halfW * 2, cy - halfH/2, cx, cy + halfH);
+                    if (fill) g2d.fill(heartShape);
+                    else g2d.draw(heartShape);
+                    break;
+                case "crescent":
+                    java.awt.geom.Area outerMoon = new java.awt.geom.Area(new java.awt.geom.Ellipse2D.Double(cx - halfW, cy - halfH, halfW * 2, halfH * 2));
+                    java.awt.geom.Area innerMoon = new java.awt.geom.Area(new java.awt.geom.Ellipse2D.Double(cx - halfW/2, cy - halfH, halfW * 2, halfH * 2));
+                    outerMoon.subtract(innerMoon);
+                    if (fill) g2d.fill(outerMoon);
+                    else g2d.draw(outerMoon);
                     break;
             }
         }
