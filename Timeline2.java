@@ -11891,13 +11891,21 @@ public class Timeline2 extends JFrame {
                 btn.setHorizontalAlignment(SwingConstants.LEFT);
                 btn.setBorderPainted(false);
                 btn.setFocusPainted(false);
-                btn.setContentAreaFilled(false);
+                btn.setContentAreaFilled(true);
                 btn.setOpaque(true);
                 btn.setBackground(new Color(245, 245, 245));
                 btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, btn.getPreferredSize().height));
+                final Color normalFg = btn.getForeground();
                 btn.addMouseListener(new java.awt.event.MouseAdapter() {
-                    public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(new Color(220, 220, 220)); }
-                    public void mouseExited(java.awt.event.MouseEvent e) { btn.setBackground(new Color(245, 245, 245)); }
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        btn.setBackground(new Color(0, 120, 215));
+                        btn.setForeground(Color.WHITE);
+                    }
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        btn.setBackground(new Color(245, 245, 245));
+                        btn.setForeground(normalFg);
+                    }
                 });
             };
 
@@ -11977,16 +11985,38 @@ public class Timeline2 extends JFrame {
                 currentOutlineColor = ms.outlineColor;
             }
 
-            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4));
-            buttonPanel.setOpaque(false);
+            // Load fill icon
+            ImageIcon fillIcon = null;
+            try {
+                java.awt.Image img = javax.imageio.ImageIO.read(new java.io.File("colorbar_fill.png"));
+                img = img.getScaledInstance(23, 23, java.awt.Image.SCALE_SMOOTH);
+                fillIcon = new ImageIcon(img);
+            } catch (Exception ex) { /* icon not found */ }
+
+            // Create columns panel for proper centering
+            JPanel columnsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
+            columnsPanel.setOpaque(false);
+
+            // Fill column (icon, color picker, label stacked vertically)
+            JPanel fillColumn = new JPanel();
+            fillColumn.setLayout(new BoxLayout(fillColumn, BoxLayout.Y_AXIS));
+            fillColumn.setOpaque(false);
+            if (fillIcon != null) {
+                JLabel fillIconLabel = new JLabel(fillIcon);
+                fillIconLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+                fillColumn.add(fillIconLabel);
+                fillColumn.add(Box.createVerticalStrut(1));
+            }
 
             JButton fillBtn = new JButton();
-            fillBtn.setPreferredSize(new Dimension(40, 40));
+            fillBtn.setPreferredSize(new Dimension(24, 5));
+            fillBtn.setMaximumSize(new Dimension(24, 5));
             fillBtn.setBackground(currentFillColor);
             fillBtn.setOpaque(true);
             fillBtn.setContentAreaFilled(true);
             fillBtn.setToolTipText("Fill Color");
-            fillBtn.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+            fillBtn.setBorder(null);
+            fillBtn.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
             final Color fillStartColor = currentFillColor;
             fillBtn.addActionListener(ev -> {
                 activeColorBar = null;
@@ -12011,15 +12041,28 @@ public class Timeline2 extends JFrame {
                     refreshTimeline();
                 } else { undo(); }
             });
-            buttonPanel.add(fillBtn);
+            fillColumn.add(fillBtn);
+            fillColumn.add(Box.createVerticalStrut(2));
+            JLabel fillLabel = new JLabel("Fill");
+            fillLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+            fillLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            fillColumn.add(fillLabel);
+
+            // Outline column (placeholder for icon, color picker, label)
+            JPanel outlineColumn = new JPanel();
+            outlineColumn.setLayout(new BoxLayout(outlineColumn, BoxLayout.Y_AXIS));
+            outlineColumn.setOpaque(false);
+            outlineColumn.add(Box.createVerticalStrut(24)); // placeholder for icon
 
             JButton outlineBtn = new JButton();
-            outlineBtn.setPreferredSize(new Dimension(40, 40));
+            outlineBtn.setPreferredSize(new Dimension(24, 5));
+            outlineBtn.setMaximumSize(new Dimension(24, 5));
             outlineBtn.setBackground(currentOutlineColor);
             outlineBtn.setOpaque(true);
             outlineBtn.setContentAreaFilled(true);
             outlineBtn.setToolTipText("Outline Color");
             outlineBtn.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+            outlineBtn.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
             final Color outlineStartColor = currentOutlineColor;
             outlineBtn.addActionListener(ev -> {
                 activeColorBar = null;
@@ -12044,22 +12087,20 @@ public class Timeline2 extends JFrame {
                     refreshTimeline();
                 } else { undo(); }
             });
-            buttonPanel.add(outlineBtn);
-
-            JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
-            labelPanel.setOpaque(false);
-            JLabel fillLabel = new JLabel("Fill");
-            fillLabel.setFont(new Font("Arial", Font.PLAIN, 10));
-            labelPanel.add(fillLabel);
+            outlineColumn.add(outlineBtn);
+            outlineColumn.add(Box.createVerticalStrut(2));
             JLabel outlineLabel = new JLabel("Outline");
             outlineLabel.setFont(new Font("Arial", Font.PLAIN, 10));
-            labelPanel.add(outlineLabel);
+            outlineLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            outlineColumn.add(outlineLabel);
+
+            columnsPanel.add(fillColumn);
+            columnsPanel.add(outlineColumn);
 
             JPanel contentPanel = new JPanel(new BorderLayout());
             contentPanel.setBackground(new Color(245, 245, 245));
             contentPanel.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
-            contentPanel.add(buttonPanel, BorderLayout.CENTER);
-            contentPanel.add(labelPanel, BorderLayout.SOUTH);
+            contentPanel.add(columnsPanel, BorderLayout.CENTER);
 
             colorBar.add(contentPanel);
             colorBar.getRootPane().setBorder(BorderFactory.createLineBorder(new Color(100, 100, 100), 1));
