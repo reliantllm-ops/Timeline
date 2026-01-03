@@ -112,6 +112,13 @@ public class Timeline2 extends JFrame {
     private double toolbarGradientAngle = 90.0;
     private ArrayList<float[]> toolbarGradientStops = new ArrayList<>();
     private JPanel toolbarPanel;
+    private JPanel contextBar;
+    private JTextField contextStartField;
+    private JTextField contextEndField;
+    private JButton contextFillBtn;
+    private javax.swing.Timer contextBarTimer;
+    private int contextBarTargetHeight = 0;
+    private boolean contextBarVisible = false;
     private JPanel spreadsheetPanel;
     private JTable spreadsheetTable;
     private javax.swing.table.DefaultTableModel spreadsheetTableModel;
@@ -457,8 +464,126 @@ public class Timeline2 extends JFrame {
         toolbarWrapper.add(toolbarPanel, BorderLayout.CENTER);
         toolbarWrapper.add(versionLabel, BorderLayout.EAST);
 
+        // Context bar that slides down when task selected
+        contextBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        contextBar.setBackground(new Color(230, 230, 230));
+        contextBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(180, 180, 180)));
+        contextBar.setPreferredSize(new Dimension(0, 0));
+
+        // Create a panel with labels right-aligned and fields left-aligned
+        JPanel datePanel = new JPanel(new java.awt.GridBagLayout());
+        datePanel.setOpaque(false);
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(1, 5, 1, 5);
+
+        // Start label - right aligned
+        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.anchor = java.awt.GridBagConstraints.EAST;
+        JLabel startLabel = new JLabel("Start:");
+        datePanel.add(startLabel, gbc);
+
+        // Start field - left aligned
+        gbc.gridx = 1; gbc.gridy = 0;
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        contextStartField = new JTextField(10);
+        contextStartField.addActionListener(e -> applyContextBarDates());
+        contextStartField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent e) { applyContextBarDates(); }
+        });
+        datePanel.add(contextStartField, gbc);
+
+        // End label - right aligned
+        gbc.gridx = 0; gbc.gridy = 1;
+        gbc.anchor = java.awt.GridBagConstraints.EAST;
+        JLabel endLabel = new JLabel("End:");
+        datePanel.add(endLabel, gbc);
+
+        // End field - left aligned
+        gbc.gridx = 1; gbc.gridy = 1;
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        contextEndField = new JTextField(10);
+        contextEndField.addActionListener(e -> applyContextBarDates());
+        contextEndField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent e) { applyContextBarDates(); }
+        });
+        datePanel.add(contextEndField, gbc);
+
+        contextBar.add(datePanel);
+
+        // Add fill color picker column (icon, button, label)
+        JPanel fillColumn = new JPanel();
+        fillColumn.setLayout(new BoxLayout(fillColumn, BoxLayout.Y_AXIS));
+        fillColumn.setOpaque(false);
+
+        // Load fill icon
+        try {
+            java.awt.Image img = javax.imageio.ImageIO.read(new java.io.File("colorbar_fill.png"));
+            img = img.getScaledInstance(23, 23, java.awt.Image.SCALE_SMOOTH);
+            JLabel fillIconLabel = new JLabel(new ImageIcon(img));
+            fillIconLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            fillIconLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            fillIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    contextFillBtn.doClick();
+                }
+            });
+            fillColumn.add(fillIconLabel);
+            fillColumn.add(Box.createVerticalStrut(1));
+        } catch (Exception ex) { /* icon not found */ }
+
+        contextFillBtn = new JButton();
+        contextFillBtn.setPreferredSize(new Dimension(24, 5));
+        contextFillBtn.setMaximumSize(new Dimension(24, 5));
+        contextFillBtn.setOpaque(true);
+        contextFillBtn.setContentAreaFilled(true);
+        contextFillBtn.setBorder(null);
+        contextFillBtn.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        contextFillBtn.addActionListener(e -> {
+            if (!selectedTaskIndices.isEmpty()) {
+                int idx = selectedTaskIndices.iterator().next();
+                if (idx >= 0 && idx < tasks.size()) {
+                    Color startColor = tasks.get(idx).fillColor;
+                    if (startColor == null) startColor = TASK_COLORS[idx % TASK_COLORS.length];
+                    saveState();
+                    Color newColor = showColorChooserWithAlpha("Choose Fill Color", startColor, color -> {
+                        tasks.get(idx).fillColor = color;
+                        contextFillBtn.setBackground(color);
+                        fillColorBtn.setBackground(color);
+                        timelineDisplayPanel.repaint();
+                    });
+                    if (newColor != null) {
+                        tasks.get(idx).fillColor = newColor;
+                        contextFillBtn.setBackground(newColor);
+                        fillColorBtn.setBackground(newColor);
+                        refreshTimeline();
+                    } else {
+                        undo();
+                    }
+                }
+            }
+        });
+        fillColumn.add(contextFillBtn);
+        fillColumn.add(Box.createVerticalStrut(2));
+
+        JLabel fillLabel = new JLabel("Fill");
+        fillLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+        fillLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        fillLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        fillLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                contextFillBtn.doClick();
+            }
+        });
+        fillColumn.add(fillLabel);
+
+        contextBar.add(fillColumn);
+
+        JPanel topWrapper = new JPanel(new BorderLayout());
+        topWrapper.add(toolbarWrapper, BorderLayout.NORTH);
+        topWrapper.add(contextBar, BorderLayout.CENTER);
+
         // Toolbar at top spanning full width
-        add(toolbarWrapper, BorderLayout.NORTH);
+        add(topWrapper, BorderLayout.NORTH);
 
         timelineDisplayPanel = new TimelineDisplayPanel();
         JScrollPane scrollPane = new JScrollPane(timelineDisplayPanel);
@@ -5966,6 +6091,7 @@ public class Timeline2 extends JFrame {
             timelineDisplayPanel.updateTimeline(startDate, endDate, events, tasks, milestones);
             layersPanel.refreshLayers();
             updateSpreadsheet();
+            updateContextBar();
         } catch (Exception e) {
             showWarning("Please enter valid dates in YYYY-MM-DD format.");
         }
@@ -11003,6 +11129,80 @@ public class Timeline2 extends JFrame {
     }
 
     // Timeline Display Panel
+    private void showContextBar() {
+        if (!contextBarVisible) {
+            contextBarVisible = true;
+            contextBarTargetHeight = 55;
+            if (contextBarTimer != null) contextBarTimer.stop();
+            contextBarTimer = new javax.swing.Timer(10, e -> {
+                int currentHeight = contextBar.getPreferredSize().height;
+                if (currentHeight < contextBarTargetHeight) {
+                    contextBar.setPreferredSize(new Dimension(0, Math.min(currentHeight + 5, contextBarTargetHeight)));
+                    contextBar.revalidate();
+                    contextBar.getParent().revalidate();
+                } else {
+                    contextBarTimer.stop();
+                }
+            });
+            contextBarTimer.start();
+        }
+    }
+
+    private void hideContextBar() {
+        if (contextBarVisible) {
+            contextBarVisible = false;
+            contextBarTargetHeight = 0;
+            if (contextBarTimer != null) contextBarTimer.stop();
+            contextBarTimer = new javax.swing.Timer(10, e -> {
+                int currentHeight = contextBar.getPreferredSize().height;
+                if (currentHeight > 0) {
+                    contextBar.setPreferredSize(new Dimension(0, Math.max(currentHeight - 5, 0)));
+                    contextBar.revalidate();
+                    contextBar.getParent().revalidate();
+                } else {
+                    contextBarTimer.stop();
+                }
+            });
+            contextBarTimer.start();
+        }
+    }
+
+    private void updateContextBar() {
+        if (!selectedTaskIndices.isEmpty()) {
+            int idx = selectedTaskIndices.iterator().next();
+            if (idx >= 0 && idx < tasks.size()) {
+                TimelineTask task = tasks.get(idx);
+                contextStartField.setText(task.startDate);
+                contextEndField.setText(task.endDate);
+                Color fillColor = task.fillColor != null ? task.fillColor : TASK_COLORS[idx % TASK_COLORS.length];
+                contextFillBtn.setBackground(fillColor);
+                showContextBar();
+                return;
+            }
+        }
+        hideContextBar();
+    }
+
+    private void applyContextBarDates() {
+        if (!selectedTaskIndices.isEmpty()) {
+            int idx = selectedTaskIndices.iterator().next();
+            if (idx >= 0 && idx < tasks.size()) {
+                String newStart = contextStartField.getText().trim();
+                String newEnd = contextEndField.getText().trim();
+                try {
+                    LocalDate.parse(newStart, DATE_FORMAT);
+                    LocalDate.parse(newEnd, DATE_FORMAT);
+                    saveState();
+                    tasks.get(idx).startDate = newStart;
+                    tasks.get(idx).endDate = newEnd;
+                    refreshTimeline();
+                } catch (Exception ex) {
+                    // Invalid date format, ignore
+                }
+            }
+        }
+    }
+
     class TimelineDisplayPanel extends JPanel {
         private LocalDate startDate, endDate;
         private ArrayList<TimelineEvent> events = new ArrayList<>();
