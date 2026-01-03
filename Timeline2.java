@@ -11067,6 +11067,12 @@ public class Timeline2 extends JFrame {
         private int selectionBoxEndX = -1;
         private int selectionBoxEndY = -1;
 
+        // Floating color bar and alignment window
+        private JWindow activeColorBar = null;
+        private JWindow activeAlignmentWindow = null;
+        private int colorBarBottomY = 0;
+        private int colorBarLeftX = 0;
+
         TimelineDisplayPanel() {
             setBackground(Color.WHITE);
             setupMouseListeners();
@@ -11439,6 +11445,17 @@ public class Timeline2 extends JFrame {
             MouseAdapter adapter = new MouseAdapter() {
                 public void mousePressed(MouseEvent e) {
                     requestFocusInWindow();
+
+                    // Close floating windows if left-clicking on timeline (not on windows)
+                    if (e.getButton() == MouseEvent.BUTTON1 && !e.isPopupTrigger() && !SwingUtilities.isRightMouseButton(e)) {
+                        if (activeColorBar != null || activeAlignmentWindow != null) {
+                            Point clickScreen = e.getLocationOnScreen();
+                            boolean onWindow = (activeColorBar != null && activeColorBar.getBounds().contains(clickScreen))
+                                             || (activeAlignmentWindow != null && activeAlignmentWindow.getBounds().contains(clickScreen));
+                            if (!onWindow) { closeFloatingWindows(); }
+                        }
+                    }
+
                     // Skip selection handling on right-click to preserve multi-selection
                     if (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e)) {
                         return;
@@ -11452,8 +11469,14 @@ public class Timeline2 extends JFrame {
                         if (selectedMilestoneIndex >= 0 && !selectedMilestoneIndices.contains(selectedMilestoneIndex)) {
                             totalSelected++;
                         }
-                        if (totalSelected > 1) {
-                            showAlignmentPopup(e.getX(), e.getY());
+                        if (totalSelected >= 1 || selectedMilestoneIndex >= 0) {
+                            if (totalSelected > 1) {
+                                // Show color bar first, then alignment window
+                                showFloatingColorBar(e.getX(), e.getY(), false);
+                                showAlignmentPopup(e.getX(), e.getY());
+                            } else {
+                                showFloatingColorBar(e.getX(), e.getY(), true);
+                            }
                             return;
                         }
                     }
@@ -11855,39 +11878,213 @@ public class Timeline2 extends JFrame {
         }
 
         private void showAlignmentPopup(int x, int y) {
-            JPopupMenu popup = new JPopupMenu();
+            // Use JWindow instead of JPopupMenu to avoid focus issues with color bar
+            JWindow alignWindow = new JWindow(SwingUtilities.getWindowAncestor(this));
+            alignWindow.setLayout(new BorderLayout());
 
-            JMenuItem alignLeft = new JMenuItem("Align Left");
-            alignLeft.addActionListener(e -> alignSelectedObjects("left"));
-            popup.add(alignLeft);
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+            buttonPanel.setBackground(new Color(245, 245, 245));
+            buttonPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
-            JMenuItem alignRight = new JMenuItem("Align Right");
-            alignRight.addActionListener(e -> alignSelectedObjects("right"));
-            popup.add(alignRight);
+            java.util.function.Consumer<JButton> styleButton = btn -> {
+                btn.setHorizontalAlignment(SwingConstants.LEFT);
+                btn.setBorderPainted(false);
+                btn.setFocusPainted(false);
+                btn.setContentAreaFilled(false);
+                btn.setOpaque(true);
+                btn.setBackground(new Color(245, 245, 245));
+                btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                btn.addMouseListener(new java.awt.event.MouseAdapter() {
+                    public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(new Color(220, 220, 220)); }
+                    public void mouseExited(java.awt.event.MouseEvent e) { btn.setBackground(new Color(245, 245, 245)); }
+                });
+            };
 
-            JMenuItem alignTop = new JMenuItem("Align Top");
-            alignTop.addActionListener(e -> alignSelectedObjects("top"));
-            popup.add(alignTop);
+            JButton alignLeft = new JButton("Align Left");
+            styleButton.accept(alignLeft);
+            alignLeft.addActionListener(e -> { closeFloatingWindows(); alignSelectedObjects("left"); });
+            buttonPanel.add(alignLeft);
 
-            JMenuItem alignBottom = new JMenuItem("Align Bottom");
-            alignBottom.addActionListener(e -> alignSelectedObjects("bottom"));
-            popup.add(alignBottom);
+            JButton alignRight = new JButton("Align Right");
+            styleButton.accept(alignRight);
+            alignRight.addActionListener(e -> { closeFloatingWindows(); alignSelectedObjects("right"); });
+            buttonPanel.add(alignRight);
 
-            JMenuItem alignCenter = new JMenuItem("Align Center");
-            alignCenter.addActionListener(e -> alignSelectedObjects("center"));
-            popup.add(alignCenter);
+            JButton alignTop = new JButton("Align Top");
+            styleButton.accept(alignTop);
+            alignTop.addActionListener(e -> { closeFloatingWindows(); alignSelectedObjects("top"); });
+            buttonPanel.add(alignTop);
 
-            popup.addSeparator();
+            JButton alignBottom = new JButton("Align Bottom");
+            styleButton.accept(alignBottom);
+            alignBottom.addActionListener(e -> { closeFloatingWindows(); alignSelectedObjects("bottom"); });
+            buttonPanel.add(alignBottom);
 
-            JMenuItem distHoriz = new JMenuItem("Distribute Horizontally");
-            distHoriz.addActionListener(e -> alignSelectedObjects("distribute_h"));
-            popup.add(distHoriz);
+            JButton alignCenter = new JButton("Align Center");
+            styleButton.accept(alignCenter);
+            alignCenter.addActionListener(e -> { closeFloatingWindows(); alignSelectedObjects("center"); });
+            buttonPanel.add(alignCenter);
 
-            JMenuItem distVert = new JMenuItem("Distribute Vertically");
-            distVert.addActionListener(e -> alignSelectedObjects("distribute_v"));
-            popup.add(distVert);
+            JSeparator sep = new JSeparator();
+            sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+            buttonPanel.add(sep);
 
-            popup.show(this, x, y);
+            JButton distHoriz = new JButton("Distribute Horizontally");
+            styleButton.accept(distHoriz);
+            distHoriz.addActionListener(e -> { closeFloatingWindows(); alignSelectedObjects("distribute_h"); });
+            buttonPanel.add(distHoriz);
+
+            JButton distVert = new JButton("Distribute Vertically");
+            styleButton.accept(distVert);
+            distVert.addActionListener(e -> { closeFloatingWindows(); alignSelectedObjects("distribute_v"); });
+            buttonPanel.add(distVert);
+
+            alignWindow.add(buttonPanel);
+            alignWindow.getRootPane().setBorder(BorderFactory.createLineBorder(new Color(100, 100, 100), 1));
+            alignWindow.pack();
+
+            int windowX = activeColorBar != null ? colorBarLeftX : (getLocationOnScreen().x + x);
+            int windowY = activeColorBar != null ? (colorBarBottomY + 10) : (getLocationOnScreen().y + y);
+
+            alignWindow.setLocation(windowX, windowY);
+            alignWindow.setVisible(true);
+            activeAlignmentWindow = alignWindow;
+        }
+
+        private void closeFloatingWindows() {
+            if (activeColorBar != null) { activeColorBar.dispose(); activeColorBar = null; }
+            if (activeAlignmentWindow != null) { activeAlignmentWindow.dispose(); activeAlignmentWindow = null; }
+        }
+
+        private void showFloatingColorBar(int x, int y, boolean autoClose) {
+            JWindow colorBar = new JWindow(SwingUtilities.getWindowAncestor(this));
+            colorBar.setLayout(new BorderLayout());
+
+            Color currentFillColor = Color.GRAY;
+            Color currentOutlineColor = Color.DARK_GRAY;
+
+            if (!selectedTaskIndices.isEmpty()) {
+                int idx = selectedTaskIndices.iterator().next();
+                if (idx >= 0 && idx < tasks.size()) {
+                    TimelineTask task = tasks.get(idx);
+                    currentFillColor = task.fillColor != null ? task.fillColor : TASK_COLORS[idx % TASK_COLORS.length];
+                    currentOutlineColor = task.outlineColor != null ? task.outlineColor : currentFillColor.darker();
+                }
+            } else if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                TimelineMilestone ms = milestones.get(selectedMilestoneIndex);
+                currentFillColor = ms.fillColor;
+                currentOutlineColor = ms.outlineColor;
+            }
+
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4));
+            buttonPanel.setOpaque(false);
+
+            JButton fillBtn = new JButton();
+            fillBtn.setPreferredSize(new Dimension(40, 40));
+            fillBtn.setBackground(currentFillColor);
+            fillBtn.setOpaque(true);
+            fillBtn.setContentAreaFilled(true);
+            fillBtn.setToolTipText("Fill Color");
+            fillBtn.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+            final Color fillStartColor = currentFillColor;
+            fillBtn.addActionListener(ev -> {
+                activeColorBar = null;
+                colorBar.dispose();
+                if (activeAlignmentWindow != null) { activeAlignmentWindow.dispose(); activeAlignmentWindow = null; }
+
+                saveState();
+                Color newColor = showColorChooserWithAlpha("Choose Fill Color", fillStartColor, color -> {
+                    for (int ti : selectedTaskIndices) { tasks.get(ti).fillColor = color; }
+                    if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                        milestones.get(selectedMilestoneIndex).fillColor = color;
+                    }
+                    fillColorBtn.setBackground(color);
+                    timelineDisplayPanel.repaint();
+                });
+                if (newColor != null) {
+                    for (int ti : selectedTaskIndices) { tasks.get(ti).fillColor = newColor; }
+                    if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                        milestones.get(selectedMilestoneIndex).fillColor = newColor;
+                    }
+                    fillColorBtn.setBackground(newColor);
+                    refreshTimeline();
+                } else { undo(); }
+            });
+            buttonPanel.add(fillBtn);
+
+            JButton outlineBtn = new JButton();
+            outlineBtn.setPreferredSize(new Dimension(40, 40));
+            outlineBtn.setBackground(currentOutlineColor);
+            outlineBtn.setOpaque(true);
+            outlineBtn.setContentAreaFilled(true);
+            outlineBtn.setToolTipText("Outline Color");
+            outlineBtn.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
+            final Color outlineStartColor = currentOutlineColor;
+            outlineBtn.addActionListener(ev -> {
+                activeColorBar = null;
+                colorBar.dispose();
+                if (activeAlignmentWindow != null) { activeAlignmentWindow.dispose(); activeAlignmentWindow = null; }
+
+                saveState();
+                Color newColor = showColorChooserWithAlpha("Choose Outline Color", outlineStartColor, color -> {
+                    for (int ti : selectedTaskIndices) { tasks.get(ti).outlineColor = color; }
+                    if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                        milestones.get(selectedMilestoneIndex).outlineColor = color;
+                    }
+                    outlineColorBtn.setBackground(color);
+                    timelineDisplayPanel.repaint();
+                });
+                if (newColor != null) {
+                    for (int ti : selectedTaskIndices) { tasks.get(ti).outlineColor = newColor; }
+                    if (selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.size()) {
+                        milestones.get(selectedMilestoneIndex).outlineColor = newColor;
+                    }
+                    outlineColorBtn.setBackground(newColor);
+                    refreshTimeline();
+                } else { undo(); }
+            });
+            buttonPanel.add(outlineBtn);
+
+            JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+            labelPanel.setOpaque(false);
+            JLabel fillLabel = new JLabel("Fill");
+            fillLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+            labelPanel.add(fillLabel);
+            JLabel outlineLabel = new JLabel("Outline");
+            outlineLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+            labelPanel.add(outlineLabel);
+
+            JPanel contentPanel = new JPanel(new BorderLayout());
+            contentPanel.setBackground(new Color(245, 245, 245));
+            contentPanel.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+            contentPanel.add(buttonPanel, BorderLayout.CENTER);
+            contentPanel.add(labelPanel, BorderLayout.SOUTH);
+
+            colorBar.add(contentPanel);
+            colorBar.getRootPane().setBorder(BorderFactory.createLineBorder(new Color(100, 100, 100), 1));
+            colorBar.pack();
+
+            Point screenPos = getLocationOnScreen();
+            int barX = screenPos.x + x + 10;
+            int barY = screenPos.y + y - colorBar.getHeight() - 10;
+
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            if (barX + colorBar.getWidth() > screenSize.width) { barX = screenPos.x + x - colorBar.getWidth() - 10; }
+            if (barY < 0) { barY = screenPos.y + y + 20; }
+
+            colorBar.setLocation(barX, barY);
+            colorBar.setVisible(true);
+            activeColorBar = colorBar;
+            colorBarLeftX = barX;
+            colorBarBottomY = barY + colorBar.getHeight();
+
+            if (autoClose) {
+                colorBar.addWindowFocusListener(new java.awt.event.WindowFocusListener() {
+                    public void windowGainedFocus(java.awt.event.WindowEvent e) {}
+                    public void windowLostFocus(java.awt.event.WindowEvent e) { colorBar.dispose(); }
+                });
+            }
         }
 
         private void alignSelectedObjects(String alignment) {
