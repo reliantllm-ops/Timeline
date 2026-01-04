@@ -466,10 +466,22 @@ public class Timeline2 extends JFrame {
         toolbarWrapper.add(versionLabel, BorderLayout.EAST);
 
         // Context bar that slides down when task selected
-        contextBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        contextBar = new JPanel(new BorderLayout());
         contextBar.setBackground(new Color(230, 230, 230));
         contextBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(180, 180, 180)));
         contextBar.setPreferredSize(new Dimension(0, 0));
+
+        // Add "Task Format" label above the items
+        JLabel taskFormatLabel = new JLabel("Task Format");
+        taskFormatLabel.setFont(new Font("Arial", Font.BOLD, 11));
+        taskFormatLabel.setForeground(new Color(120, 120, 120));
+        taskFormatLabel.setBorder(BorderFactory.createEmptyBorder(2, 10, 0, 0));
+        contextBar.add(taskFormatLabel, BorderLayout.NORTH);
+
+        // Items panel with FlowLayout
+        JPanel contextBarItems = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
+        contextBarItems.setOpaque(false);
+        contextBar.add(contextBarItems, BorderLayout.CENTER);
 
         // Create a panel with labels right-aligned and fields left-aligned
         JPanel datePanel = new JPanel(new java.awt.GridBagLayout());
@@ -509,7 +521,7 @@ public class Timeline2 extends JFrame {
         });
         datePanel.add(contextEndField, gbc);
 
-        contextBar.add(datePanel);
+        contextBarItems.add(datePanel);
 
         // Add fill color picker column (icon, button, label)
         JPanel fillColumn = new JPanel();
@@ -612,7 +624,7 @@ public class Timeline2 extends JFrame {
         });
         fillColumn.add(fillLabel);
 
-        contextBar.add(fillColumn);
+        contextBarItems.add(fillColumn);
 
         // Add outline color picker column (icon, button, label)
         JPanel outlineColumn = new JPanel();
@@ -715,7 +727,7 @@ public class Timeline2 extends JFrame {
         });
         outlineColumn.add(outlineLabel);
 
-        contextBar.add(outlineColumn);
+        contextBarItems.add(outlineColumn);
 
         // Add outline weight column (icon with "Outline" and "Weight" labels)
         JPanel weightColumn = new JPanel();
@@ -750,6 +762,9 @@ public class Timeline2 extends JFrame {
                 }
                 public void mouseExited(java.awt.event.MouseEvent e) {
                     weightColumn.setBackground(weightColumnDefaultBg);
+                }
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    showOutlineWeightPicker(e.getLocationOnScreen());
                 }
             });
             weightColumn.add(weightIconLabel);
@@ -786,7 +801,7 @@ public class Timeline2 extends JFrame {
         });
         weightColumn.add(weightLabel2);
 
-        contextBar.add(weightColumn);
+        contextBarItems.add(weightColumn);
 
         JPanel topWrapper = new JPanel(new BorderLayout());
         topWrapper.add(toolbarWrapper, BorderLayout.NORTH);
@@ -11340,45 +11355,81 @@ public class Timeline2 extends JFrame {
 
     private void showOutlineWeightPicker(java.awt.Point location) {
         if (selectedTaskIndices.isEmpty()) return;
-        
+
         int idx = selectedTaskIndices.iterator().next();
         if (idx < 0 || idx >= tasks.size()) return;
-        
+
         TimelineTask task = tasks.get(idx);
         int currentThickness = task.outlineThickness;
-        
+
         JWindow picker = new JWindow(this);
         picker.setLayout(new BorderLayout());
-        
-        JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+
+        JPanel contentPanel = new JPanel(new GridLayout(8, 1, 0, 2));
         contentPanel.setBackground(new Color(245, 245, 245));
         contentPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(100, 100, 100), 1),
-            BorderFactory.createEmptyBorder(4, 8, 4, 8)
+            BorderFactory.createEmptyBorder(4, 4, 4, 4)
         ));
-        
-        JLabel label = new JLabel("Thickness:");
-        label.setFont(new Font("Arial", Font.PLAIN, 11));
-        contentPanel.add(label);
-        
-        JSpinner spinner = new JSpinner(new SpinnerNumberModel(currentThickness, 0, 10, 1));
-        spinner.setPreferredSize(new Dimension(50, 25));
-        spinner.addChangeListener(e -> {
-            int newValue = (Integer) spinner.getValue();
-            saveState();
-            for (int ti : selectedTaskIndices) {
-                tasks.get(ti).outlineThickness = newValue;
+
+        // 8 pixel size options
+        int[] sizes = {1, 2, 3, 4, 5, 6, 8, 10};
+        final int originalThickness = currentThickness;
+        final boolean[] committed = {false};
+
+        for (int size : sizes) {
+            JButton sizeBtn = new JButton(size + " px");
+            sizeBtn.setFont(new Font("Arial", Font.PLAIN, 11));
+            sizeBtn.setPreferredSize(new Dimension(60, 22));
+            sizeBtn.setFocusPainted(false);
+            if (size == currentThickness) {
+                sizeBtn.setBackground(new Color(180, 200, 220));
+            } else {
+                sizeBtn.setBackground(new Color(240, 240, 240));
             }
-            outlineThicknessSpinner.setValue(newValue);
-            refreshTimeline();
-        });
-        contentPanel.add(spinner);
-        
+
+            // Live preview on hover
+            sizeBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    sizeBtn.setBackground(new Color(180, 200, 220));
+                    for (int ti : selectedTaskIndices) {
+                        tasks.get(ti).outlineThickness = size;
+                    }
+                    timelineDisplayPanel.repaint();
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    if (size == originalThickness) {
+                        sizeBtn.setBackground(new Color(180, 200, 220));
+                    } else {
+                        sizeBtn.setBackground(new Color(240, 240, 240));
+                    }
+                    if (!committed[0]) {
+                        for (int ti : selectedTaskIndices) {
+                            tasks.get(ti).outlineThickness = originalThickness;
+                        }
+                        timelineDisplayPanel.repaint();
+                    }
+                }
+            });
+
+            sizeBtn.addActionListener(e -> {
+                committed[0] = true;
+                saveState();
+                for (int ti : selectedTaskIndices) {
+                    tasks.get(ti).outlineThickness = size;
+                }
+                outlineThicknessSpinner.setValue(size);
+                refreshTimeline();
+                picker.dispose();
+            });
+            contentPanel.add(sizeBtn);
+        }
+
         picker.add(contentPanel);
         picker.pack();
         picker.setLocation(location.x - picker.getWidth() / 2, location.y + 10);
         picker.setVisible(true);
-        
+
         // Close when clicking outside
         picker.addWindowFocusListener(new java.awt.event.WindowFocusListener() {
             public void windowGainedFocus(java.awt.event.WindowEvent e) {}
@@ -11392,7 +11443,7 @@ public class Timeline2 extends JFrame {
     private void showContextBar() {
         if (!contextBarVisible) {
             contextBarVisible = true;
-            contextBarTargetHeight = 55;
+            contextBarTargetHeight = 72;
             if (contextBarTimer != null) contextBarTimer.stop();
             contextBarTimer = new javax.swing.Timer(10, e -> {
                 int currentHeight = contextBar.getPreferredSize().height;
