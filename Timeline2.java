@@ -116,6 +116,7 @@ public class Timeline2 extends JFrame {
     private JTextField contextStartField;
     private JTextField contextEndField;
     private JButton contextFillBtn;
+    private JButton contextOutlineBtn;
     private javax.swing.Timer contextBarTimer;
     private int contextBarTargetHeight = 0;
     private boolean contextBarVisible = false;
@@ -513,7 +514,22 @@ public class Timeline2 extends JFrame {
         // Add fill color picker column (icon, button, label)
         JPanel fillColumn = new JPanel();
         fillColumn.setLayout(new BoxLayout(fillColumn, BoxLayout.Y_AXIS));
-        fillColumn.setOpaque(false);
+        fillColumn.setOpaque(true);
+        fillColumn.setBackground(contextBar.getBackground());
+        fillColumn.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+        fillColumn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Color fillColumnDefaultBg = contextBar.getBackground();
+        fillColumn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                fillColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                fillColumn.setBackground(fillColumnDefaultBg);
+            }
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                contextFillBtn.doClick();
+            }
+        });
 
         // Load fill icon
         try {
@@ -525,6 +541,12 @@ public class Timeline2 extends JFrame {
             fillIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
                 public void mouseClicked(java.awt.event.MouseEvent e) {
                     contextFillBtn.doClick();
+                }
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(fillColumnDefaultBg);
                 }
             });
             fillColumn.add(fillIconLabel);
@@ -562,6 +584,14 @@ public class Timeline2 extends JFrame {
                 }
             }
         });
+        contextFillBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                fillColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                fillColumn.setBackground(fillColumnDefaultBg);
+            }
+        });
         fillColumn.add(contextFillBtn);
         fillColumn.add(Box.createVerticalStrut(2));
 
@@ -573,10 +603,190 @@ public class Timeline2 extends JFrame {
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 contextFillBtn.doClick();
             }
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                fillColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                fillColumn.setBackground(fillColumnDefaultBg);
+            }
         });
         fillColumn.add(fillLabel);
 
         contextBar.add(fillColumn);
+
+        // Add outline color picker column (icon, button, label)
+        JPanel outlineColumn = new JPanel();
+        outlineColumn.setLayout(new BoxLayout(outlineColumn, BoxLayout.Y_AXIS));
+        outlineColumn.setOpaque(true);
+        outlineColumn.setBackground(contextBar.getBackground());
+        outlineColumn.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+        outlineColumn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Color outlineColumnDefaultBg = contextBar.getBackground();
+        outlineColumn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                outlineColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                outlineColumn.setBackground(outlineColumnDefaultBg);
+            }
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                contextOutlineBtn.doClick();
+            }
+        });
+
+        // Load outline icon
+        try {
+            java.awt.Image outlineImg = javax.imageio.ImageIO.read(new java.io.File("colorbar_outline.png"));
+            outlineImg = outlineImg.getScaledInstance(23, 23, java.awt.Image.SCALE_SMOOTH);
+            JLabel outlineIconLabel = new JLabel(new ImageIcon(outlineImg));
+            outlineIconLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            outlineIconLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            outlineIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    contextOutlineBtn.doClick();
+                }
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(outlineColumnDefaultBg);
+                }
+            });
+            outlineColumn.add(outlineIconLabel);
+            outlineColumn.add(Box.createVerticalStrut(1));
+        } catch (Exception ex) { /* icon not found */ }
+
+        contextOutlineBtn = new JButton();
+        contextOutlineBtn.setPreferredSize(new Dimension(24, 5));
+        contextOutlineBtn.setMaximumSize(new Dimension(24, 5));
+        contextOutlineBtn.setOpaque(true);
+        contextOutlineBtn.setContentAreaFilled(true);
+        contextOutlineBtn.setBorder(null);
+        contextOutlineBtn.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        contextOutlineBtn.addActionListener(e -> {
+            if (!selectedTaskIndices.isEmpty()) {
+                int idx = selectedTaskIndices.iterator().next();
+                if (idx >= 0 && idx < tasks.size()) {
+                    Color startColor = tasks.get(idx).outlineColor;
+                    if (startColor == null) startColor = Color.BLACK;
+                    saveState();
+                    Color newColor = showColorChooserWithAlpha("Choose Outline Color", startColor, color -> {
+                        tasks.get(idx).outlineColor = color;
+                        contextOutlineBtn.setBackground(color);
+                        outlineColorBtn.setBackground(color);
+                        timelineDisplayPanel.repaint();
+                    });
+                    if (newColor != null) {
+                        tasks.get(idx).outlineColor = newColor;
+                        contextOutlineBtn.setBackground(newColor);
+                        outlineColorBtn.setBackground(newColor);
+                        refreshTimeline();
+                    } else {
+                        undo();
+                    }
+                }
+            }
+        });
+        contextOutlineBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                outlineColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                outlineColumn.setBackground(outlineColumnDefaultBg);
+            }
+        });
+        outlineColumn.add(contextOutlineBtn);
+        outlineColumn.add(Box.createVerticalStrut(2));
+
+        JLabel outlineLabel = new JLabel("Outline");
+        outlineLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+        outlineLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        outlineLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        outlineLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                contextOutlineBtn.doClick();
+            }
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                outlineColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                outlineColumn.setBackground(outlineColumnDefaultBg);
+            }
+        });
+        outlineColumn.add(outlineLabel);
+
+        contextBar.add(outlineColumn);
+
+        // Add outline weight column (icon with "Outline" and "Weight" labels)
+        JPanel weightColumn = new JPanel();
+        weightColumn.setLayout(new BoxLayout(weightColumn, BoxLayout.Y_AXIS));
+        weightColumn.setOpaque(true);
+        weightColumn.setBackground(contextBar.getBackground());
+        weightColumn.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+        weightColumn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Color weightColumnDefaultBg = contextBar.getBackground();
+        weightColumn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                weightColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                weightColumn.setBackground(weightColumnDefaultBg);
+            }
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                showOutlineWeightPicker(e.getLocationOnScreen());
+            }
+        });
+
+        // Load outline weight icon
+        try {
+            java.awt.Image weightImg = javax.imageio.ImageIO.read(new java.io.File("OLweight.png"));
+            weightImg = weightImg.getScaledInstance(23, 23, java.awt.Image.SCALE_SMOOTH);
+            JLabel weightIconLabel = new JLabel(new ImageIcon(weightImg));
+            weightIconLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            weightIconLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            weightIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    weightColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    weightColumn.setBackground(weightColumnDefaultBg);
+                }
+            });
+            weightColumn.add(weightIconLabel);
+            weightColumn.add(Box.createVerticalStrut(1));
+        } catch (Exception ex) { /* icon not found */ }
+
+        JLabel weightLabel1 = new JLabel("Outline");
+        weightLabel1.setFont(new Font("Arial", Font.PLAIN, 10));
+        weightLabel1.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        weightLabel1.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        weightLabel1.setBorder(BorderFactory.createEmptyBorder(0, 0, -2, 0));
+        weightLabel1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                weightColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                weightColumn.setBackground(weightColumnDefaultBg);
+            }
+        });
+        weightColumn.add(weightLabel1);
+
+        JLabel weightLabel2 = new JLabel("Weight");
+        weightLabel2.setFont(new Font("Arial", Font.PLAIN, 10));
+        weightLabel2.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        weightLabel2.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        weightLabel2.setBorder(BorderFactory.createEmptyBorder(-2, 0, 0, 0));
+        weightLabel2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                weightColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                weightColumn.setBackground(weightColumnDefaultBg);
+            }
+        });
+        weightColumn.add(weightLabel2);
+
+        contextBar.add(weightColumn);
 
         JPanel topWrapper = new JPanel(new BorderLayout());
         topWrapper.add(toolbarWrapper, BorderLayout.NORTH);
@@ -11128,6 +11338,56 @@ public class Timeline2 extends JFrame {
         }
     }
 
+    private void showOutlineWeightPicker(java.awt.Point location) {
+        if (selectedTaskIndices.isEmpty()) return;
+        
+        int idx = selectedTaskIndices.iterator().next();
+        if (idx < 0 || idx >= tasks.size()) return;
+        
+        TimelineTask task = tasks.get(idx);
+        int currentThickness = task.outlineThickness;
+        
+        JWindow picker = new JWindow(this);
+        picker.setLayout(new BorderLayout());
+        
+        JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+        contentPanel.setBackground(new Color(245, 245, 245));
+        contentPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(100, 100, 100), 1),
+            BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
+        
+        JLabel label = new JLabel("Thickness:");
+        label.setFont(new Font("Arial", Font.PLAIN, 11));
+        contentPanel.add(label);
+        
+        JSpinner spinner = new JSpinner(new SpinnerNumberModel(currentThickness, 0, 10, 1));
+        spinner.setPreferredSize(new Dimension(50, 25));
+        spinner.addChangeListener(e -> {
+            int newValue = (Integer) spinner.getValue();
+            saveState();
+            for (int ti : selectedTaskIndices) {
+                tasks.get(ti).outlineThickness = newValue;
+            }
+            outlineThicknessSpinner.setValue(newValue);
+            refreshTimeline();
+        });
+        contentPanel.add(spinner);
+        
+        picker.add(contentPanel);
+        picker.pack();
+        picker.setLocation(location.x - picker.getWidth() / 2, location.y + 10);
+        picker.setVisible(true);
+        
+        // Close when clicking outside
+        picker.addWindowFocusListener(new java.awt.event.WindowFocusListener() {
+            public void windowGainedFocus(java.awt.event.WindowEvent e) {}
+            public void windowLostFocus(java.awt.event.WindowEvent e) {
+                picker.dispose();
+            }
+        });
+    }
+
     // Timeline Display Panel
     private void showContextBar() {
         if (!contextBarVisible) {
@@ -11176,6 +11436,8 @@ public class Timeline2 extends JFrame {
                 contextEndField.setText(task.endDate);
                 Color fillColor = task.fillColor != null ? task.fillColor : TASK_COLORS[idx % TASK_COLORS.length];
                 contextFillBtn.setBackground(fillColor);
+                Color outlineColor = task.outlineColor != null ? task.outlineColor : Color.BLACK;
+                contextOutlineBtn.setBackground(outlineColor);
                 showContextBar();
                 return;
             }
@@ -12200,15 +12462,47 @@ public class Timeline2 extends JFrame {
             // Fill column (icon, color picker, label stacked vertically)
             JPanel fillColumn = new JPanel();
             fillColumn.setLayout(new BoxLayout(fillColumn, BoxLayout.Y_AXIS));
-            fillColumn.setOpaque(false);
+            fillColumn.setOpaque(true);
+            fillColumn.setBackground(new Color(245, 245, 245));
+            fillColumn.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+            fillColumn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            Color floatFillDefaultBg = new Color(245, 245, 245);
+            // Create fillBtn first so icon can reference it
+            JButton fillBtn = new JButton();
+
+            fillColumn.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(floatFillDefaultBg);
+                }
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    fillBtn.doClick();
+                }
+            });
+
+            // Add fill icon
             if (fillIcon != null) {
                 JLabel fillIconLabel = new JLabel(fillIcon);
                 fillIconLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+                fillIconLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                fillIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                    public void mouseClicked(java.awt.event.MouseEvent e) {
+                        fillBtn.doClick();
+                    }
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        fillColumn.setBackground(new Color(200, 200, 200));
+                    }
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        fillColumn.setBackground(floatFillDefaultBg);
+                    }
+                });
                 fillColumn.add(fillIconLabel);
                 fillColumn.add(Box.createVerticalStrut(1));
             }
 
-            JButton fillBtn = new JButton();
+            // Configure fillBtn
             fillBtn.setPreferredSize(new Dimension(24, 5));
             fillBtn.setMaximumSize(new Dimension(24, 5));
             fillBtn.setBackground(currentFillColor);
@@ -12241,20 +12535,82 @@ public class Timeline2 extends JFrame {
                     refreshTimeline();
                 } else { undo(); }
             });
+            fillBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(floatFillDefaultBg);
+                }
+            });
             fillColumn.add(fillBtn);
             fillColumn.add(Box.createVerticalStrut(2));
             JLabel fillLabel = new JLabel("Fill");
             fillLabel.setFont(new Font("Arial", Font.PLAIN, 10));
             fillLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            fillLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            fillLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    fillBtn.doClick();
+                }
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    fillColumn.setBackground(floatFillDefaultBg);
+                }
+            });
             fillColumn.add(fillLabel);
 
-            // Outline column (placeholder for icon, color picker, label)
+            // Outline column (icon, color picker, label)
             JPanel outlineColumn = new JPanel();
             outlineColumn.setLayout(new BoxLayout(outlineColumn, BoxLayout.Y_AXIS));
-            outlineColumn.setOpaque(false);
-            outlineColumn.add(Box.createVerticalStrut(24)); // placeholder for icon
+            outlineColumn.setOpaque(true);
+            outlineColumn.setBackground(new Color(245, 245, 245));
+            outlineColumn.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+            outlineColumn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            Color floatOutlineDefaultBg = new Color(245, 245, 245);
 
+            // Create outlineBtn first so icon can reference it
             JButton outlineBtn = new JButton();
+
+            outlineColumn.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(floatOutlineDefaultBg);
+                }
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    outlineBtn.doClick();
+                }
+            });
+
+            // Load outline icon
+            try {
+                java.awt.Image outlineImg = javax.imageio.ImageIO.read(new java.io.File("colorbar_outline.png"));
+                outlineImg = outlineImg.getScaledInstance(23, 23, java.awt.Image.SCALE_SMOOTH);
+                JLabel outlineIconLabel = new JLabel(new ImageIcon(outlineImg));
+                outlineIconLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+                outlineIconLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                outlineIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                    public void mouseClicked(java.awt.event.MouseEvent e) {
+                        outlineBtn.doClick();
+                    }
+                    public void mouseEntered(java.awt.event.MouseEvent e) {
+                        outlineColumn.setBackground(new Color(200, 200, 200));
+                    }
+                    public void mouseExited(java.awt.event.MouseEvent e) {
+                        outlineColumn.setBackground(floatOutlineDefaultBg);
+                    }
+                });
+                outlineColumn.add(outlineIconLabel);
+                outlineColumn.add(Box.createVerticalStrut(1));
+            } catch (Exception ex) {
+                outlineColumn.add(Box.createVerticalStrut(24)); // fallback if icon not found
+            }
+
+            // Configure outlineBtn
             outlineBtn.setPreferredSize(new Dimension(24, 5));
             outlineBtn.setMaximumSize(new Dimension(24, 5));
             outlineBtn.setBackground(currentOutlineColor);
@@ -12287,11 +12643,31 @@ public class Timeline2 extends JFrame {
                     refreshTimeline();
                 } else { undo(); }
             });
+            outlineBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(floatOutlineDefaultBg);
+                }
+            });
             outlineColumn.add(outlineBtn);
             outlineColumn.add(Box.createVerticalStrut(2));
             JLabel outlineLabel = new JLabel("Outline");
             outlineLabel.setFont(new Font("Arial", Font.PLAIN, 10));
             outlineLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            outlineLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            outlineLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    outlineBtn.doClick();
+                }
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    outlineColumn.setBackground(floatOutlineDefaultBg);
+                }
+            });
             outlineColumn.add(outlineLabel);
 
             columnsPanel.add(fillColumn);
