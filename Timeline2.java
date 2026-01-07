@@ -803,6 +803,133 @@ public class Timeline2 extends JFrame {
 
         contextBarItems.add(weightColumn);
 
+        // Add task height column (icon with "Task Height" label to the right)
+        JPanel heightColumn = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 0));
+        heightColumn.setOpaque(true);
+        heightColumn.setBackground(contextBar.getBackground());
+        heightColumn.setBorder(BorderFactory.createEmptyBorder(0, 11, 4, 8));
+        heightColumn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Color heightColumnDefaultBg = contextBar.getBackground();
+        heightColumn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                heightColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                heightColumn.setBackground(heightColumnDefaultBg);
+            }
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                showTaskHeightPicker(e.getLocationOnScreen());
+            }
+        });
+
+        // Load height icon (bigger)
+        try {
+            java.awt.image.BufferedImage heightImg = javax.imageio.ImageIO.read(new java.io.File("C:\\Users\\Ryan.Pfeiffer\\Downloads\\height.png"));
+            int targetSize = 41;
+            int imgW = heightImg.getWidth();
+            int imgH = heightImg.getHeight();
+            double scale = Math.min((double)targetSize / imgW, (double)targetSize / imgH);
+            int scaledW = (int)(imgW * scale * 1.15);  // 15% wider
+            int scaledH = (int)(imgH * scale);
+            Image scaledImg = heightImg.getScaledInstance(scaledW, scaledH, Image.SCALE_SMOOTH);
+            JLabel heightIconLabel = new JLabel(new ImageIcon(scaledImg));
+            heightIconLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            heightIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    heightColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    heightColumn.setBackground(heightColumnDefaultBg);
+                }
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    showTaskHeightPicker(e.getLocationOnScreen());
+                }
+            });
+            heightColumn.add(heightIconLabel);
+        } catch (Exception ex) { /* icon not found */ }
+
+        // Text labels stacked vertically to the right of icon
+        JPanel heightTextPanel = new JPanel();
+        heightTextPanel.setLayout(new BoxLayout(heightTextPanel, BoxLayout.Y_AXIS));
+        heightTextPanel.setOpaque(false);
+        heightTextPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JLabel heightLabel1 = new JLabel("Task");
+        heightLabel1.setFont(new Font("Arial", Font.PLAIN, 9));
+        heightLabel1.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        heightTextPanel.add(heightLabel1);
+
+        JLabel heightLabel2 = new JLabel("Height");
+        heightLabel2.setFont(new Font("Arial", Font.PLAIN, 9));
+        heightLabel2.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        heightTextPanel.add(heightLabel2);
+
+        heightColumn.add(heightTextPanel);
+
+        contextBarItems.add(heightColumn);
+
+        // Add shape effects column (icon with "Shape Effects" label underneath)
+        JPanel shapeColumn = new JPanel();
+        shapeColumn.setLayout(new BoxLayout(shapeColumn, BoxLayout.Y_AXIS));
+        shapeColumn.setOpaque(true);
+        shapeColumn.setBackground(contextBar.getBackground());
+        shapeColumn.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+        shapeColumn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Color shapeColumnDefaultBg = contextBar.getBackground();
+        shapeColumn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                shapeColumn.setBackground(new Color(200, 200, 200));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                shapeColumn.setBackground(shapeColumnDefaultBg);
+            }
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                // TODO: Show shape effects picker
+            }
+        });
+
+        // Load square icon
+        try {
+            java.awt.image.BufferedImage squareImg = javax.imageio.ImageIO.read(new java.io.File("C:\\Users\\Ryan.Pfeiffer\\Downloads\\square.png"));
+            int targetSize = 18;
+            int imgW = squareImg.getWidth();
+            int imgH = squareImg.getHeight();
+            double scale = Math.min((double)targetSize / imgW, (double)targetSize / imgH);
+            int scaledW = (int)(imgW * scale);
+            int scaledH = (int)(imgH * scale);
+            Image scaledImg = squareImg.getScaledInstance(scaledW, scaledH, Image.SCALE_SMOOTH);
+            JLabel shapeIconLabel = new JLabel(new ImageIcon(scaledImg));
+            shapeIconLabel.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            shapeIconLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            shapeIconLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    shapeColumn.setBackground(new Color(200, 200, 200));
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    shapeColumn.setBackground(shapeColumnDefaultBg);
+                }
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    // TODO: Show shape effects picker
+                }
+            });
+            shapeColumn.add(shapeIconLabel);
+        } catch (Exception ex) { /* icon not found */ }
+
+        JLabel shapeLabel1 = new JLabel("Shape");
+        shapeLabel1.setFont(new Font("Arial", Font.PLAIN, 9));
+        shapeLabel1.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        shapeLabel1.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        shapeColumn.add(shapeLabel1);
+
+        JLabel shapeLabel2 = new JLabel("Effects");
+        shapeLabel2.setFont(new Font("Arial", Font.PLAIN, 9));
+        shapeLabel2.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        shapeLabel2.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        shapeLabel2.setBorder(BorderFactory.createEmptyBorder(-2, 0, 0, 0));
+        shapeColumn.add(shapeLabel2);
+
+        contextBarItems.add(shapeColumn);
+
         JPanel topWrapper = new JPanel(new BorderLayout());
         topWrapper.add(toolbarWrapper, BorderLayout.NORTH);
         topWrapper.add(contextBar, BorderLayout.CENTER);
@@ -11423,6 +11550,92 @@ public class Timeline2 extends JFrame {
                 picker.dispose();
             });
             contentPanel.add(sizeBtn);
+        }
+
+        picker.add(contentPanel);
+        picker.pack();
+        picker.setLocation(location.x - picker.getWidth() / 2, location.y + 10);
+        picker.setVisible(true);
+
+        // Close when clicking outside
+        picker.addWindowFocusListener(new java.awt.event.WindowFocusListener() {
+            public void windowGainedFocus(java.awt.event.WindowEvent e) {}
+            public void windowLostFocus(java.awt.event.WindowEvent e) {
+                picker.dispose();
+            }
+        });
+    }
+
+    private void showTaskHeightPicker(java.awt.Point location) {
+        if (selectedTaskIndices.isEmpty()) return;
+
+        int idx = selectedTaskIndices.iterator().next();
+        if (idx < 0 || idx >= tasks.size()) return;
+
+        TimelineTask task = tasks.get(idx);
+        int currentHeight = task.height;
+
+        JWindow picker = new JWindow(this);
+        picker.setLayout(new BorderLayout());
+
+        JPanel contentPanel = new JPanel(new GridLayout(8, 1, 0, 2));
+        contentPanel.setBackground(new Color(245, 245, 245));
+        contentPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(100, 100, 100), 1),
+            BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
+
+        // 8 height options
+        int[] heights = {15, 20, 25, 30, 40, 50, 60, 80};
+        final int originalHeight = currentHeight;
+        final boolean[] committed = {false};
+
+        for (int height : heights) {
+            JButton heightBtn = new JButton(height + " px");
+            heightBtn.setFont(new Font("Arial", Font.PLAIN, 11));
+            heightBtn.setPreferredSize(new Dimension(60, 22));
+            heightBtn.setFocusPainted(false);
+            if (height == currentHeight) {
+                heightBtn.setBackground(new Color(180, 200, 220));
+            } else {
+                heightBtn.setBackground(new Color(240, 240, 240));
+            }
+
+            // Live preview on hover
+            heightBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    heightBtn.setBackground(new Color(180, 200, 220));
+                    for (int ti : selectedTaskIndices) {
+                        tasks.get(ti).height = height;
+                    }
+                    timelineDisplayPanel.repaint();
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    if (height == originalHeight) {
+                        heightBtn.setBackground(new Color(180, 200, 220));
+                    } else {
+                        heightBtn.setBackground(new Color(240, 240, 240));
+                    }
+                    if (!committed[0]) {
+                        for (int ti : selectedTaskIndices) {
+                            tasks.get(ti).height = originalHeight;
+                        }
+                        timelineDisplayPanel.repaint();
+                    }
+                }
+            });
+
+            heightBtn.addActionListener(e -> {
+                committed[0] = true;
+                saveState();
+                for (int ti : selectedTaskIndices) {
+                    tasks.get(ti).height = height;
+                }
+                taskHeightSpinner.setValue(height);
+                refreshTimeline();
+                picker.dispose();
+            });
+            contentPanel.add(heightBtn);
         }
 
         picker.add(contentPanel);
