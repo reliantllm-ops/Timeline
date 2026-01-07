@@ -498,7 +498,7 @@ public class Timeline2 extends JFrame {
         // Start field - left aligned
         gbc.gridx = 1; gbc.gridy = 0;
         gbc.anchor = java.awt.GridBagConstraints.WEST;
-        contextStartField = new JTextField(10);
+        contextStartField = new JTextField(6);
         contextStartField.addActionListener(e -> applyContextBarDates());
         contextStartField.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusLost(java.awt.event.FocusEvent e) { applyContextBarDates(); }
@@ -514,7 +514,7 @@ public class Timeline2 extends JFrame {
         // End field - left aligned
         gbc.gridx = 1; gbc.gridy = 1;
         gbc.anchor = java.awt.GridBagConstraints.WEST;
-        contextEndField = new JTextField(10);
+        contextEndField = new JTextField(6);
         contextEndField.addActionListener(e -> applyContextBarDates());
         contextEndField.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusLost(java.awt.event.FocusEvent e) { applyContextBarDates(); }
@@ -884,14 +884,14 @@ public class Timeline2 extends JFrame {
                 shapeColumn.setBackground(shapeColumnDefaultBg);
             }
             public void mouseClicked(java.awt.event.MouseEvent e) {
-                // TODO: Show shape effects picker
+                showShapeEffectsPicker(e.getLocationOnScreen());
             }
         });
 
         // Load square icon
         try {
-            java.awt.image.BufferedImage squareImg = javax.imageio.ImageIO.read(new java.io.File("C:\\Users\\Ryan.Pfeiffer\\Downloads\\square.png"));
-            int targetSize = 18;
+            java.awt.image.BufferedImage squareImg = javax.imageio.ImageIO.read(new java.io.File("C:\\Users\\Ryan.Pfeiffer\\Downloads\\shape.png"));
+            int targetSize = 22;
             int imgW = squareImg.getWidth();
             int imgH = squareImg.getHeight();
             double scale = Math.min((double)targetSize / imgW, (double)targetSize / imgH);
@@ -909,7 +909,7 @@ public class Timeline2 extends JFrame {
                     shapeColumn.setBackground(shapeColumnDefaultBg);
                 }
                 public void mouseClicked(java.awt.event.MouseEvent e) {
-                    // TODO: Show shape effects picker
+                    showShapeEffectsPicker(e.getLocationOnScreen());
                 }
             });
             shapeColumn.add(shapeIconLabel);
@@ -11323,6 +11323,7 @@ public class Timeline2 extends JFrame {
         String bevelStyle = "Inner Bevel";  // "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"
         String topBevel = "Circle";    // PowerPoint-style top bevel shape
         String bottomBevel = "None";   // PowerPoint-style bottom bevel shape
+        String shadowType = "No Shadow"; // Shadow effect: No Shadow, Bottom Right, Bottom Left, Top Right, Top Left
         int height = 25;           // default height
         int yPosition = -1;        // Y position on timeline (-1 means auto-calculate)
         // Center text formatting properties
@@ -11411,6 +11412,7 @@ public class Timeline2 extends JFrame {
         String bevelStyle = "Inner Bevel";  // "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"
         String topBevel = "Circle";    // PowerPoint-style top bevel shape
         String bottomBevel = "None";   // PowerPoint-style bottom bevel shape
+        String shadowType = "No Shadow"; // Shadow effect: No Shadow, Bottom Right, Bottom Left, Top Right, Top Left
         // Center text properties (text below milestone - same as labelText)
         String centerText = "";
         String fontFamily = "SansSerif";
@@ -11650,6 +11652,215 @@ public class Timeline2 extends JFrame {
                 picker.dispose();
             }
         });
+    }
+
+
+    private void showShapeEffectsPicker(java.awt.Point location) {
+        if (selectedTaskIndices.isEmpty()) return;
+
+        java.util.Map<Integer, Boolean> originalBevelFill = new java.util.HashMap<>();
+        java.util.Map<Integer, String> originalBevelStyle = new java.util.HashMap<>();
+        java.util.Map<Integer, String> originalShadowType = new java.util.HashMap<>();
+        for (int ti : selectedTaskIndices) {
+            originalBevelFill.put(ti, tasks.get(ti).bevelFill);
+            originalBevelStyle.put(ti, tasks.get(ti).bevelStyle);
+            originalShadowType.put(ti, tasks.get(ti).shadowType);
+        }
+
+        Runnable restoreBevel = () -> {
+            for (int ti : selectedTaskIndices) {
+                tasks.get(ti).bevelFill = originalBevelFill.get(ti);
+                tasks.get(ti).bevelStyle = originalBevelStyle.get(ti);
+            }
+            refreshTimeline();
+        };
+
+        Runnable restoreShadow = () -> {
+            for (int ti : selectedTaskIndices) {
+                tasks.get(ti).shadowType = originalShadowType.get(ti);
+            }
+            refreshTimeline();
+        };
+
+        JPopupMenu popup = new JPopupMenu();
+        popup.setBackground(new Color(245, 245, 245));
+
+        JMenu bevelMenu = new JMenu("Bevel");
+        bevelMenu.setFont(new Font("Arial", Font.PLAIN, 11));
+
+        String[] bevelOptions = {"No Bevel", "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"};
+        for (String option : bevelOptions) {
+            JMenuItem optItem = new JMenuItem(option, createBevelIcon(option));
+            optItem.setFont(new Font("Arial", Font.PLAIN, 11));
+            optItem.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    for (int ti : selectedTaskIndices) {
+                        if (option.equals("No Bevel")) {
+                            tasks.get(ti).bevelFill = false;
+                        } else {
+                            tasks.get(ti).bevelFill = true;
+                            tasks.get(ti).bevelStyle = option;
+                        }
+                    }
+                    refreshTimeline();
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    restoreBevel.run();
+                }
+            });
+            optItem.addActionListener(ev -> {
+                saveState();
+                for (int ti : selectedTaskIndices) {
+                    if (option.equals("No Bevel")) {
+                        tasks.get(ti).bevelFill = false;
+                    } else {
+                        tasks.get(ti).bevelFill = true;
+                        tasks.get(ti).bevelStyle = option;
+                    }
+                }
+                for (int ti : selectedTaskIndices) {
+                    originalBevelFill.put(ti, tasks.get(ti).bevelFill);
+                    originalBevelStyle.put(ti, tasks.get(ti).bevelStyle);
+                }
+                refreshTimeline();
+            });
+            bevelMenu.add(optItem);
+        }
+        popup.add(bevelMenu);
+
+        JMenu shadowMenu = new JMenu("Shadow");
+        shadowMenu.setFont(new Font("Arial", Font.PLAIN, 11));
+
+        String[] shadowOptions = {"No Shadow", "Bottom Right", "Bottom Left", "Top Right", "Top Left"};
+        for (String option : shadowOptions) {
+            JMenuItem optItem = new JMenuItem(option, createShadowIcon(option));
+            optItem.setFont(new Font("Arial", Font.PLAIN, 11));
+            optItem.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    for (int ti : selectedTaskIndices) {
+                        tasks.get(ti).shadowType = option;
+                    }
+                    refreshTimeline();
+                }
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    restoreShadow.run();
+                }
+            });
+            optItem.addActionListener(ev -> {
+                saveState();
+                for (int ti : selectedTaskIndices) {
+                    tasks.get(ti).shadowType = option;
+                }
+                for (int ti : selectedTaskIndices) {
+                    originalShadowType.put(ti, tasks.get(ti).shadowType);
+                }
+                refreshTimeline();
+            });
+            shadowMenu.add(optItem);
+        }
+        popup.add(shadowMenu);
+
+        JMenuItem glowItem = new JMenuItem("Glow");
+        glowItem.setFont(new Font("Arial", Font.PLAIN, 11));
+        glowItem.setEnabled(false);
+        popup.add(glowItem);
+
+        popup.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {}
+            public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+                restoreBevel.run();
+                restoreShadow.run();
+            }
+            public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
+                restoreBevel.run();
+                restoreShadow.run();
+            }
+        });
+
+        popup.show(this, location.x - getLocationOnScreen().x, location.y - getLocationOnScreen().y + 10);
+    }
+
+    private ImageIcon createShadowIcon(String shadowType) {
+        int size = 36;
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = img.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        int rectX = 6, rectY = 6, rectW = 22, rectH = 22;
+        int shadowOffset = 4;
+        if (!shadowType.equals("No Shadow")) {
+            g2d.setColor(new Color(50, 50, 50, 180));
+            if (shadowType.equals("Bottom Right")) {
+                g2d.fillRoundRect(rectX + shadowOffset, rectY + shadowOffset, rectW, rectH, 4, 4);
+            } else if (shadowType.equals("Bottom Left")) {
+                g2d.fillRoundRect(rectX - shadowOffset, rectY + shadowOffset, rectW, rectH, 4, 4);
+            } else if (shadowType.equals("Top Right")) {
+                g2d.fillRoundRect(rectX + shadowOffset, rectY - shadowOffset, rectW, rectH, 4, 4);
+            } else if (shadowType.equals("Top Left")) {
+                g2d.fillRoundRect(rectX - shadowOffset, rectY - shadowOffset, rectW, rectH, 4, 4);
+            }
+        }
+        g2d.setColor(new Color(135, 185, 230));
+        g2d.fillRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+        g2d.setColor(new Color(100, 150, 200));
+        g2d.drawRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+        g2d.dispose();
+        return new ImageIcon(img);
+    }
+
+    private ImageIcon createBevelIcon(String bevelType) {
+        int size = 36;
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = img.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        int rectX = 6, rectY = 6, rectW = 22, rectH = 22;
+        Color baseColor = new Color(135, 185, 230);
+        Color lighter = new Color(180, 210, 245);
+        Color darker = new Color(90, 140, 190);
+        if (bevelType.equals("No Bevel")) {
+            g2d.setColor(baseColor);
+            g2d.fillRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+            g2d.setColor(new Color(100, 150, 200));
+            g2d.drawRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+        } else if (bevelType.equals("Inner Bevel")) {
+            GradientPaint gp = new GradientPaint(rectX, rectY, lighter, rectX + rectW, rectY + rectH, darker);
+            g2d.setPaint(gp);
+            g2d.fillRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+            g2d.setColor(new Color(255, 255, 255, 120));
+            g2d.drawLine(rectX + 2, rectY + 1, rectX + rectW - 2, rectY + 1);
+            g2d.drawLine(rectX + 1, rectY + 2, rectX + 1, rectY + rectH - 2);
+            g2d.setColor(new Color(0, 0, 0, 80));
+            g2d.drawLine(rectX + 2, rectY + rectH - 1, rectX + rectW - 2, rectY + rectH - 1);
+            g2d.drawLine(rectX + rectW - 1, rectY + 2, rectX + rectW - 1, rectY + rectH - 2);
+        } else if (bevelType.equals("Outer Bevel")) {
+            GradientPaint gp = new GradientPaint(rectX, rectY, lighter, rectX + rectW, rectY + rectH, darker);
+            g2d.setPaint(gp);
+            g2d.fillRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+            g2d.setColor(new Color(255, 255, 255, 150));
+            g2d.setStroke(new BasicStroke(2));
+            g2d.drawLine(rectX - 1, rectY - 1, rectX + rectW + 1, rectY - 1);
+            g2d.drawLine(rectX - 1, rectY - 1, rectX - 1, rectY + rectH + 1);
+            g2d.setColor(new Color(0, 0, 0, 100));
+            g2d.drawLine(rectX - 1, rectY + rectH + 1, rectX + rectW + 1, rectY + rectH + 1);
+            g2d.drawLine(rectX + rectW + 1, rectY - 1, rectX + rectW + 1, rectY + rectH + 1);
+        } else if (bevelType.equals("Emboss")) {
+            g2d.setColor(baseColor);
+            g2d.fillRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+            g2d.setColor(new Color(0, 0, 0, 100));
+            g2d.drawRoundRect(rectX + 1, rectY + 1, rectW, rectH, 4, 4);
+            g2d.setColor(new Color(255, 255, 255, 120));
+            g2d.drawRoundRect(rectX - 1, rectY - 1, rectW, rectH, 4, 4);
+        } else if (bevelType.equals("Pillow Emboss")) {
+            g2d.setColor(baseColor);
+            g2d.fillRoundRect(rectX, rectY, rectW, rectH, 4, 4);
+            g2d.setColor(new Color(0, 0, 0, 100));
+            g2d.drawLine(rectX + 3, rectY + 2, rectX + rectW - 3, rectY + 2);
+            g2d.drawLine(rectX + 2, rectY + 3, rectX + 2, rectY + rectH - 3);
+            g2d.setColor(new Color(255, 255, 255, 120));
+            g2d.drawLine(rectX + 3, rectY + rectH - 2, rectX + rectW - 3, rectY + rectH - 2);
+            g2d.drawLine(rectX + rectW - 2, rectY + 3, rectX + rectW - 2, rectY + rectH - 3);
+        }
+        g2d.dispose();
+        return new ImageIcon(img);
     }
 
     // Timeline Display Panel
@@ -12210,6 +12421,8 @@ public class Timeline2 extends JFrame {
                         isDragging = false;
                         draggingTaskIndex = -1;
                         setCursor(Cursor.getDefaultCursor());
+                        if (contextStartField != null) contextStartField.setBackground(Color.WHITE);
+                        if (contextEndField != null) contextEndField.setBackground(Color.WHITE);
                     }
                     if (isMultiDragging) {
                         isMultiDragging = false;
@@ -12227,6 +12440,8 @@ public class Timeline2 extends JFrame {
                         moveDragOriginalStartDate = null;
                         moveDragOriginalEndDate = null;
                         setCursor(Cursor.getDefaultCursor());
+                        if (contextStartField != null) contextStartField.setBackground(Color.WHITE);
+                        if (contextEndField != null) contextEndField.setBackground(Color.WHITE);
                         refreshTimeline();
                     }
                     if (isHeightDragging) {
@@ -13265,10 +13480,20 @@ public class Timeline2 extends JFrame {
                 if (draggingStart && newDate.isBefore(taskEnd)) {
                     task.startDate = newDate.format(DATE_FORMAT);
                     updateFormatPanelDates(draggingTaskIndex);
+                    if (contextStartField != null) {
+                        contextStartField.setText(task.startDate);
+                        contextStartField.setBackground(new Color(200, 220, 255));
+                    }
+                    if (contextEndField != null) contextEndField.setBackground(Color.WHITE);
                     repaint();
                 } else if (!draggingStart && newDate.isAfter(taskStart)) {
                     task.endDate = newDate.format(DATE_FORMAT);
                     updateFormatPanelDates(draggingTaskIndex);
+                    if (contextEndField != null) {
+                        contextEndField.setText(task.endDate);
+                        contextEndField.setBackground(new Color(200, 220, 255));
+                    }
+                    if (contextStartField != null) contextStartField.setBackground(Color.WHITE);
                     repaint();
                 }
             } catch (Exception ex) {}
@@ -13391,6 +13616,9 @@ public class Timeline2 extends JFrame {
                 task.startDate = newStart.format(DATE_FORMAT);
                 task.endDate = newEnd.format(DATE_FORMAT);
                 updateFormatPanelDates(moveDragTaskIndex);
+                // Update context bar with both fields highlighted
+                if (contextStartField != null) { contextStartField.setText(task.startDate); contextStartField.setBackground(new Color(200, 220, 255)); }
+                if (contextEndField != null) { contextEndField.setText(task.endDate); contextEndField.setBackground(new Color(200, 220, 255)); }
             } catch (Exception ex) {}
 
             // Calculate vertical movement (Y position)
@@ -13741,6 +13969,25 @@ public class Timeline2 extends JFrame {
                     g2d.setStroke(new BasicStroke(2));
                     g2d.drawRoundRect(x1 - boxPadding, y - boxPadding,
                                       barWidth + boxPadding * 2, taskHeight + boxPadding * 2, 10, 10);
+                }
+
+                // Draw shadow effect
+                if (task.shadowType != null && !task.shadowType.equals("No Shadow")) {
+                    int shadowOffset = 6;
+                    for (int layer = 3; layer >= 0; layer--) {
+                        int alpha = 40 + (3 - layer) * 20;
+                        int offset = shadowOffset + layer;
+                        g2d.setColor(new Color(0, 0, 0, alpha));
+                        if (task.shadowType.equals("Bottom Right")) {
+                            g2d.fillRoundRect(x1 + offset, y + offset, barWidth, taskHeight, 8, 8);
+                        } else if (task.shadowType.equals("Bottom Left")) {
+                            g2d.fillRoundRect(x1 - offset, y + offset, barWidth, taskHeight, 8, 8);
+                        } else if (task.shadowType.equals("Top Right")) {
+                            g2d.fillRoundRect(x1 + offset, y - offset, barWidth, taskHeight, 8, 8);
+                        } else if (task.shadowType.equals("Top Left")) {
+                            g2d.fillRoundRect(x1 - offset, y - offset, barWidth, taskHeight, 8, 8);
+                        }
+                    }
                 }
 
                 // Draw behind text (behind the task bar)
