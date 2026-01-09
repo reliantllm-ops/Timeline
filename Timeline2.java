@@ -21,6 +21,7 @@ import java.util.zip.ZipOutputStream;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import com.formdev.flatlaf.FlatLightLaf;
+import model.*;
 
 public class Timeline2 extends JFrame {
 
@@ -112,6 +113,11 @@ public class Timeline2 extends JFrame {
     private double toolbarGradientAngle = 90.0;
     private ArrayList<float[]> toolbarGradientStops = new ArrayList<>();
     private JPanel toolbarPanel;
+    // Panel colors - Context Bar
+    private Color contextBarBgColor = new Color(230, 230, 230);
+    private Color contextBarTextColor = new Color(120, 120, 120);
+    private Color contextBarLineColor = new Color(180, 180, 180);
+    private int contextBarFontSize = 11;
     private JPanel contextBar;
     private JTextField contextStartField;
     private JTextField contextEndField;
@@ -467,16 +473,28 @@ public class Timeline2 extends JFrame {
 
         // Context bar that slides down when task selected
         contextBar = new JPanel(new BorderLayout());
-        contextBar.setBackground(new Color(230, 230, 230));
-        contextBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(180, 180, 180)));
+        contextBar.setBackground(contextBarBgColor);
+        contextBar.setBorder(null);
         contextBar.setPreferredSize(new Dimension(0, 0));
 
-        // Add "Task Format" label above the items
-        JLabel taskFormatLabel = new JLabel("Task Format");
-        taskFormatLabel.setFont(new Font("Arial", Font.BOLD, 11));
-        taskFormatLabel.setForeground(new Color(120, 120, 120));
-        taskFormatLabel.setBorder(BorderFactory.createEmptyBorder(2, 10, 0, 0));
-        contextBar.add(taskFormatLabel, BorderLayout.NORTH);
+        // Add header with "Task Format" label and line extending to the right
+        JPanel contextHeaderPanel = new JPanel();
+        contextHeaderPanel.setLayout(new BoxLayout(contextHeaderPanel, BoxLayout.X_AXIS));
+        contextHeaderPanel.setOpaque(false);
+        contextHeaderPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 1, 10));
+        
+        JLabel taskFormatLabel = new JLabel("Task Format  ");
+        taskFormatLabel.setFont(new Font("Arial", Font.BOLD, contextBarFontSize));
+        taskFormatLabel.setForeground(contextBarTextColor);
+        
+        JPanel linePanel = new JPanel();
+        linePanel.setBackground(contextBarLineColor);
+        linePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        linePanel.setPreferredSize(new Dimension(0, 1));
+        
+        contextHeaderPanel.add(taskFormatLabel);
+        contextHeaderPanel.add(linePanel);
+        contextBar.add(contextHeaderPanel, BorderLayout.NORTH);
 
         // Items panel with FlowLayout
         JPanel contextBarItems = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 2));
@@ -7817,8 +7835,86 @@ public class Timeline2 extends JFrame {
         ggbc.fill = GridBagConstraints.BOTH;
         generalSkinsTab.add(new JPanel(), ggbc);
 
+        // Context Bar skins tab
+        JPanel contextBarSkinsTab = new JPanel(new GridBagLayout());
+        contextBarSkinsTab.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints cbgbc = new GridBagConstraints();
+        cbgbc.insets = new Insets(8, 8, 8, 8);
+        cbgbc.anchor = GridBagConstraints.WEST;
+        
+        // Background color
+        cbgbc.gridx = 0; cbgbc.gridy = 0;
+        contextBarSkinsTab.add(new JLabel("Background:"), cbgbc);
+        JButton contextBarBgBtn = new JButton();
+        contextBarBgBtn.setPreferredSize(new Dimension(60, 25));
+        contextBarBgBtn.setBackground(contextBarBgColor);
+        contextBarBgBtn.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(dialog, "Choose Context Bar Background", contextBarBgColor);
+            if (newColor != null) {
+                contextBarBgColor = newColor;
+                contextBarBgBtn.setBackground(newColor);
+                if (contextBar != null) contextBar.setBackground(newColor);
+            }
+        });
+        cbgbc.gridx = 1;
+        contextBarSkinsTab.add(contextBarBgBtn, cbgbc);
+        
+        // Text color
+        cbgbc.gridx = 0; cbgbc.gridy = 1;
+        contextBarSkinsTab.add(new JLabel("Text:"), cbgbc);
+        JButton contextBarTextBtn = new JButton();
+        contextBarTextBtn.setPreferredSize(new Dimension(60, 25));
+        contextBarTextBtn.setBackground(contextBarTextColor);
+        contextBarTextBtn.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(dialog, "Choose Context Bar Text Color", contextBarTextColor);
+            if (newColor != null) {
+                contextBarTextColor = newColor;
+                contextBarTextBtn.setBackground(newColor);
+                applyContextBarColors();
+            }
+        });
+        cbgbc.gridx = 1;
+        contextBarSkinsTab.add(contextBarTextBtn, cbgbc);
+        
+        // Line color
+        cbgbc.gridx = 0; cbgbc.gridy = 2;
+        contextBarSkinsTab.add(new JLabel("Line:"), cbgbc);
+        JButton contextBarLineBtn = new JButton();
+        contextBarLineBtn.setPreferredSize(new Dimension(60, 25));
+        contextBarLineBtn.setBackground(contextBarLineColor);
+        contextBarLineBtn.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(dialog, "Choose Context Bar Line Color", contextBarLineColor);
+            if (newColor != null) {
+                contextBarLineColor = newColor;
+                contextBarLineBtn.setBackground(newColor);
+                applyContextBarColors();
+            }
+        });
+        cbgbc.gridx = 1;
+        contextBarSkinsTab.add(contextBarLineBtn, cbgbc);
+        
+        // Font size
+        cbgbc.gridx = 0; cbgbc.gridy = 3;
+        contextBarSkinsTab.add(new JLabel("Font Size:"), cbgbc);
+        JSpinner contextBarFontSpinner = new JSpinner(new SpinnerNumberModel(contextBarFontSize, 6, 24, 1));
+        contextBarFontSpinner.setPreferredSize(new Dimension(60, 25));
+        contextBarFontSpinner.addChangeListener(e -> {
+            contextBarFontSize = (Integer) contextBarFontSpinner.getValue();
+            applyContextBarColors();
+        });
+        cbgbc.gridx = 1;
+        contextBarSkinsTab.add(contextBarFontSpinner, cbgbc);
+        
+        // Filler to push everything up
+        cbgbc.gridx = 0; cbgbc.gridy = 4;
+        cbgbc.gridwidth = 2;
+        cbgbc.weighty = 1.0;
+        cbgbc.fill = GridBagConstraints.BOTH;
+        contextBarSkinsTab.add(new JPanel(), cbgbc);
+
         // Add all tabs in desired order: Toolbar, Format, Right Panel, rightTabbedPane, Layers, Timeline, General
         tabbedPane.addTab("Toolbar", toolbarSkinsTab);
+        tabbedPane.addTab("Context Bar", contextBarSkinsTab);
         tabbedPane.addTab("Format", formatTab);
         tabbedPane.addTab("Right Panel", rightPanelSkinsTab);
         tabbedPane.addTab("rightTabbedPane", rightTabbedSkinsTab);
@@ -9005,6 +9101,37 @@ public class Timeline2 extends JFrame {
                 settingsScrollPane.setBorder(BorderFactory.createLineBorder(borderColor));
             } else {
                 settingsScrollPane.setBorder(null);
+            }
+        }
+    }
+
+    private void applyContextBarColors() {
+        if (contextBar != null) {
+            contextBar.setBackground(contextBarBgColor);
+            // Update text and line colors in header
+            for (java.awt.Component c : contextBar.getComponents()) {
+                if (c instanceof JPanel) {
+                    updateContextBarPanelColors((JPanel) c);
+                }
+            }
+            contextBar.repaint();
+        }
+    }
+    
+    private void updateContextBarPanelColors(JPanel panel) {
+        for (java.awt.Component c : panel.getComponents()) {
+            if (c instanceof JLabel) {
+                JLabel label = (JLabel) c;
+                if ("Task Format  ".equals(label.getText())) {
+                    label.setForeground(contextBarTextColor);
+                    label.setFont(new Font("Arial", Font.BOLD, contextBarFontSize));
+                }
+            } else if (c instanceof JPanel) {
+                JPanel p = (JPanel) c;
+                if (p.getPreferredSize() != null && p.getPreferredSize().height == 1) {
+                    p.setBackground(contextBarLineColor);
+                }
+                updateContextBarPanelColors(p);
             }
         }
     }
@@ -11173,314 +11300,6 @@ public class Timeline2 extends JFrame {
         }
     }
 
-    // Data classes
-    static class TimelineEvent {
-        String title, date, description;
-        TimelineEvent(String title, String date, String description) {
-            this.title = title;
-            this.date = date;
-            this.description = description;
-        }
-    }
-
-    // State class for undo/redo
-    class TimelineState {
-        ArrayList<TimelineTask> tasks;
-        ArrayList<TimelineMilestone> milestones;
-        ArrayList<Object> layerOrder;
-        ArrayList<TimelineEvent> events;
-
-        TimelineState(ArrayList<TimelineTask> tasks, ArrayList<TimelineMilestone> milestones,
-                      ArrayList<Object> layerOrder, ArrayList<TimelineEvent> events) {
-            // Deep copy tasks
-            this.tasks = new ArrayList<>();
-            for (TimelineTask t : tasks) {
-                this.tasks.add(copyTask(t));
-            }
-            // Deep copy milestones
-            this.milestones = new ArrayList<>();
-            for (TimelineMilestone m : milestones) {
-                this.milestones.add(copyMilestone(m));
-            }
-            // Deep copy layer order (references to new copies)
-            this.layerOrder = new ArrayList<>();
-            for (Object item : layerOrder) {
-                if (item instanceof TimelineTask) {
-                    int idx = tasks.indexOf(item);
-                    if (idx >= 0) this.layerOrder.add(this.tasks.get(idx));
-                } else if (item instanceof TimelineMilestone) {
-                    int idx = milestones.indexOf(item);
-                    if (idx >= 0) this.layerOrder.add(this.milestones.get(idx));
-                }
-            }
-            // Deep copy events
-            this.events = new ArrayList<>();
-            for (TimelineEvent e : events) {
-                this.events.add(new TimelineEvent(e.title, e.date, e.description));
-            }
-        }
-
-        private TimelineTask copyTask(TimelineTask t) {
-            TimelineTask copy = new TimelineTask(t.name, t.startDate, t.endDate);
-            copy.centerText = t.centerText;
-            copy.fillColor = t.fillColor;
-            copy.outlineColor = t.outlineColor;
-            copy.outlineThickness = t.outlineThickness;
-            copy.bevelFill = t.bevelFill;
-            copy.bevelDepth = t.bevelDepth;
-            copy.bevelLightAngle = t.bevelLightAngle;
-            copy.bevelHighlightOpacity = t.bevelHighlightOpacity;
-            copy.bevelShadowOpacity = t.bevelShadowOpacity;
-            copy.bevelStyle = t.bevelStyle;
-            copy.topBevel = t.topBevel;
-            copy.bottomBevel = t.bottomBevel;
-            copy.height = t.height;
-            copy.yPosition = t.yPosition;
-            copy.fontFamily = t.fontFamily;
-            copy.fontSize = t.fontSize;
-            copy.fontBold = t.fontBold;
-            copy.fontItalic = t.fontItalic;
-            copy.textColor = t.textColor;
-            copy.centerTextXOffset = t.centerTextXOffset;
-            copy.centerTextYOffset = t.centerTextYOffset;
-            copy.frontText = t.frontText;
-            copy.frontFontFamily = t.frontFontFamily;
-            copy.frontFontSize = t.frontFontSize;
-            copy.frontFontBold = t.frontFontBold;
-            copy.frontFontItalic = t.frontFontItalic;
-            copy.frontTextColor = t.frontTextColor;
-            copy.frontTextXOffset = t.frontTextXOffset;
-            copy.frontTextYOffset = t.frontTextYOffset;
-            copy.aboveText = t.aboveText;
-            copy.aboveFontFamily = t.aboveFontFamily;
-            copy.aboveFontSize = t.aboveFontSize;
-            copy.aboveFontBold = t.aboveFontBold;
-            copy.aboveFontItalic = t.aboveFontItalic;
-            copy.aboveTextColor = t.aboveTextColor;
-            copy.aboveTextXOffset = t.aboveTextXOffset;
-            copy.aboveTextYOffset = t.aboveTextYOffset;
-            copy.underneathText = t.underneathText;
-            copy.underneathFontFamily = t.underneathFontFamily;
-            copy.underneathFontSize = t.underneathFontSize;
-            copy.underneathFontBold = t.underneathFontBold;
-            copy.underneathFontItalic = t.underneathFontItalic;
-            copy.underneathTextColor = t.underneathTextColor;
-            copy.underneathTextXOffset = t.underneathTextXOffset;
-            copy.underneathTextYOffset = t.underneathTextYOffset;
-            copy.behindText = t.behindText;
-            copy.behindFontFamily = t.behindFontFamily;
-            copy.behindFontSize = t.behindFontSize;
-            copy.behindFontBold = t.behindFontBold;
-            copy.behindFontItalic = t.behindFontItalic;
-            copy.behindTextColor = t.behindTextColor;
-            copy.behindTextXOffset = t.behindTextXOffset;
-            copy.behindTextYOffset = t.behindTextYOffset;
-            copy.note1 = t.note1;
-            copy.note2 = t.note2;
-            copy.note3 = t.note3;
-            copy.note4 = t.note4;
-            copy.note5 = t.note5;
-            return copy;
-        }
-
-        private TimelineMilestone copyMilestone(TimelineMilestone m) {
-            TimelineMilestone copy = new TimelineMilestone(m.name, m.date, m.shape);
-            copy.width = m.width;
-            copy.height = m.height;
-            copy.yPosition = m.yPosition;
-            copy.fillColor = m.fillColor;
-            copy.outlineColor = m.outlineColor;
-            copy.outlineThickness = m.outlineThickness;
-            copy.bevelFill = m.bevelFill;
-            copy.bevelDepth = m.bevelDepth;
-            copy.bevelLightAngle = m.bevelLightAngle;
-            copy.bevelHighlightOpacity = m.bevelHighlightOpacity;
-            copy.bevelShadowOpacity = m.bevelShadowOpacity;
-            copy.bevelStyle = m.bevelStyle;
-            copy.topBevel = m.topBevel;
-            copy.bottomBevel = m.bottomBevel;
-            copy.labelText = m.labelText;
-            copy.fontFamily = m.fontFamily;
-            copy.fontSize = m.fontSize;
-            copy.fontBold = m.fontBold;
-            copy.fontItalic = m.fontItalic;
-            copy.textColor = m.textColor;
-            return copy;
-        }
-    }
-
-    static class TimelineTask {
-        String name, startDate, endDate;
-        String centerText = "";    // text displayed on the task bar
-        Color fillColor = null;    // null means use default
-        Color outlineColor = null; // null means use default (darker fill)
-        int outlineThickness = 2;  // default thickness
-        boolean bevelFill = false; // bevel effect on fill
-        int bevelDepth = 60;       // bevel intensity (0-100)
-        int bevelLightAngle = 135; // light angle in degrees (0-360, 135 = top-left)
-        int bevelHighlightOpacity = 80; // highlight opacity (0-255)
-        int bevelShadowOpacity = 60;    // shadow opacity (0-255)
-        String bevelStyle = "Inner Bevel";  // "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"
-        String topBevel = "Circle";    // PowerPoint-style top bevel shape
-        String bottomBevel = "None";   // PowerPoint-style bottom bevel shape
-        String shadowType = "No Shadow"; // Shadow effect: No Shadow, Bottom Right, Bottom Left, Top Right, Top Left
-        int height = 25;           // default height
-        int yPosition = -1;        // Y position on timeline (-1 means auto-calculate)
-        // Center text formatting properties
-        String fontFamily = "SansSerif";  // default font family
-        int fontSize = 11;         // default font size
-        boolean fontBold = false;  // default not bold
-        boolean fontItalic = false; // default not italic
-        Color textColor = Color.BLACK;    // default black
-        int centerTextXOffset = 0; // X offset from default position
-        int centerTextYOffset = 0; // Y offset from default position
-        boolean centerTextWrap = false; // wrap center text
-        boolean centerTextVisible = true; // center text visible
-        // Front text properties (text in front of task bar)
-        String frontText = "";
-        String frontFontFamily = "SansSerif";
-        int frontFontSize = 10;
-        boolean frontFontBold = false;
-        boolean frontFontItalic = false;
-        Color frontTextColor = Color.BLACK;
-        int frontTextXOffset = 0;
-        int frontTextYOffset = 0;
-        boolean frontTextWrap = false; // wrap front text
-        boolean frontTextVisible = true; // front text visible
-        // Above text properties (text above task bar)
-        String aboveText = "";
-        String aboveFontFamily = "SansSerif";
-        int aboveFontSize = 10;
-        boolean aboveFontBold = false;
-        boolean aboveFontItalic = false;
-        Color aboveTextColor = Color.BLACK;
-        int aboveTextXOffset = 0;
-        int aboveTextYOffset = 0;
-        boolean aboveTextWrap = false; // wrap above text
-        boolean aboveTextVisible = true; // above text visible
-        // Underneath text properties (text below task bar)
-        String underneathText = "";
-        String underneathFontFamily = "SansSerif";
-        int underneathFontSize = 10;
-        boolean underneathFontBold = false;
-        boolean underneathFontItalic = false;
-        Color underneathTextColor = Color.BLACK;
-        int underneathTextXOffset = 0;
-        int underneathTextYOffset = 0;
-        boolean underneathTextWrap = false; // wrap underneath text
-        boolean underneathTextVisible = true; // underneath text visible
-        // Behind text properties (text behind task bar)
-        String behindText = "";
-        String behindFontFamily = "SansSerif";
-        int behindFontSize = 10;
-        boolean behindFontBold = false;
-        boolean behindFontItalic = false;
-        Color behindTextColor = new Color(150, 150, 150);
-        int behindTextXOffset = 0;
-        int behindTextYOffset = 0;
-        boolean behindTextWrap = false; // wrap behind text
-        boolean behindTextVisible = true; // behind text visible
-        // Notes
-        String note1 = "";
-        String note2 = "";
-        String note3 = "";
-        String note4 = "";
-        String note5 = "";
-        TimelineTask(String name, String startDate, String endDate) {
-            this.name = name;
-            this.centerText = ""; // leave center text blank by default
-            this.startDate = startDate;
-            this.endDate = endDate;
-        }
-    }
-
-    static class TimelineMilestone {
-        String name;
-        String date;
-        String shape;  // "diamond", "circle", "triangle", "star", "square", "hexagon"
-        int width = 20;
-        int height = 20;
-        int yPosition = -1;
-        Color fillColor = new Color(255, 193, 7);  // default gold/yellow
-        Color outlineColor = Color.BLACK;
-        int outlineThickness = 2;
-        boolean bevelFill = false; // bevel effect on fill
-        int bevelDepth = 60;       // bevel intensity (0-100)
-        int bevelLightAngle = 135; // light angle in degrees (0-360, 135 = top-left)
-        int bevelHighlightOpacity = 80; // highlight opacity (0-255)
-        int bevelShadowOpacity = 60;    // shadow opacity (0-255)
-        String bevelStyle = "Inner Bevel";  // "Inner Bevel", "Outer Bevel", "Emboss", "Pillow Emboss"
-        String topBevel = "Circle";    // PowerPoint-style top bevel shape
-        String bottomBevel = "None";   // PowerPoint-style bottom bevel shape
-        String shadowType = "No Shadow"; // Shadow effect: No Shadow, Bottom Right, Bottom Left, Top Right, Top Left
-        // Center text properties (text below milestone - same as labelText)
-        String centerText = "";
-        String fontFamily = "SansSerif";
-        int fontSize = 10;
-        boolean fontBold = false;
-        boolean fontItalic = false;
-        Color textColor = Color.BLACK;
-        int centerTextXOffset = 0;
-        int centerTextYOffset = 0;
-        boolean centerTextWrap = false;
-        boolean centerTextVisible = true;
-        // Front text properties (text in front of milestone)
-        String frontText = "";
-        String frontFontFamily = "SansSerif";
-        int frontFontSize = 10;
-        boolean frontFontBold = false;
-        boolean frontFontItalic = false;
-        Color frontTextColor = Color.BLACK;
-        int frontTextXOffset = 0;
-        int frontTextYOffset = 0;
-        boolean frontTextWrap = false;
-        boolean frontTextVisible = true;
-        // Above text properties (text above milestone)
-        String aboveText = "";
-        String aboveFontFamily = "SansSerif";
-        int aboveFontSize = 10;
-        boolean aboveFontBold = false;
-        boolean aboveFontItalic = false;
-        Color aboveTextColor = Color.BLACK;
-        int aboveTextXOffset = 0;
-        int aboveTextYOffset = 0;
-        boolean aboveTextWrap = false;
-        boolean aboveTextVisible = true;
-        // Underneath text properties (text below milestone, further down)
-        String underneathText = "";
-        String underneathFontFamily = "SansSerif";
-        int underneathFontSize = 10;
-        boolean underneathFontBold = false;
-        boolean underneathFontItalic = false;
-        Color underneathTextColor = Color.BLACK;
-        int underneathTextXOffset = 0;
-        int underneathTextYOffset = 0;
-        boolean underneathTextWrap = false;
-        boolean underneathTextVisible = true;
-        // Behind text properties (text behind/after milestone)
-        String behindText = "";
-        String behindFontFamily = "SansSerif";
-        int behindFontSize = 10;
-        boolean behindFontBold = false;
-        boolean behindFontItalic = false;
-        Color behindTextColor = new Color(150, 150, 150);
-        int behindTextXOffset = 0;
-        int behindTextYOffset = 0;
-        boolean behindTextWrap = false;
-        boolean behindTextVisible = true;
-        // Legacy support
-        String labelText = "";
-        boolean labelTextWrap = false;
-        boolean labelTextVisible = true;
-
-        TimelineMilestone(String name, String date, String shape) {
-            this.name = name;
-            this.centerText = ""; // leave center text blank by default
-            this.labelText = ""; // leave label text blank by default
-            this.date = date;
-            this.shape = shape;
-        }
-    }
 
     private void showOutlineWeightPicker(java.awt.Point location) {
         if (selectedTaskIndices.isEmpty()) return;
