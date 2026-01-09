@@ -824,7 +824,7 @@ public class Timeline2 extends JFrame {
 
         // Load height icon (bigger)
         try {
-            java.awt.image.BufferedImage heightImg = javax.imageio.ImageIO.read(new java.io.File("C:\\Users\\Ryan.Pfeiffer\\Downloads\\height.png"));
+            java.awt.image.BufferedImage heightImg = javax.imageio.ImageIO.read(new java.io.File("height.png"));
             int targetSize = 41;
             int imgW = heightImg.getWidth();
             int imgH = heightImg.getHeight();
@@ -890,7 +890,7 @@ public class Timeline2 extends JFrame {
 
         // Load square icon
         try {
-            java.awt.image.BufferedImage squareImg = javax.imageio.ImageIO.read(new java.io.File("C:\\Users\\Ryan.Pfeiffer\\Downloads\\shape.png"));
+            java.awt.image.BufferedImage squareImg = javax.imageio.ImageIO.read(new java.io.File("shape.png"));
             int targetSize = 22;
             int imgW = squareImg.getWidth();
             int imgH = squareImg.getHeight();
